@@ -29,7 +29,6 @@ public static class AncientBanHelpers
         return act
             .GetUnlockedAncients(runState.UnlockState)
             .Concat(sharedSubset)
-            .Where(a => a is not null)
             .DistinctBy(a => a.Id)
             .OrderBy(a => a.Id.Entry)
             .ToList();

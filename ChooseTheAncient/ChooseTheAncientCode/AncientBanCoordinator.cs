@@ -44,10 +44,17 @@ public static class AncientBanCoordinator
             List<AncientEventModel> remaining = pool
                 .Where((_, i) => i != bannedIndex)
                 .ToList();
-
+            
             AncientBanHelpers.LogPool($"Act {nextActIndex + 1} remaining after ban", remaining);
-
-            AncientEventModel chosen = ResolveSpawnedAncient(runState, nextActIndex, remaining);
+            AncientEventModel chosen;
+            if (remaining.Count == 1)
+            {
+                chosen = remaining[0];
+            }
+            else
+            {
+                chosen = ResolveSpawnedAncient(runState, nextActIndex, remaining);
+            }
             AncientBanHelpers.SetChosenAncient(nextAct, chosen);
 
             GD.Print($"[ChooseTheAncient] Banned ancient index {bannedIndex}; chosen spawn for act {nextActIndex + 1}: {chosen.Id.Entry}");

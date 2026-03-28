@@ -1,6 +1,5 @@
-using ChooseTheAncient.ChooseTheAncientCode;
+using System.Threading.Tasks;
 using HarmonyLib;
-using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
@@ -8,7 +7,7 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.EnterNextAct))]
 public static class EnterNextActPatch
 {
-    static bool Prefix(RunManager __instance)
+    static bool Prefix(RunManager __instance, ref Task __result)
     {
         RunState? runState = AncientBanHelpers.GetRunState(__instance);
         if (runState == null)
@@ -33,11 +32,16 @@ public static class EnterNextActPatch
 
         if (flow.FlowInProgress || flow.ResolvedActs.Contains(nextActIndex))
         {
+            /*
+             that is fine for now, but ResolvedActs.Contains(nextActIndex) should probably only happen for weird reentry.
+             If you ever see transitions stalling there, we can tighten that logic next.
+             */
+            __result = Task.CompletedTask;
             return false;
         }
 
         flow.FlowInProgress = true;
-        TaskHelper.RunSafely(AncientBanCoordinator.RunAsync(__instance, runState, nextActIndex, flow));
+        __result = AncientBanCoordinator.RunAsync(__instance, runState, nextActIndex, flow);
         return false;
     }
 }
