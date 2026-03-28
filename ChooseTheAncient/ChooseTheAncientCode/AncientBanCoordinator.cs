@@ -77,7 +77,8 @@ public static class AncientBanCoordinator
             flow.FlowInProgress = false;
         }
     }
-       private static async Task<List<int>> CollectVotes(
+    
+    private static async Task<List<int>> CollectVotes(
         RunState runState,
         IReadOnlyList<AncientEventModel> pool,
         int nextActIndex)
@@ -88,26 +89,29 @@ public static class AncientBanCoordinator
 
         Dictionary<ulong, uint> choiceIdsByPlayer = new();
 
-        // Important: reserve ALL choice IDs up front, in stable slot order, on every client.
         foreach (Player player in orderedPlayers)
         {
             uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
             choiceIdsByPlayer[player.NetId] = choiceId;
         }
 
-        List<int> votes = new();
+        Task<int>[] voteTasks = orderedPlayers
+            .Select(player => GetVoteForPlayer(
+                player,
+                choiceIdsByPlayer[player.NetId],
+                pool,
+                nextActIndex))
+            .ToArray();
 
-        foreach (Player player in orderedPlayers)
+        int[] votes = await Task.WhenAll(voteTasks);
+
+        for (int i = 0; i < orderedPlayers.Count; i++)
         {
-            uint choiceId = choiceIdsByPlayer[player.NetId];
-            int vote = await GetVoteForPlayer(player, choiceId, pool, nextActIndex);
-            votes.Add(vote);
-
-            GD.Print($"[ChooseTheAncient] Received vote for player {player.NetId}: {vote}");
+            GD.Print($"[ChooseTheAncient] Received vote for player {orderedPlayers[i].NetId}: {votes[i]}");
         }
 
-        return votes;
-    }
+        return votes.ToList();
+    } 
 
     private static async Task<int> GetVoteForPlayer(
         Player player,
