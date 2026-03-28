@@ -32,10 +32,6 @@ public static class EnterNextActPatch
 
         if (flow.FlowInProgress || flow.ResolvedActs.Contains(nextActIndex))
         {
-            /*
-             that is fine for now, but ResolvedActs.Contains(nextActIndex) should probably only happen for weird reentry.
-             If you ever see transitions stalling there, we can tighten that logic next.
-             */
             __result = Task.CompletedTask;
             return false;
         }

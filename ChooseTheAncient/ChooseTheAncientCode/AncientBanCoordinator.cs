@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Godot;
+using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
@@ -37,9 +41,8 @@ public static class AncientBanCoordinator
                 return;
             }
 
-            // Temporary v1: singleplayer/local vote only.
-            // Multiplayer choice sync comes next.
-            int bannedIndex = await AncientBanSelectionScreen.ShowAndWait(pool, nextActIndex);
+            List<int> votesInPlayerSlotOrder = await CollectVotes(runState, pool, nextActIndex);
+            int bannedIndex = ResolveBannedIndex(runState, nextActIndex, votesInPlayerSlotOrder);
 
             List<AncientEventModel> remaining = pool
                 .Where((_, i) => i != bannedIndex)
@@ -74,7 +77,71 @@ public static class AncientBanCoordinator
             flow.FlowInProgress = false;
         }
     }
+       private static async Task<List<int>> CollectVotes(
+        RunState runState,
+        IReadOnlyList<AncientEventModel> pool,
+        int nextActIndex)
+    {
+        List<Player> orderedPlayers = runState.Players
+            .OrderBy(p => runState.GetPlayerSlotIndex(p))
+            .ToList();
 
+        Dictionary<ulong, uint> choiceIdsByPlayer = new();
+
+        // Important: reserve ALL choice IDs up front, in stable slot order, on every client.
+        foreach (Player player in orderedPlayers)
+        {
+            uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
+            choiceIdsByPlayer[player.NetId] = choiceId;
+        }
+
+        List<int> votes = new();
+
+        foreach (Player player in orderedPlayers)
+        {
+            uint choiceId = choiceIdsByPlayer[player.NetId];
+            int vote = await GetVoteForPlayer(player, choiceId, pool, nextActIndex);
+            votes.Add(vote);
+
+            GD.Print($"[ChooseTheAncient] Received vote for player {player.NetId}: {vote}");
+        }
+
+        return votes;
+    }
+
+    private static async Task<int> GetVoteForPlayer(
+        Player player,
+        uint choiceId,
+        IReadOnlyList<AncientEventModel> pool,
+        int nextActIndex)
+    {
+        if (ShouldSelectLocally(player))
+        {
+            int localVote = await AncientBanSelectionScreen.ShowAndWait(pool, nextActIndex);
+
+            RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+                player,
+                choiceId,
+                PlayerChoiceResult.FromIndex(localVote));
+
+            return localVote;
+        }
+
+        return (await RunManager.Instance.PlayerChoiceSynchronizer
+            .WaitForRemoteChoice(player, choiceId))
+            .AsIndex();
+    }
+
+    private static bool ShouldSelectLocally(Player player)
+    {
+        if (LocalContext.IsMe(player))
+        {
+            return RunManager.Instance.NetService.Type != NetGameType.Replay;
+        }
+
+        return false;
+    }
+    
     private static AncientEventModel ResolveSpawnedAncient(
         RunState runState,
         int nextActIndex,
@@ -91,7 +158,51 @@ public static class AncientBanCoordinator
         }
 
         var rng = AncientBanHelpers.CreateSpawnResolutionRng(runState, nextActIndex);
-        return rng.NextItem(remaining)
-            ?? throw new InvalidOperationException("Failed to roll remaining ancient.");
+        int chosenIndex = rng.NextInt(remaining.Count);
+        return remaining[chosenIndex];
     }
-}
+
+    private static int ResolveBannedIndex(
+        RunState runState,
+        int nextActIndex,
+        IReadOnlyList<int> votesInPlayerSlotOrder)
+    {
+        List<int> validVotes = votesInPlayerSlotOrder
+            .Where(i => i >= 0)
+            .ToList();
+
+        if (validVotes.Count == 0)
+        {
+            return 0;
+        }
+
+        Dictionary<int, int> counts = new();
+        foreach (int vote in validVotes)
+        {
+            counts[vote] = counts.GetValueOrDefault(vote, 0) + 1;
+        }
+
+        int highestCount = counts.Values.Max();
+
+        List<int> leaders = counts
+            .Where(kvp => kvp.Value == highestCount)
+            .Select(kvp => kvp.Key)
+            .OrderBy(i => i)
+            .ToList();
+
+        if (leaders.Count == 1)
+        {
+            return leaders[0];
+        }
+
+        var rng = AncientBanHelpers.CreateVoteResolutionRng(runState, nextActIndex);
+        int nextVote = rng.NextItem(leaders);
+        if (nextVote != null)
+        {
+            return nextVote;
+        } else { 
+            throw new InvalidOperationException("Failed to resolve tied ancient ban vote.");
+            
+        }
+    }
+} 

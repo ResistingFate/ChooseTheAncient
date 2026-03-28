@@ -119,7 +119,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         Label subtitle = new()
         {
-            Text = "The removed ancient cannot spawn at the start of the next act.",
+            Text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly.",
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };

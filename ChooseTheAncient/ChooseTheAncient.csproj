@@ -123,10 +123,10 @@
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(MSBuildProjectName)/"/>
         <Copy SourceFiles="ChooseTheAncient.json" DestinationFolder="$(ModsPath)$(MSBuildProjectName)/"/>
         <Message Text="Copying BaseLib to mods folder." Importance="high"/>
-        <ItemGroup>
+        <!--<ItemGroup>
             <BaseLibFiles Include="$(NuGetPackageRoot)/alchyr.sts2.baselib/**/lib/**/BaseLib.dll;$(NuGetPackageRoot)/alchyr.sts2.baselib/**/Content/BaseLib.pck;$(NuGetPackageRoot)/alchyr.sts2.baselib/**/Content/BaseLib.json;"/>
         </ItemGroup>
-        <Copy SourceFiles="@(BaseLibFiles)" DestinationFolder="$(ModsPath)BaseLib/"/>
+        <Copy SourceFiles="@(BaseLibFiles)" DestinationFolder="$(ModsPath)BaseLib/"/> -->
     </Target>
 
     <Target Name="GodotPublish" AfterTargets="Publish" Condition="'$(GodotPath)' != '' and Exists('$(GodotPath)') and '$(IsInnerGodotExport)' != 'true'">
