@@ -17,6 +17,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private Button? _firstButton;
     private bool _resolved;
+    private readonly TaskCompletionSource<int> _voteSubmitted = new();
+    private readonly List<Button> _choiceButtons = new();
+    private Label? _subtitleLabel;
 
     public NetScreenType ScreenType => NetScreenType.Rewards;
     public bool UseSharedBackstop => true;
@@ -39,11 +42,16 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         OffsetBottom = 0;
     }
 
-    public static async Task<int> ShowAndWait(IReadOnlyList<AncientEventModel> pool, int nextActIndex)
+    public static AncientBanSelectionScreen Show(IReadOnlyList<AncientEventModel> pool, int nextActIndex)
     {
         AncientBanSelectionScreen screen = new(pool, nextActIndex);
         NOverlayStack.Instance.Push(screen);
-        return await screen._completion.Task;
+        return screen;
+    }
+
+    public Task<int> WaitForVoteAsync()
+    {
+        return _voteSubmitted.Task;
     }
 
     public override void _Ready()
@@ -117,13 +125,13 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         };
         root.AddChild(title);
 
-        Label subtitle = new()
+        _subtitleLabel = new Label
         {
             Text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly.",
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
-        root.AddChild(subtitle);
+        root.AddChild(_subtitleLabel);;
 
         HBoxContainer choicesRow = new()
         {
@@ -230,17 +238,37 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         }
 
         _resolved = true;
-        _completion.TrySetResult(bannedIndex);
 
-        // Depending on exact overlay API version, this may be Remove(this) or Pop(this).
-        NOverlayStack.Instance.Remove(this);
+        foreach (Button button in _choiceButtons)
+        {
+            button.Disabled = true;
+        }
+
+        if (_subtitleLabel != null)
+        {
+            _subtitleLabel.Text = "Vote submitted. Waiting for other players...";
+        }
+
+        _voteSubmitted.TrySetResult(bannedIndex);
     }
-
+    
+    public void CloseScreen()
+    {
+        if (IsInsideTree())
+        {
+            NOverlayStack.Instance.Remove(this);
+        }
+        else
+        {
+            QueueFree();
+        }
+    }
+    
     public override void _ExitTree()
     {
-        if (!_completion.Task.IsCompleted)
+        if (!_voteSubmitted.Task.IsCompleted)
         {
-            _completion.TrySetCanceled();
+            _voteSubmitted.TrySetCanceled();
         }
 
         base._ExitTree();

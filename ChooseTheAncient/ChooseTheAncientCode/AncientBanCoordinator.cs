@@ -95,33 +95,55 @@ public static class AncientBanCoordinator
             choiceIdsByPlayer[player.NetId] = choiceId;
         }
 
-        Task<int>[] voteTasks = orderedPlayers
-            .Select(player => GetVoteForPlayer(
-                player,
-                choiceIdsByPlayer[player.NetId],
-                pool,
-                nextActIndex))
-            .ToArray();
+        AncientBanSelectionScreen? localScreen = null;
+        Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
 
-        int[] votes = await Task.WhenAll(voteTasks);
-
-        for (int i = 0; i < orderedPlayers.Count; i++)
+        if (localPlayer != null)
         {
-            GD.Print($"[ChooseTheAncient] Received vote for player {orderedPlayers[i].NetId}: {votes[i]}");
+            localScreen = AncientBanSelectionScreen.Show(pool, nextActIndex);
         }
 
-        return votes.ToList();
+        try
+        {
+            Task<int>[] voteTasks = orderedPlayers
+                .Select(player => GetVoteForPlayer(
+                    player,
+                    choiceIdsByPlayer[player.NetId],
+                    pool,
+                    nextActIndex,
+                    localScreen))
+                .ToArray();
+
+            int[] votes = await Task.WhenAll(voteTasks);
+
+            for (int i = 0; i < orderedPlayers.Count; i++)
+            {
+                GD.Print($"[ChooseTheAncient] Received vote for player {orderedPlayers[i].NetId}: {votes[i]}");
+            }
+
+            return votes.ToList();
+        }
+        finally
+        {
+            localScreen?.CloseScreen();
+        }
     } 
 
     private static async Task<int> GetVoteForPlayer(
         Player player,
         uint choiceId,
         IReadOnlyList<AncientEventModel> pool,
-        int nextActIndex)
+        int nextActIndex,
+        AncientBanSelectionScreen? localScreen)
     {
         if (ShouldSelectLocally(player))
         {
-            int localVote = await AncientBanSelectionScreen.ShowAndWait(pool, nextActIndex);
+            if (localScreen == null)
+            {
+                throw new InvalidOperationException("Local ancient ban screen was not created.");
+            }
+
+            int localVote = await localScreen.WaitForVoteAsync();
 
             RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
                 player,
@@ -132,7 +154,7 @@ public static class AncientBanCoordinator
         }
 
         return (await RunManager.Instance.PlayerChoiceSynchronizer
-            .WaitForRemoteChoice(player, choiceId))
+                .WaitForRemoteChoice(player, choiceId))
             .AsIndex();
     }
 
