@@ -1,3 +1,4 @@
+// Unused as can't attach scripts to root nodes via godot and have the came recognize them
 using System;
 using Godot;
 using MegaCrit.Sts2.Core.Models;

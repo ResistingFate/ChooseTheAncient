@@ -1,6 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://desklamat0qrj"]
-
-[ext_resource type="Script" uid="uid://cva13uqptfd8a" path="res://ChooseTheAncientCode/AncientBanSelectionScreen.cs" id="1_iu22h"]
+[gd_scene format=3 uid="uid://desklamat0qrj"]
 
 [node name="AncientBanSelectionScreen" type="Control"]
 layout_mode = 3
@@ -9,7 +7,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_iu22h")
 
 [node name="Dim" type="ColorRect" parent="."]
 layout_mode = 1
@@ -49,7 +46,7 @@ theme_override_constants/separation = 20
 [node name="TitleLabel" type="Label" parent="OuterMargin/Panel/Padding/Root"]
 custom_minimum_size = Vector2(700, 0)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 1
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -59,7 +56,15 @@ layout_mode = 2
 horizontal_alignment = 1
 autowrap_mode = 3
 
+[node name="Spacer" type="Control" parent="OuterMargin/Panel/Padding/Root"]
+layout_mode = 2
+
 [node name="ChoicesRow" type="HBoxContainer" parent="OuterMargin/Panel/Padding/Root"]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 theme_override_constants/separation = 24
 alignment = 1
+
+[node name="Spacer2" type="Control" parent="OuterMargin/Panel/Padding/Root"]
+layout_mode = 2
