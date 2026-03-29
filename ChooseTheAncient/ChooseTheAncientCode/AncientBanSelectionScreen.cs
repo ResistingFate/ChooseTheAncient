@@ -8,226 +8,108 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
-
+[GlobalClass]
 public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen, IScreenContext
 {
-    private readonly TaskCompletionSource<int> _completion = new();
-    private readonly IReadOnlyList<AncientEventModel> _pool;
-    private readonly int _nextActIndex;
-
-    private Button? _firstButton;
-    private bool _resolved;
     private readonly TaskCompletionSource<int> _voteSubmitted = new();
     private readonly List<Button> _choiceButtons = new();
+    private IReadOnlyList<AncientEventModel> _pool = Array.Empty<AncientEventModel>();
+    private int _nextActIndex;
+    private bool _resolved;
+
+    private Label? _titleLabel;
     private Label? _subtitleLabel;
+    private HBoxContainer? _choicesRow;
 
     public NetScreenType ScreenType => NetScreenType.Rewards;
     public bool UseSharedBackstop => true;
-    public Control? DefaultFocusedControl => _firstButton;
+    public Control? DefaultFocusedControl { get; private set; }
 
-    public AncientBanSelectionScreen(IReadOnlyList<AncientEventModel> pool, int nextActIndex)
-    {
-        _pool = pool;
-        _nextActIndex = nextActIndex;
-
-        Name = $"AncientBanSelection_{nextActIndex}";
-        ProcessMode = ProcessModeEnum.Always;
-        MouseFilter = MouseFilterEnum.Stop;
-        FocusMode = FocusModeEnum.All;
-
-        SetAnchorsPreset(LayoutPreset.FullRect);
-        OffsetLeft = 0;
-        OffsetTop = 0;
-        OffsetRight = 0;
-        OffsetBottom = 0;
-    }
-
+    private const string ScreenScenePath =
+        "res://scenes/mod/choose_the_ancient/ancient_ban_selection_screen.tscn";
+    
+    private const string CardScenePath =
+        "res://scenes/mod/choose_the_ancient/ancient_ban_choice_card.tscn";
+    
     public static AncientBanSelectionScreen Show(IReadOnlyList<AncientEventModel> pool, int nextActIndex)
     {
-        AncientBanSelectionScreen screen = new(pool, nextActIndex);
+        GD.Print($"[ChooseTheAncient] Trying to load scene: {ScreenScenePath}");
+        GD.Print($"[ChooseTheAncient] Global path: {ProjectSettings.GlobalizePath(ScreenScenePath)}");
+        GD.Print($"[ChooseTheAncient] Resource exists: {ResourceLoader.Exists(ScreenScenePath)}");
+
+        PackedScene? scene = GD.Load<PackedScene>(ScreenScenePath);
+        if (scene == null)
+        {
+            throw new InvalidOperationException($"Could not load scene: {ScreenScenePath}");
+        }
+
+        AncientBanSelectionScreen screen = scene.Instantiate<AncientBanSelectionScreen>();
+        screen.Initialize(pool, nextActIndex);
         NOverlayStack.Instance.Push(screen);
         return screen;
     }
 
-    public Task<int> WaitForVoteAsync()
+    public void Initialize(IReadOnlyList<AncientEventModel> pool, int nextActIndex)
     {
-        return _voteSubmitted.Task;
+        _pool = pool;
+        _nextActIndex = nextActIndex;
     }
+
+    public Task<int> WaitForVoteAsync() => _voteSubmitted.Task;
 
     public override void _Ready()
     {
-        BuildUi();
+        _titleLabel = GetNode<Label>("OuterMargin/Panel/Padding/Root/TitleLabel");
+        _subtitleLabel = GetNode<Label>("OuterMargin/Panel/Padding/Root/SubtitleLabel");
+        _choicesRow = GetNode<HBoxContainer>("OuterMargin/Panel/Padding/Root/ChoicesRow");
+
+        _titleLabel.Text = _nextActIndex == 1
+            ? "Choose 1 Ancient to Remove Before Act 2"
+            : "Choose 1 Ancient to Remove Before Act 3";
+
+        _subtitleLabel.Text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly.";
+
+        PopulateChoices();
         GrabInitialFocus();
     }
 
-    public override void _UnhandledInput(InputEvent @event)
+    private void PopulateChoices()
     {
-        // Deliberately do not allow cancel/back in v1.
-        // The player must choose one ancient to ban.
-        if (_resolved)
+        if (_choicesRow == null)
         {
             return;
         }
 
-        if (@event.IsActionPressed("ui_cancel"))
+        foreach (Node child in _choicesRow.GetChildren())
         {
-            AcceptEvent();
+            child.QueueFree();
         }
-    }
+        GD.Print($"[ChooseTheAncient] Trying to load scene: {CardScenePath}");
+        GD.Print($"[ChooseTheAncient] Global path: {ProjectSettings.GlobalizePath(CardScenePath)}");
+        GD.Print($"[ChooseTheAncient] Resource exists: {ResourceLoader.Exists(CardScenePath)}");
 
-    private void BuildUi()
-    {
-        ColorRect dim = new()
-        {
-            Color = new Color(0, 0, 0, 0.78f),
-            MouseFilter = MouseFilterEnum.Stop
-        };
-        dim.SetAnchorsPreset(LayoutPreset.FullRect);
-        AddChild(dim);
-
-        MarginContainer outer = new();
-        outer.SetAnchorsPreset(LayoutPreset.FullRect);
-        outer.AddThemeConstantOverride("margin_left", 120);
-        outer.AddThemeConstantOverride("margin_top", 80);
-        outer.AddThemeConstantOverride("margin_right", 120);
-        outer.AddThemeConstantOverride("margin_bottom", 80);
-        AddChild(outer);
-
-        PanelContainer panel = new()
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill
-        };
-        outer.AddChild(panel);
-
-        MarginContainer panelPadding = new();
-        panelPadding.AddThemeConstantOverride("margin_left", 24);
-        panelPadding.AddThemeConstantOverride("margin_top", 24);
-        panelPadding.AddThemeConstantOverride("margin_right", 24);
-        panelPadding.AddThemeConstantOverride("margin_bottom", 24);
-        panel.AddChild(panelPadding);
-
-        VBoxContainer root = new()
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill
-        };
-        root.AddThemeConstantOverride("separation", 20);
-        panelPadding.AddChild(root);
-
-        Label title = new()
-        {
-            Text = _nextActIndex == 1
-                ? "Choose 1 Ancient to Remove Before Act 2"
-                : "Choose 1 Ancient to Remove Before Act 3",
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(title);
-
-        _subtitleLabel = new Label
-        {
-            Text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly.",
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_subtitleLabel);;
-
-        HBoxContainer choicesRow = new()
-        {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill
-        };
-        choicesRow.AddThemeConstantOverride("separation", 24);
-        root.AddChild(choicesRow);
+        PackedScene cardScene = GD.Load<PackedScene>(CardScenePath);
 
         for (int i = 0; i < _pool.Count; i++)
         {
-            choicesRow.AddChild(BuildChoiceCard(_pool[i], i));
+            int capturedIndex = i;
+            AncientBanChoiceCard card = cardScene.Instantiate<AncientBanChoiceCard>();
+            _choicesRow.AddChild(card);
+            card.Setup(_pool[i], () => Select(capturedIndex));
+
+            card.CallDeferred(nameof(RegisterChoiceButton), card);
         }
     }
-
-    private Control BuildChoiceCard(AncientEventModel ancient, int index)
+    
+    private void RegisterChoiceButton(AncientBanChoiceCard card)
     {
-        PanelContainer card = new()
-        {
-            CustomMinimumSize = new Vector2(240, 0),
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill
-        };
-
-        MarginContainer cardPadding = new();
-        cardPadding.AddThemeConstantOverride("margin_left", 16);
-        cardPadding.AddThemeConstantOverride("margin_top", 16);
-        cardPadding.AddThemeConstantOverride("margin_right", 16);
-        cardPadding.AddThemeConstantOverride("margin_bottom", 16);
-        card.AddChild(cardPadding);
-
-        VBoxContainer box = new()
-        {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill
-        };
-        box.AddThemeConstantOverride("separation", 12);
-        cardPadding.AddChild(box);
-
-        TextureRect icon = new()
-        {
-            CustomMinimumSize = new Vector2(128, 128),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered
-        };
-        icon.Texture = ancient.MapIcon;
-        box.AddChild(icon);
-
-        Label name = new()
-        {
-            Text = ancient.Title.GetFormattedText(),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        box.AddChild(name);
-
-        // Some models may have Epithet, some may not depending on version.
-        // Safe fallback: only show title if you hit compile issues here.
-        try
-        {
-            Label epithet = new()
-            {
-                Text = ancient.Epithet.GetFormattedText(),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart
-            };
-            box.AddChild(epithet);
-        }
-        catch
-        {
-            // Intentionally ignore if the property is absent or changed.
-        }
-
-        Button chooseButton = new()
-        {
-            Text = "Ban This Ancient",
-            FocusMode = FocusModeEnum.All,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill
-        };
-        chooseButton.Pressed += () => Select(index);
-        box.AddChild(chooseButton);
-
-        _firstButton ??= chooseButton;
-        return card;
+        _choiceButtons.Add(card.ChooseButton);
+        DefaultFocusedControl ??= card.ChooseButton;
     }
-
+    
     private void GrabInitialFocus()
     {
-        if (_firstButton == null)
-        {
-            return;
-        }
-
-        _firstButton.CallDeferred(Button.MethodName.GrabFocus);
+        DefaultFocusedControl?.CallDeferred(Control.MethodName.GrabFocus);
     }
 
     private void Select(int bannedIndex)
@@ -251,7 +133,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         _voteSubmitted.TrySetResult(bannedIndex);
     }
-    
+
     public void CloseScreen()
     {
         if (IsInsideTree())
@@ -263,7 +145,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             QueueFree();
         }
     }
-    
+
     public override void _ExitTree()
     {
         if (!_voteSubmitted.Task.IsCompleted)

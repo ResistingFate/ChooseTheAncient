@@ -1,4 +1,4 @@
-﻿<Project Sdk="Godot.NET.Sdk/4.5.1" InitialTargets="CheckDependencyPaths">
+<Project Sdk="Godot.NET.Sdk/4.5.1" InitialTargets="CheckDependencyPaths">
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <EnableDynamicLoading>true</EnableDynamicLoading>
@@ -107,6 +107,11 @@
         <None Include="ChooseTheAncient.json"/>
         <None Include="project.godot"/>
         <None Include="ChooseTheAncient/**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="scenes\mod\choose_the_ancient\ancient_ban_choice_card.tscn" />
+      <Content Include="scenes\mod\choose_the_ancient\ancient_ban_selection_screen.tscn" />
     </ItemGroup>
 
     <Target Name="CheckDependencyPaths">
