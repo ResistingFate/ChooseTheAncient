@@ -1,4 +1,36 @@
-[gd_scene format=3 uid="uid://cckqpfp1dif7p"]
+[gd_scene format=3]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(0.0470588, 0.0666667, 0.0941176, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.08)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+shadow_color = Color(0, 0, 0, 0.38)
+shadow_size = 24
+anti_aliasing = true
+anti_aliasing_size = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_footer"]
+bg_color = Color(0.0313726, 0.0431373, 0.0627451, 0.84)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.06)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.32)
+shadow_size = 18
+anti_aliasing = true
+anti_aliasing_size = 1.0
 
 [node name="AncientBanSelectionLayout" type="Control"]
 layout_mode = 3
@@ -17,29 +49,90 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0, 0, 0, 0.74)
+color = Color(0, 0, 0, 0.62)
 
-[node name="TopBox" type="VBoxContainer" parent="."]
+[node name="BackdropTint" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0156863, 0.0352941, 0.0705882, 0.38)
+
+[node name="TopScrim" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 82.0
-offset_top = 85.0
-offset_right = -62.0
-offset_bottom = 173.0
+offset_bottom = 236.0
 grow_horizontal = 2
-theme_override_constants/separation = 8
+mouse_filter = 2
+color = Color(0, 0, 0, 0.18)
 
-[node name="TitleLabel" type="Label" parent="TopBox"]
+[node name="BottomScrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -240.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.22)
+
+[node name="HeaderPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -540.0
+offset_top = 34.0
+offset_right = 540.0
+offset_bottom = 132.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="HeaderPadding" type="MarginContainer" parent="HeaderPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = 20.0
+offset_right = -28.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="TopBox" type="VBoxContainer" parent="HeaderPanel/HeaderPadding"]
 layout_mode = 2
 size_flags_horizontal = 4
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="HeaderPanel/HeaderPadding/TopBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(1, 0.960784, 0.878431, 1)
+theme_override_font_sizes/font_size = 30
 text = "Choose 1 Ancient to Remove Before Act 2"
 horizontal_alignment = 1
 
-[node name="SubtitleLabel" type="Label" parent="TopBox"]
-custom_minimum_size = Vector2(800, 0)
+[node name="SubtitleLabel" type="Label" parent="HeaderPanel/HeaderPadding/TopBox"]
+custom_minimum_size = Vector2(860, 0)
 layout_mode = 2
 size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.9)
+theme_override_font_sizes/font_size = 16
 text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly."
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -49,15 +142,14 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 1.0
 offset_right = -2.0
 offset_bottom = 4.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 0
-theme_override_constants/margin_top = 0
-theme_override_constants/margin_right = 0
-theme_override_constants/margin_bottom = 0
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 146
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
 
 [node name="StageArea" type="Control" parent="StageMargin"]
 clip_contents = true
@@ -67,21 +159,62 @@ size_flags_vertical = 3
 mouse_filter = 2
 
 [node name="SlotsCanvas" type="Control" parent="StageMargin/StageArea"]
-clip_contents = true
+clip_contents = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -1.0
-offset_top = -4.0
-offset_right = 5.0
-offset_bottom = -5.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="FooterPanel" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -295.0
+offset_top = -60.0
+offset_right = 295.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_footer")
+
+[node name="FooterPadding" type="MarginContainer" parent="FooterPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 8.0
+offset_right = -18.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="HintLabel" type="Label" parent="FooterPanel/FooterPadding"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.84)
+theme_override_font_sizes/font_size = 14
+text = "Hover or focus an ancient to preview it. Your vote locks as soon as you confirm."
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
-volume_db = -6.0
+volume_db = -12.0
+pitch_scale = 1.0
 
 [node name="ClickSfx" type="AudioStreamPlayer" parent="."]
-volume_db = -4.0
+volume_db = -8.0
+pitch_scale = 1.0

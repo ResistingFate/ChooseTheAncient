@@ -1,7 +1,63 @@
 [gd_scene format=3]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0.0313726, 0.0431373, 0.0627451, 0.76)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.08)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0, 0, 0, 0.34)
+shadow_size = 22
+anti_aliasing = true
+anti_aliasing_size = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+bg_color = Color(0.921569, 0.509804, 0.196078, 0.96)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.24)
+shadow_size = 8
+anti_aliasing = true
+anti_aliasing_size = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.980392, 0.603922, 0.25098, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 10
+anti_aliasing = true
+anti_aliasing_size = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+bg_color = Color(0.839216, 0.431373, 0.141176, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+anti_aliasing = true
+anti_aliasing_size = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_disabled"]
+bg_color = Color(0.27451, 0.313726, 0.364706, 0.92)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+anti_aliasing = true
+anti_aliasing_size = 1.0
+
 [node name="AncientBanChoiceCard" type="Control"]
-clip_contents = true
+clip_contents = false
 
 [node name="BottomShade" type="ColorRect" parent="."]
 layout_mode = 1
@@ -10,17 +66,36 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.18)
+color = Color(0, 0, 0, 0.22)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="TopAccent" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 4.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.980392, 0.686275, 0.290196, 0.78)
 
 [node name="Padding" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
+offset_left = 20.0
+offset_top = 18.0
+offset_right = -20.0
+offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 0
@@ -33,16 +108,17 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 alignment = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 14
 
 [node name="Header" type="HBoxContainer" parent="Padding/VBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 14
 
 [node name="Icon" type="TextureRect" parent="Padding/VBox/Header"]
 layout_mode = 2
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(56, 56)
+expand_mode = 1
 stretch_mode = 5
 
 [node name="TextBox" type="VBoxContainer" parent="Padding/VBox/Header"]
@@ -53,15 +129,39 @@ theme_override_constants/separation = 4
 [node name="NameLabel" type="Label" parent="Padding/VBox/Header/TextBox"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.960784, 0.878431, 1)
+theme_override_font_sizes/font_size = 24
 text = "Orobas"
 
 [node name="EpithetLabel" type="Label" parent="Padding/VBox/Header/TextBox"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.835294, 0.894118, 0.972549, 0.86)
+theme_override_font_sizes/font_size = 15
 autowrap_mode = 3
 text = "Living Rainbow"
 
-[node name="ChooseButton" type="Button" parent="Padding/VBox"]
+[node name="InfoLabel" type="Label" parent="Padding/VBox"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.756863, 0.819608, 0.909804, 0.78)
+theme_override_font_sizes/font_size = 13
+text = "Majority vote removes this Ancient. Ties break randomly."
+autowrap_mode = 3
+
+[node name="ChooseButton" type="Button" parent="Padding/VBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.0666667, 0.0509804, 0.0313726, 1)
+theme_override_colors/font_focus_color = Color(0.0666667, 0.0509804, 0.0313726, 1)
+theme_override_colors/font_hover_color = Color(0.0666667, 0.0509804, 0.0313726, 1)
+theme_override_colors/font_pressed_color = Color(0.0666667, 0.0509804, 0.0313726, 1)
+theme_override_colors/font_disabled_color = Color(0.87, 0.89, 0.92, 0.78)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_button_disabled")
 text = "Ban This Ancient"
