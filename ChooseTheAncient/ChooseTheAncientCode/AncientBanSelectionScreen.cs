@@ -183,13 +183,15 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         if (_headerPanel != null)
         {
-            _headerPanel.OffsetTop = 56f;
-            _headerPanel.OffsetBottom = 164f;
+            _headerPanel.OffsetTop = 96f;
+            _headerPanel.OffsetBottom = 174f;
             _headerPanel.ZIndex = 2;
         }
 
         if (_footerPanel != null)
         {
+            _footerPanel.OffsetTop = -304;
+            _footerPanel.OffsetBottom = -244f;
             _footerPanel.Visible = true;
             _footerPanel.ZIndex = 2;
         }
