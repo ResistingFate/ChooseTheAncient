@@ -451,7 +451,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             refs.SlotRoot.Position = Vector2.Zero;
             refs.SlotRoot.Size = area;
             refs.SlotRoot.PivotOffset = area * 0.5f;
-            refs.SlotRoot.ZIndex = 1;//shape.ZIndex; //Middle ancient over top tool bar with shape.ZIndex
+            refs.SlotRoot.ZIndex = 2;//shape.ZIndex; //Middle ancient over top tool bar with shape.ZIndex
 
             refs.SceneViewport.Size = new Vector2I(
                 Math.Max(1, (int)MathF.Ceiling(area.X)),
@@ -560,7 +560,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             shape.BottomRight,
             shape.BottomLeft,
         };
-
         refs.ScenePolygon.Polygon = polygon;
         refs.ScenePolygon.Set("uv", polygon);
 
@@ -569,6 +568,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         refs.LeftRim.Polygon = BuildLineQuad(shape.TopLeft, shape.BottomLeft, PortalRimThickness);
         refs.RightRim.Polygon = BuildLineQuad(shape.TopRight, shape.BottomRight, PortalRimThickness);
+        refs.LeftRim.ZIndex = 0;
+        refs.RightRim.ZIndex = 0;
     }
 
     private AncientSceneConfig GetSceneConfig(string ancientId)
