@@ -67,6 +67,33 @@ grow_horizontal = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.18)
 
+[node name="StageMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -2.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_top = 80
+
+[node name="StageArea" type="Control" parent="StageMargin"]
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="SlotsCanvas" type="Control" parent="StageMargin/StageArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
 [node name="HeaderPanel" type="Panel" parent="."]
 z_index = 2
 layout_mode = 1
@@ -122,33 +149,6 @@ theme_override_font_sizes/font_size = 16
 text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly."
 horizontal_alignment = 1
 autowrap_mode = 3
-
-[node name="StageMargin" type="MarginContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_right = -2.0
-offset_bottom = 4.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_top = 80
-
-[node name="StageArea" type="Control" parent="StageMargin"]
-clip_contents = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-mouse_filter = 2
-
-[node name="SlotsCanvas" type="Control" parent="StageMargin/StageArea"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
 
 [node name="FooterPanel" type="Panel" parent="."]
 visible = false
