@@ -48,12 +48,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required int PoolIndex { get; init; }
         public required AncientEventModel Ancient { get; init; }
         public required Control SlotRoot { get; init; }
-        public required Control SceneClip { get; init; }
+        public required SubViewport SceneViewport { get; init; }
         public required Control SceneMount { get; init; }
-        public required ColorRect Glow { get; init; }
-        public required ColorRect HoverFlash { get; init; }
-        public required Polygon2D LeftMask { get; init; }
-        public required Polygon2D RightMask { get; init; }
+        public required Polygon2D ScenePolygon { get; init; }
+        public required Polygon2D GlowPolygon { get; init; }
+        public required Polygon2D HoverFlashPolygon { get; init; }
         public required Polygon2D LeftRim { get; init; }
         public required Polygon2D RightRim { get; init; }
         public required Control CardRoot { get; init; }
@@ -89,9 +88,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private static readonly Dictionary<string, AncientSceneConfig> AncientSceneConfigs = new()
     {
         ["DARV"] = DefaultAncientSceneConfig,
-        ["OROBAS"] = new AncientSceneConfig(Vector2.Zero, 1.22f, new Vector2(0.41f, 0.08f), new Vector2(-0.05f, -0.01f)),
-        ["PAEL"] = new AncientSceneConfig(Vector2.Zero, 1.16f, new Vector2(0.50f, 0.07f), new Vector2(0f, -0.01f)),
-        ["TEZCATARA"] = new AncientSceneConfig(Vector2.Zero, 1.18f, new Vector2(0.56f, 0.06f), new Vector2(0.05f, -0.01f)),
+        ["OROBAS"] = new AncientSceneConfig(Vector2.Zero, 1.24f, new Vector2(0.39f, 0.08f), new Vector2(-0.06f, -0.01f)),
+        ["PAEL"] = new AncientSceneConfig(Vector2.Zero, 1.52f, new Vector2(0.50f, 0.03f), new Vector2(0f, -0.01f)),
+        ["TEZCATARA"] = new AncientSceneConfig(Vector2.Zero, 1.22f, new Vector2(0.58f, 0.06f), new Vector2(0.06f, -0.01f)),
         ["NONUPEIPE"] = DefaultAncientSceneConfig,
         ["TANX"] = DefaultAncientSceneConfig,
         ["VAKUU"] = DefaultAncientSceneConfig,
@@ -131,7 +130,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     {
         Name = "AncientBanSelectionScreen";
         ProcessMode = ProcessModeEnum.Always;
-        MouseFilter = MouseFilterEnum.Stop;
+        MouseFilter = MouseFilterEnum.Ignore;
         FocusMode = FocusModeEnum.All;
         SetFullRect(this);
     }
@@ -174,12 +173,14 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
         _clickSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("ClickSfx");
 
+        _layoutRoot.MouseFilter = MouseFilterEnum.Ignore;
+
         TryInstallGeneratedSounds();
 
         if (_headerPanel != null)
         {
-            _headerPanel.OffsetTop = 34f;
-            _headerPanel.OffsetBottom = 132f;
+            _headerPanel.OffsetTop = 56f;
+            _headerPanel.OffsetBottom = 164f;
         }
 
         if (_footerPanel != null)
@@ -190,7 +191,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         if (_stageMargin != null)
         {
             _stageMargin.AddThemeConstantOverride("margin_left", 18);
-            _stageMargin.AddThemeConstantOverride("margin_top", 146);
+            _stageMargin.AddThemeConstantOverride("margin_top", 176);
             _stageMargin.AddThemeConstantOverride("margin_right", 18);
             _stageMargin.AddThemeConstantOverride("margin_bottom", 18);
         }
@@ -202,6 +203,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         _stageArea.ClipContents = true;
         _slotsCanvas.ClipContents = false;
+        _stageArea.MouseFilter = MouseFilterEnum.Ignore;
+        _slotsCanvas.MouseFilter = MouseFilterEnum.Ignore;
         _stageArea.Resized += RefreshLayout;
 
         CallDeferred(nameof(BuildUi));
@@ -254,16 +257,16 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             FocusMode = FocusModeEnum.None,
         };
 
-        Control sceneClip = new()
+        SubViewport sceneViewport = new()
         {
-            Name = "SceneClip",
-            MouseFilter = MouseFilterEnum.Ignore,
-            ClipContents = true,
-            FocusMode = FocusModeEnum.None,
-            ZIndex = 0,
+            Name = "SceneViewport",
+            Disable3D = true,
+            TransparentBg = true,
+            HandleInputLocally = false,
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+            RenderTargetClearMode = SubViewport.ClearMode.Always,
         };
-        SetFullRect(sceneClip);
-        slotRoot.AddChild(sceneClip);
+        slotRoot.AddChild(sceneViewport);
 
         Control sceneMount = new()
         {
@@ -272,59 +275,42 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             FocusMode = FocusModeEnum.None,
             ZIndex = 0,
         };
-        sceneMount.AnchorLeft = 0f;
-        sceneMount.AnchorTop = 0f;
-        sceneMount.AnchorRight = 0f;
-        sceneMount.AnchorBottom = 0f;
-        sceneMount.Position = Vector2.Zero;
-        sceneMount.Size = Vector2.Zero;
-        sceneMount.Scale = Vector2.One;
-        sceneClip.AddChild(sceneMount);
+        SetFullRect(sceneMount);
+        sceneViewport.AddChild(sceneMount);
 
-        ColorRect glow = new()
+        Polygon2D scenePolygon = new()
         {
-            Name = "Glow",
+            Name = "ScenePolygon",
+            Texture = sceneViewport.GetTexture(),
+            Antialiased = true,
+            ZIndex = 0,
+        };
+        slotRoot.AddChild(scenePolygon);
+
+        Polygon2D glowPolygon = new()
+        {
+            Name = "GlowPolygon",
             Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0f),
-            MouseFilter = MouseFilterEnum.Ignore,
+            Antialiased = true,
             ZIndex = 1,
         };
-        SetFullRect(glow);
-        sceneClip.AddChild(glow);
+        slotRoot.AddChild(glowPolygon);
 
-        ColorRect hoverFlash = new()
+        Polygon2D hoverFlashPolygon = new()
         {
-            Name = "HoverFlash",
+            Name = "HoverFlashPolygon",
             Color = new Color(1f, 1f, 1f, 0f),
-            MouseFilter = MouseFilterEnum.Ignore,
+            Antialiased = true,
             ZIndex = 2,
         };
-        SetFullRect(hoverFlash);
-        sceneClip.AddChild(hoverFlash);
-
-        Polygon2D leftMask = new()
-        {
-            Name = "LeftMask",
-            Color = new Color(0f, 0f, 0f, 0.96f),
-            Antialiased = true,
-            ZIndex = 4,
-        };
-        slotRoot.AddChild(leftMask);
-
-        Polygon2D rightMask = new()
-        {
-            Name = "RightMask",
-            Color = new Color(0f, 0f, 0f, 0.96f),
-            Antialiased = true,
-            ZIndex = 4,
-        };
-        slotRoot.AddChild(rightMask);
+        slotRoot.AddChild(hoverFlashPolygon);
 
         Polygon2D leftRim = new()
         {
             Name = "LeftRim",
             Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.55f),
             Antialiased = true,
-            ZIndex = 5,
+            ZIndex = 3,
         };
         slotRoot.AddChild(leftRim);
 
@@ -333,7 +319,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             Name = "RightRim",
             Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.55f),
             Antialiased = true,
-            ZIndex = 5,
+            ZIndex = 3,
         };
         slotRoot.AddChild(rightRim);
 
@@ -381,12 +367,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             PoolIndex = poolIndex,
             Ancient = ancient,
             SlotRoot = slotRoot,
-            SceneClip = sceneClip,
+            SceneViewport = sceneViewport,
             SceneMount = sceneMount,
-            Glow = glow,
-            HoverFlash = hoverFlash,
-            LeftMask = leftMask,
-            RightMask = rightMask,
+            ScenePolygon = scenePolygon,
+            GlowPolygon = glowPolygon,
+            HoverFlashPolygon = hoverFlashPolygon,
             LeftRim = leftRim,
             RightRim = rightRim,
             CardRoot = cardRoot,
@@ -457,22 +442,23 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             SlotRefs refs = _slots[i];
             PortalShape shape = shapes[Math.Min(i, shapes.Length - 1)];
             refs.Shape = shape;
-            refs.BaseSize = shape.PortalRect.Size;
-            refs.CardBasePosition = shape.CardRect.Position - shape.PortalRect.Position;
+            refs.BaseSize = area;
+            refs.CardBasePosition = shape.CardRect.Position;
 
-            refs.SlotRoot.Position = shape.PortalRect.Position;
-            refs.SlotRoot.Size = shape.PortalRect.Size;
-            refs.SlotRoot.PivotOffset = shape.PortalRect.Size * 0.5f;
+            refs.SlotRoot.Position = Vector2.Zero;
+            refs.SlotRoot.Size = area;
+            refs.SlotRoot.PivotOffset = area * 0.5f;
             refs.SlotRoot.ZIndex = shape.ZIndex;
 
-            refs.SceneClip.Position = Vector2.Zero;
-            refs.SceneClip.Size = shape.PortalRect.Size;
+            refs.SceneViewport.Size = new Vector2I(
+                Math.Max(1, (int)MathF.Ceiling(area.X)),
+                Math.Max(1, (int)MathF.Ceiling(area.Y)));
 
             refs.CardRoot.Position = refs.CardBasePosition;
             refs.CardRoot.Size = shape.CardRect.Size;
             refs.CardRoot.PivotOffset = refs.CardRoot.Size * 0.5f;
 
-            ApplyPortalMask(shape, refs);
+            ApplyPortalGeometry(shape, refs);
             ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
         }
     }
@@ -488,38 +474,41 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Rect2 centerCard = new(new Vector2(outerPad + cardWidth + cardGap, cardY), new Vector2(cardWidth, cardHeight));
         Rect2 rightCard = new(new Vector2(outerPad + ((cardWidth + cardGap) * 2f), cardY), new Vector2(cardWidth, cardHeight));
 
-        float leftW = area.X * 0.415f;
-        float centerW = area.X * 0.275f;
-        float rightW = area.X * 0.415f;
-        float leftX = -area.X * 0.015f;
-        float centerX = (area.X - centerW) * 0.5f;
-        float rightX = area.X - rightW + (area.X * 0.015f);
+        float seamLeftTopX = area.X * 0.43f;
+        float seamLeftBottomX = area.X * 0.33f;
+        float seamRightTopX = area.X * 0.68f;
+        float seamRightBottomX = area.X * 0.58f;
+
+        float leftLogicalWidth = MathF.Max(seamLeftTopX, seamLeftBottomX) + (area.X * 0.28f);
+        float centerLogicalLeft = MathF.Min(seamLeftTopX, seamLeftBottomX) - (area.X * 0.14f);
+        float centerLogicalRight = MathF.Max(seamRightTopX, seamRightBottomX) + (area.X * 0.14f);
+        float rightLogicalLeft = MathF.Min(seamRightTopX, seamRightBottomX) - (area.X * 0.28f);
 
         return new[]
         {
             new PortalShape(
-                new Rect2(leftX, 0f, leftW, h),
+                new Rect2(0f, 0f, leftLogicalWidth, h),
                 leftCard,
-                new Vector2(leftW * 0.035f, 0f),
-                new Vector2(leftW * 0.945f, 0f),
-                new Vector2(leftW * 0.770f, h),
+                new Vector2(0f, 0f),
+                new Vector2(seamLeftTopX, 0f),
+                new Vector2(seamLeftBottomX, h),
                 new Vector2(0f, h),
                 1),
             new PortalShape(
-                new Rect2(centerX, 0f, centerW, h),
+                new Rect2(centerLogicalLeft, 0f, centerLogicalRight - centerLogicalLeft, h),
                 centerCard,
-                new Vector2(centerW * 0.245f, 0f),
-                new Vector2(centerW * 0.755f, 0f),
-                new Vector2(centerW * 0.920f, h),
-                new Vector2(centerW * 0.080f, h),
-                3),
+                new Vector2(seamLeftTopX, 0f),
+                new Vector2(seamRightTopX, 0f),
+                new Vector2(seamRightBottomX, h),
+                new Vector2(seamLeftBottomX, h),
+                2),
             new PortalShape(
-                new Rect2(rightX, 0f, rightW, h),
+                new Rect2(rightLogicalLeft, 0f, area.X - rightLogicalLeft, h),
                 rightCard,
-                new Vector2(rightW * 0.055f, 0f),
-                new Vector2(rightW * 0.965f, 0f),
-                new Vector2(rightW, h),
-                new Vector2(rightW * 0.230f, h),
+                new Vector2(seamRightTopX, 0f),
+                new Vector2(area.X, 0f),
+                new Vector2(area.X, h),
+                new Vector2(seamRightBottomX, h),
                 1),
         };
     }
@@ -550,26 +539,21 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         return shapes;
     }
 
-    private void ApplyPortalMask(PortalShape shape, SlotRefs refs)
+    private void ApplyPortalGeometry(PortalShape shape, SlotRefs refs)
     {
-        float w = shape.PortalRect.Size.X;
-        float h = shape.PortalRect.Size.Y;
-
-        refs.LeftMask.Polygon = new[]
+        Vector2[] polygon = new[]
         {
-            new Vector2(0f, 0f),
             shape.TopLeft,
+            shape.TopRight,
+            shape.BottomRight,
             shape.BottomLeft,
-            new Vector2(0f, h),
         };
 
-        refs.RightMask.Polygon = new[]
-        {
-            shape.TopRight,
-            new Vector2(w, 0f),
-            new Vector2(w, h),
-            shape.BottomRight,
-        };
+        refs.ScenePolygon.Polygon = polygon;
+        refs.ScenePolygon.Set("uv", polygon);
+
+        refs.GlowPolygon.Polygon = polygon;
+        refs.HoverFlashPolygon.Polygon = polygon;
 
         refs.LeftRim.Polygon = BuildLineQuad(shape.TopLeft, shape.BottomLeft, PortalRimThickness);
         refs.RightRim.Polygon = BuildLineQuad(shape.TopRight, shape.BottomRight, PortalRimThickness);
@@ -614,7 +598,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Vector2 baseSize = ResolveSceneBaseSize(refs, cfg);
         float appliedScale = cfg.Scale * (hovered ? HoverSceneScaleMultiplier : 1f);
 
-        Vector2 slotAnchorPx = new(refs.BaseSize.X * 0.5f, 0f);
+        Vector2 slotAnchorPx = new((refs.Shape.TopLeft.X + refs.Shape.TopRight.X + refs.Shape.BottomLeft.X + refs.Shape.BottomRight.X) * 0.25f, 0f);
         Vector2 sourceAnchorPx = new(
             baseSize.X * appliedScale * cfg.SourceAnchor01.X,
             baseSize.Y * appliedScale * cfg.SourceAnchor01.Y);
@@ -656,7 +640,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         if (refs.SceneRoot is CanvasItem canvasItem)
         {
             canvasItem.ZIndex = 0;
-            canvasItem.ShowBehindParent = true;
+            canvasItem.ShowBehindParent = false;
         }
     }
 
@@ -724,7 +708,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Vector2 mousePosition = GetViewport().GetMousePosition();
         bool stillHovering = refs.CardRoot.GetGlobalRect().HasPoint(mousePosition)
             || refs.ChooseButton.GetGlobalRect().HasPoint(mousePosition)
-            || refs.SceneClip.GetGlobalRect().HasPoint(mousePosition)
             || refs.ChooseButton.HasFocus();
 
         if (stillHovering)
@@ -746,10 +729,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             bool hovered = anyHovered && ReferenceEquals(_hoveredSlot, refs);
             bool selected = _resolved && _selectedPoolIndex == refs.PoolIndex;
 
-            float glowAlpha = _resolved
-                ? (selected ? 0.18f : 0f)
-                : (hovered ? 0.16f : 0.03f);
-            float flashAlpha = !_resolved && hovered ? 0.035f : 0f;
+            float glowAlpha = 0f;
+            float flashAlpha = 0f;
             float shadeAlpha = _resolved
                 ? (selected ? 0.06f : 0.34f)
                 : (hovered ? 0.10f : 0.18f);
@@ -774,20 +755,22 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             {
                 Tween tween = CreateTween();
                 tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
-                tween.TweenProperty(refs.Glow, "color", glowColor, 0.10f);
-                tween.Parallel().TweenProperty(refs.HoverFlash, "color", flashColor, 0.08f);
+                tween.TweenProperty(refs.GlowPolygon, "color", glowColor, 0.10f);
+                tween.Parallel().TweenProperty(refs.HoverFlashPolygon, "color", flashColor, 0.08f);
                 tween.Parallel().TweenProperty(refs.CardShade, "color", shadeColor, 0.10f);
-                tween.Parallel().TweenProperty(refs.SlotRoot, "modulate", slotModulate, 0.10f);
+                tween.Parallel().TweenProperty(refs.ScenePolygon, "modulate", slotModulate, 0.10f);
+                tween.Parallel().TweenProperty(refs.CardRoot, "modulate", slotModulate, 0.10f);
                 tween.Parallel().TweenProperty(refs.LeftRim, "color", rimColor, 0.12f);
                 tween.Parallel().TweenProperty(refs.RightRim, "color", rimColor, 0.12f);
                 tween.Parallel().TweenProperty(refs.TopAccent, "color", accentColor, 0.12f);
             }
             else
             {
-                refs.Glow.Color = glowColor;
-                refs.HoverFlash.Color = flashColor;
+                refs.GlowPolygon.Color = glowColor;
+                refs.HoverFlashPolygon.Color = flashColor;
                 refs.CardShade.Color = shadeColor;
-                refs.SlotRoot.Modulate = slotModulate;
+                refs.ScenePolygon.Modulate = slotModulate;
+                refs.CardRoot.Modulate = slotModulate;
                 refs.LeftRim.Color = rimColor;
                 refs.RightRim.Color = rimColor;
                 refs.TopAccent.Color = accentColor;
