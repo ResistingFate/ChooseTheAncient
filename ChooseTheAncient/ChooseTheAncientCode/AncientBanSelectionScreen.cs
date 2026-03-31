@@ -173,6 +173,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
         _clickSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("ClickSfx");
 
+        ColorRect _dim = _layoutRoot.GetNode<ColorRect>("Dim");
+        ColorRect _backdropTint = _layoutRoot.GetNode<ColorRect>("BackdropTint");
+        ColorRect _topScrim = _layoutRoot.GetNode<ColorRect>("TopScrim");
+
         _layoutRoot.MouseFilter = MouseFilterEnum.Ignore;
 
         TryInstallGeneratedSounds();
@@ -181,23 +185,22 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             _headerPanel.OffsetTop = 56f;
             _headerPanel.OffsetBottom = 164f;
+            _headerPanel.ZIndex = 2;
         }
 
         if (_footerPanel != null)
         {
-            _footerPanel.Visible = false;
+            _footerPanel.Visible = true;
+            _footerPanel.ZIndex = 2;
         }
 
-        if (_stageMargin != null)
-        {
-            _stageMargin.AddThemeConstantOverride("margin_left", 18);
-            _stageMargin.AddThemeConstantOverride("margin_top", 176);
-            _stageMargin.AddThemeConstantOverride("margin_right", 18);
-            _stageMargin.AddThemeConstantOverride("margin_bottom", 18);
-        }
+        //_dim.Visible = false;
+        //_backdropTint.Visible = false;
+        //_topScrim.Visible = false;
+
 
         _titleLabel.Text = _nextActIndex == 1
-            ? "Choose 1 Ancient to Remove Before Act 2"
+            ? "Choose 1 Ancient to Remove Before Act 2:"
             : "Choose 1 Ancient to Remove Before Act 3";
         _subtitleLabel.Text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly.";
 
@@ -261,7 +264,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             Name = "SceneViewport",
             Disable3D = true,
-            TransparentBg = true,
+            TransparentBg = false, // true,
             HandleInputLocally = false,
             RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
             RenderTargetClearMode = SubViewport.ClearMode.Always,
@@ -310,7 +313,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             Name = "LeftRim",
             Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.55f),
             Antialiased = true,
-            ZIndex = 3,
+            ZIndex = 1,
         };
         slotRoot.AddChild(leftRim);
 
@@ -319,14 +322,14 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             Name = "RightRim",
             Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.55f),
             Antialiased = true,
-            ZIndex = 3,
+            ZIndex = 1,
         };
         slotRoot.AddChild(rightRim);
 
         Control cardRoot = cardScene.Instantiate<Control>();
         cardRoot.Name = $"AncientChoice_{ancient.Id.Entry}";
         cardRoot.ClipContents = false;
-        cardRoot.ZIndex = 20;
+        cardRoot.ZIndex = 2; // 20 a bit high, going for 2
         slotRoot.AddChild(cardRoot);
 
         ColorRect cardShade = cardRoot.GetNode<ColorRect>("BottomShade");
@@ -448,7 +451,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             refs.SlotRoot.Position = Vector2.Zero;
             refs.SlotRoot.Size = area;
             refs.SlotRoot.PivotOffset = area * 0.5f;
-            refs.SlotRoot.ZIndex = shape.ZIndex;
+            refs.SlotRoot.ZIndex = 1;//shape.ZIndex; //Middle ancient over top tool bar with shape.ZIndex
 
             refs.SceneViewport.Size = new Vector2I(
                 Math.Max(1, (int)MathF.Ceiling(area.X)),
@@ -474,10 +477,19 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Rect2 centerCard = new(new Vector2(outerPad + cardWidth + cardGap, cardY), new Vector2(cardWidth, cardHeight));
         Rect2 rightCard = new(new Vector2(outerPad + ((cardWidth + cardGap) * 2f), cardY), new Vector2(cardWidth, cardHeight));
 
-        float seamLeftTopX = area.X * 0.43f;
-        float seamLeftBottomX = area.X * 0.33f;
-        float seamRightTopX = area.X * 0.68f;
-        float seamRightBottomX = area.X * 0.58f;
+        // Seam line gradient, define a point for the slope to start
+        float leftGraident = (area.X*0.06f) / area.Y;
+        float rightGraident = (area.X*0.06f) / area.Y ;
+        float seamLeftTopX = area.X * 0.38f; // 0.40
+        float seamLeftBottomX = seamLeftTopX - (area.Y  * leftGraident);
+        float seamRightTopX = area.X * 0.72f; // 0.70
+        float seamRightBottomX = seamRightTopX - (area.Y * rightGraident);
+        
+        
+        //float seamLeftTopX = area.X * 0.43f; //0.43f;
+        //float seamLeftBottomX = area.X * 0.27f;// 0.33f;
+        //float seamRightTopX = area.X * 0.73f; // 0.68f;
+        //float seamRightBottomX = area.X * 0.63f; // 0.58f;
 
         float leftLogicalWidth = MathF.Max(seamLeftTopX, seamLeftBottomX) + (area.X * 0.28f);
         float centerLogicalLeft = MathF.Min(seamLeftTopX, seamLeftBottomX) - (area.X * 0.14f);
@@ -501,7 +513,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 new Vector2(seamRightTopX, 0f),
                 new Vector2(seamRightBottomX, h),
                 new Vector2(seamLeftBottomX, h),
-                2),
+                1),
             new PortalShape(
                 new Rect2(rightLogicalLeft, 0f, area.X - rightLogicalLeft, h),
                 rightCard,
@@ -723,7 +735,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private void RefreshSlotVisuals(bool animate)
     {
         bool anyHovered = !_resolved && _hoveredSlot != null;
-
+        
         foreach (SlotRefs refs in _slots)
         {
             bool hovered = anyHovered && ReferenceEquals(_hoveredSlot, refs);
@@ -777,6 +789,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             }
 
             ApplySceneTransform(refs, hovered, animate);
+            
         }
     }
 
