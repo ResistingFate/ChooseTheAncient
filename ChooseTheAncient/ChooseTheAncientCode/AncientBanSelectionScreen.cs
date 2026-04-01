@@ -36,13 +36,15 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private static readonly string DialogueRegularFontPath = "res://themes/kreon_regular_glyph_space_one.tres";
     private static readonly string DialogueBoldFontPath = "res://themes/kreon_bold_glyph_space_one.tres";
     private static readonly string DialogueItalicFontPath = "res://themes/bitter_medium_italic_glyph_space_one.tres";
-    private const float ReactionEntranceOffset = 22f;
-    private const float PreviewEntranceOffset = 28f;
-    private const double ReactionEntranceDuration = 0.34;
-    private const double PreviewEntranceDuration = 0.28;
-    private const double ReactionTextDuration = 0.24;
-    private const double FinalRoundStagger = 0.08;
-    private const float PreviewHoverScaleMultiplier = 1.01f;
+    // Animation tuning:
+    // Increase the duration values or offsets below if you want a slower, floatier final-vote entrance.
+    private const float ReactionEntranceOffset = 40f;
+    private const float PreviewEntranceOffset = 44f;
+    private const double ReactionEntranceDuration = 0.82;
+    private const double PreviewEntranceDuration = 0.76;
+    private const double ReactionTextDuration = 0.58;
+    private const double FinalRoundStagger = 0.22;
+    private const float PreviewHoverScaleMultiplier = 1.008f;
 
     public enum VoteRoundType
     {
@@ -266,6 +268,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         if (_footerPanel != null)
         {
             _footerPanel.Visible = false;
+            _footerPanel.Modulate = new Color(1f, 1f, 1f, 0f);
+            _footerPanel.MouseFilter = MouseFilterEnum.Ignore;
         }
 
         _stageArea.ClipContents = true;
@@ -465,8 +469,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
                 if (icon != null)
                 {
-                    bubbleTween.TweenInterval(0.06f);
-                    bubbleTween.TweenCallback(Callable.From(() => icon.Visible = true));
+                    icon.Position += new Vector2(0f, 8f);
+                    Tween iconTween = CreateTween();
+                    iconTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                    iconTween.TweenInterval(delay + 0.18);
+                    iconTween.TweenProperty(icon, "modulate:a", 1f, 0.36f);
+                    iconTween.Parallel().TweenProperty(icon, "position", icon.Position + new Vector2(0f, -8f), 0.36f);
                 }
 
                 Control? text = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
@@ -714,7 +722,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         ClearChildren(refs.PreviewAnchor);
         ClearChildren(refs.ReactionAnchor);
         refs.ReactionBubble = null;
-        //refs.PreviewWrappers.Clear();
+        refs.PreviewWidgets.Clear();
 
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
@@ -786,7 +794,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 Wrapper = previewWrapper,
                 Button = previewButton,
                 Option = option,
-                HoverAlignment = refs.PoolIndex == 0 ? HoverTipAlignment.Left : HoverTipAlignment.Right,
+                HoverAlignment = refs.PoolIndex == 0 ? HoverTipAlignment.Right : HoverTipAlignment.Left,
                 Outline = previewOutline,
                 HsvMaterial = previewHsvMaterial,
             });
@@ -856,6 +864,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
         }
 
+        bubble.Modulate = new Color(1f, 1f, 1f, 0f);
         GD.Print($"[ChooseTheAncient] Showing custom reaction bubble for {refs.Ancient.Id.Entry}: How about now?");
     }
 
@@ -914,6 +923,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             CustomMinimumSize = new Vector2(56f, 56f),
             MouseFilter = MouseFilterEnum.Ignore,
             FocusMode = FocusModeEnum.None,
+            Modulate = new Color(1f, 1f, 1f, 0f),
         };
         line.AddChild(iconRoot);
 
@@ -1149,7 +1159,20 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         try
         {
-            NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, widget.HoverAlignment);
+            SfxCmd.Play("event:/sfx/ui/enchant_simple");
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            float viewportMid = GetViewportRect().Size.X * 0.5f;
+            float wrapperCenterX = widget.Wrapper.GetGlobalRect().GetCenter().X;
+            HoverTipAlignment alignment = wrapperCenterX < viewportMid
+                ? HoverTipAlignment.Right
+                : HoverTipAlignment.Left;
+            NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, alignment);
         }
         catch
         {
@@ -1188,19 +1211,19 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             ? widget.BaseScale * PreviewHoverScaleMultiplier
             : widget.BaseScale;
 
-        tween.TweenProperty(widget.Wrapper, "scale", targetScale, hovered ? 0.08f : 0.18f);
+        tween.TweenProperty(widget.Wrapper, "scale", targetScale, hovered ? 0.12f : 0.22f);
 
         if (widget.Outline != null)
         {
             Color targetOutline = hovered
-                ? StsColors.blueGlow
+                ? new Color(0f, 0f, 0f, 0.92f)
                 : new Color(widget.Outline.Modulate.R, widget.Outline.Modulate.G, widget.Outline.Modulate.B, 0f);
-            tween.Parallel().TweenProperty(widget.Outline, "modulate", targetOutline, hovered ? 0.08f : 0.18f);
+            tween.Parallel().TweenProperty(widget.Outline, "modulate", targetOutline, hovered ? 0.12f : 0.22f);
         }
 
         if (widget.HsvMaterial != null)
         {
-            widget.HsvMaterial.SetShaderParameter("v", hovered ? 1.2f : 0.9f);
+            widget.HsvMaterial.SetShaderParameter("v", hovered ? 0.78f : 0.9f);
         }
     }
 
@@ -1213,7 +1236,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             _dialogueWaveShader = new Shader
             {
-                Code = "shader_type canvas_item; uniform float amplitude = 1.2; uniform float speed = 2.4; uniform float frequency = 0.055; void vertex() { VERTEX.y += sin((VERTEX.x * frequency) + (TIME * speed)) * amplitude; }"
+                Code = "shader_type canvas_item; uniform float amplitude = 1.2; uniform float speed = 1.55; uniform float frequency = 0.055; void vertex() { VERTEX.y += sin((VERTEX.x * frequency) + (TIME * speed)) * amplitude; }"
             };
         }
 
@@ -1221,7 +1244,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             ShaderMaterial speakerMat = new() { Shader = _dialogueWaveShader };
             speakerMat.SetShaderParameter("amplitude", 0.55f);
-            speakerMat.SetShaderParameter("speed", 2.0f);
+            speakerMat.SetShaderParameter("speed", 1.35f);
             speakerMat.SetShaderParameter("frequency", 0.08f);
             speakerLabel.Material = speakerMat;
         }
@@ -1230,7 +1253,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             ShaderMaterial lineMat = new() { Shader = _dialogueWaveShader };
             lineMat.SetShaderParameter("amplitude", 1.1f);
-            lineMat.SetShaderParameter("speed", 2.35f);
+            lineMat.SetShaderParameter("speed", 1.6f);
             lineMat.SetShaderParameter("frequency", 0.06f);
             lineText.Material = lineMat;
         }
@@ -1888,26 +1911,26 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             if (_hoverSfx != null && _hoverSfx.Stream == null)
             {
                 _generatedHoverStream ??= BuildUiTone(
-                    baseFrequencyHz: 1046f,
-                    overtoneFrequencyHz: 1396f,
-                    durationSeconds: 0.05f,
-                    peakAmplitude: 0.20f,
-                    attackSeconds: 0.003f,
-                    releaseSeconds: 0.036f,
-                    noiseAmount: 0.015f);
+                    baseFrequencyHz: 698f,
+                    overtoneFrequencyHz: 932f,
+                    durationSeconds: 0.09f,
+                    peakAmplitude: 0.17f,
+                    attackSeconds: 0.004f,
+                    releaseSeconds: 0.070f,
+                    noiseAmount: 0.008f);
                 _hoverSfx.Stream = _generatedHoverStream;
             }
 
             if (_clickSfx != null && _clickSfx.Stream == null)
             {
                 _generatedClickStream ??= BuildUiTone(
-                    baseFrequencyHz: 196f,
-                    overtoneFrequencyHz: 392f,
-                    durationSeconds: 0.13f,
-                    peakAmplitude: 0.34f,
-                    attackSeconds: 0.002f,
-                    releaseSeconds: 0.085f,
-                    noiseAmount: 0.025f);
+                    baseFrequencyHz: 164f,
+                    overtoneFrequencyHz: 328f,
+                    durationSeconds: 0.16f,
+                    peakAmplitude: 0.30f,
+                    attackSeconds: 0.003f,
+                    releaseSeconds: 0.11f,
+                    noiseAmount: 0.018f);
                 _clickSfx.Stream = _generatedClickStream;
             }
         }

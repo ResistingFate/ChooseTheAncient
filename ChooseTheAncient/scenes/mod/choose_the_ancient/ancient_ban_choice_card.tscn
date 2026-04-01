@@ -1,27 +1,17 @@
-[gd_scene format=3]
+[gd_scene load_steps=6 format=3]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(0.0313726, 0.0431373, 0.0627451, 0.76)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(1, 1, 1, 0.08)
-corner_radius_top_left = 18
-corner_radius_top_right = 18
-corner_radius_bottom_right = 18
-corner_radius_bottom_left = 18
-shadow_color = Color(0, 0, 0, 0.34)
-shadow_size = 22
-anti_aliasing = true
-anti_aliasing_size = 1.0
+[ext_resource type="Texture2D" path="res://images/ui/dialogue_nine_patch.png" id="1_dialogue"]
+[ext_resource type="Texture2D" path="res://images/ui/dialogue_tail.png" id="2_tail"]
+[ext_resource type="FontVariation" path="res://themes/kreon_bold_glyph_space_one.tres" id="3_bold"]
+[ext_resource type="FontVariation" path="res://themes/kreon_regular_glyph_space_one.tres" id="4_regular"]
+[ext_resource type="FontVariation" path="res://themes/bitter_medium_italic_glyph_space_one.tres" id="5_italic"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
 bg_color = Color(0.921569, 0.509804, 0.196078, 0.96)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
 shadow_color = Color(0, 0, 0, 0.24)
 shadow_size = 8
 anti_aliasing = true
@@ -29,10 +19,10 @@ anti_aliasing_size = 1.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
 bg_color = Color(0.980392, 0.603922, 0.25098, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
 shadow_color = Color(0, 0, 0, 0.28)
 shadow_size = 10
 anti_aliasing = true
@@ -40,19 +30,19 @@ anti_aliasing_size = 1.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
 bg_color = Color(0.839216, 0.431373, 0.141176, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
 anti_aliasing = true
 anti_aliasing_size = 1.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_disabled"]
 bg_color = Color(0.27451, 0.313726, 0.364706, 0.92)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
 anti_aliasing = true
 anti_aliasing_size = 1.0
 
@@ -66,27 +56,97 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.22)
+color = Color(0, 0, 0, 0.34)
 
-[node name="Panel" type="Panel" parent="."]
+[node name="Panel" type="NinePatchRect" parent="."]
+self_modulate = Color(0.0705882, 0.0862745, 0.113725, 0.965)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 8.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+texture = ExtResource("1_dialogue")
+region_rect = Rect2(0, 0, 116, 85)
+patch_margin_left = 27
+patch_margin_top = 28
+patch_margin_right = 27
+patch_margin_bottom = 28
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[node name="Shadow" type="NinePatchRect" parent="Panel"]
+self_modulate = Color(0, 0, 0, 0.25098)
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 5.0
+offset_right = 2.0
+offset_bottom = 5.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_dialogue")
+region_rect = Rect2(0, 0, 116, 85)
+patch_margin_left = 27
+patch_margin_top = 28
+patch_margin_right = 27
+patch_margin_bottom = 28
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[node name="TailAccent" type="TextureRect" parent="Panel"]
+z_index = -1
+self_modulate = Color(0.0705882, 0.0862745, 0.113725, 0.965)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = -18.0
+offset_right = 56.0
+offset_bottom = 26.0
+grow_vertical = 0
+mouse_filter = 2
+texture = ExtResource("2_tail")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TailShadow" type="TextureRect" parent="Panel/TailAccent"]
+self_modulate = Color(0, 0, 0, 0.25098)
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 4.0
+offset_right = 2.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_tail")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="TopAccent" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 4.0
+offset_left = 22.0
+offset_top = 18.0
+offset_right = -22.0
+offset_bottom = 22.0
 grow_horizontal = 2
 mouse_filter = 2
-color = Color(0.980392, 0.686275, 0.290196, 0.78)
-
+color = Color(0.980392, 0.686275, 0.290196, 0.48)
 
 [node name="ReactionAnchor" type="Control" parent="."]
 z_index = 4
@@ -94,9 +154,9 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 18.0
-offset_top = -392.0
+offset_top = -384.0
 offset_right = -18.0
-offset_bottom = -232.0
+offset_bottom = -236.0
 grow_horizontal = 2
 mouse_filter = 2
 clip_contents = false
@@ -108,13 +168,13 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 0.0
-offset_top = -352.0
+offset_top = -360.0
 offset_right = 0.0
-offset_bottom = -4.0
+offset_bottom = -10.0
 grow_horizontal = 2
 mouse_filter = 2
 clip_contents = false
-custom_minimum_size = Vector2(0, 348)
+custom_minimum_size = Vector2(0, 352)
 
 [node name="Padding" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -122,9 +182,9 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 20.0
-offset_top = 18.0
+offset_top = 22.0
 offset_right = -20.0
-offset_bottom = -4.0
+offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 0
@@ -153,19 +213,21 @@ stretch_mode = 5
 [node name="TextBox" type="VBoxContainer" parent="Padding/VBox/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 2
 
 [node name="NameLabel" type="Label" parent="Padding/VBox/Header/TextBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.960784, 0.878431, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = ExtResource("3_bold")
+theme_override_font_sizes/font_size = 22
 text = "Orobas"
 
 [node name="EpithetLabel" type="Label" parent="Padding/VBox/Header/TextBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.835294, 0.894118, 0.972549, 0.86)
+theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.82)
+theme_override_fonts/font = ExtResource("5_italic")
 theme_override_font_sizes/font_size = 15
 autowrap_mode = 3
 text = "Living Rainbow"
@@ -173,8 +235,9 @@ text = "Living Rainbow"
 [node name="InfoLabel" type="Label" parent="Padding/VBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.756863, 0.819608, 0.909804, 0.78)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.8)
+theme_override_fonts/font = ExtResource("4_regular")
+theme_override_font_sizes/font_size = 14
 text = "Majority vote removes this Ancient. Ties break randomly."
 autowrap_mode = 3
 
@@ -187,6 +250,7 @@ theme_override_colors/font_focus_color = Color(0.0666667, 0.0509804, 0.0313726, 
 theme_override_colors/font_hover_color = Color(0.0666667, 0.0509804, 0.0313726, 1)
 theme_override_colors/font_pressed_color = Color(0.0666667, 0.0509804, 0.0313726, 1)
 theme_override_colors/font_disabled_color = Color(0.87, 0.89, 0.92, 0.78)
+theme_override_fonts/font = ExtResource("3_bold")
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")

@@ -123,6 +123,7 @@
     <ItemGroup>
       <Content Include="scenes\mod\choose_the_ancient\ancient_ban_choice_card.tscn" />
       <Content Include="scenes\mod\choose_the_ancient\ancient_ban_selection_screen.tscn" />
+      <Content Include="scenes\mod\choose_the_ancient\ancient_dialogue_line.tscn" />
     </ItemGroup>
 
     <Target Name="CheckDependencyPaths">
