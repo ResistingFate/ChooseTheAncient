@@ -51,7 +51,7 @@ public static class AncientBanCoordinator
             Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
             if (localPlayer != null)
             {
-                localScreen = AncientBanSelectionScreen.Show(nextActIndex);
+                localScreen = AncientBanSelectionScreen.Show(nextActIndex, orderedPlayers);
             }
 
             List<AncientEventModel> finalists = pool;
@@ -127,6 +127,11 @@ public static class AncientBanCoordinator
                     finalists.Count,
                     finalVotes);
 
+                if (localScreen != null)
+                {
+                    await localScreen.PlayFinalVoteResolutionAsync(finalVotes, chosenIndex);
+                }
+
                 chosen = finalists[chosenIndex];
             }
 
@@ -196,6 +201,8 @@ public static class AncientBanCoordinator
 
             int localVote = await localScreen.RunRoundAsync(round);
 
+            localScreen.RecordVote(player, localVote);
+
             RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
                 player,
                 choiceId,
@@ -204,9 +211,12 @@ public static class AncientBanCoordinator
             return localVote;
         }
 
-        return (await RunManager.Instance.PlayerChoiceSynchronizer
+        int remoteVote = (await RunManager.Instance.PlayerChoiceSynchronizer
                 .WaitForRemoteChoice(player, choiceId))
             .AsIndex();
+
+        localScreen?.RecordVote(player, remoteVote);
+        return remoteVote;
     }
 
     private static bool ShouldSelectLocally(Player player)

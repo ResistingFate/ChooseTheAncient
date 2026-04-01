@@ -176,6 +176,24 @@ mouse_filter = 2
 clip_contents = false
 custom_minimum_size = Vector2(0, 352)
 
+
+[node name="VoteIconsAnchor" type="Control" parent="."]
+z_index = 8
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -112.0
+offset_top = -88.0
+offset_right = -16.0
+offset_bottom = -48.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+clip_contents = false
+
 [node name="Padding" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15

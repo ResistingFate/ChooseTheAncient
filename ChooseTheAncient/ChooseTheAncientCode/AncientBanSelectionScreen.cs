@@ -3,14 +3,18 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MegaCrit.Sts2.Core.Audio.Debug;
+using MegaCrit.Sts2.Core.Context;
 using Godot;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Events;
+using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
@@ -45,6 +49,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private const double ReactionTextDuration = 0.58;
     private const double FinalRoundStagger = 0.22;
     private const float PreviewHoverScaleMultiplier = 1.008f;
+    private const float VoteIconSize = 28f;
+    private const float VoteIconOverlap = 10f;
+    private const double VoteResolutionSpinDuration = 1.20;
+    private const float VoteResolutionSettleDelayMin = 0.05f;
+    private const float VoteResolutionSettleDelayMax = 0.30f;
 
     public enum VoteRoundType
     {
@@ -99,11 +108,13 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required Label EpithetLabel { get; init; }
         public required Label InfoLabel { get; init; }
         public required Button ChooseButton { get; init; }
+        public required Control VoteIconsAnchor { get; init; }
         public required Control PreviewAnchor { get; init; }
         public required Control ReactionAnchor { get; init; }
         public required Color AccentColor { get; init; }
 
         public Node? SceneRoot { get; set; }
+        public NMultiplayerVoteContainer? VoteContainer { get; set; }
         public Control? ReactionBubble { get; set; }
         public Vector2 BaseSize { get; set; }
         public Vector2 CardBasePosition { get; set; }
@@ -156,6 +167,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private static Shader? _dialogueWaveShader;
 
     private readonly List<SlotRefs> _slots = new();
+    private readonly List<Player> _orderedPlayers = new();
+    private readonly Dictionary<ulong, int> _votesByPlayerNetId = new();
     private readonly TaskCompletionSource<bool> _readyCompletion = new();
 
     private TaskCompletionSource<int> _voteSubmitted = new();
@@ -172,9 +185,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private bool _closing;
     private bool _uiReady;
     private bool _hasLoadedRound;
+    private Player? _localPlayer;
     private SlotRefs? _hoveredSlot;
     private int? _lastHoveredPoolIndex;
     private PreviewWidgetRefs? _hoveredPreviewWidget;
+    private Player? _currentlyHighlightedVotePlayer;
+    private int? _finalChosenPoolIndex;
 
     private Control? _layoutRoot;
     private Control? _headerPanel;
@@ -199,17 +215,20 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         SetFullRect(this);
     }
 
-    public static AncientBanSelectionScreen Show(int nextActIndex)
+    public static AncientBanSelectionScreen Show(int nextActIndex, IReadOnlyList<Player> orderedPlayers)
     {
         AncientBanSelectionScreen screen = new();
-        screen.Initialize(nextActIndex);
+        screen.Initialize(nextActIndex, orderedPlayers);
         NOverlayStack.Instance.Push(screen);
         return screen;
     }
 
-    public void Initialize(int nextActIndex)
+    public void Initialize(int nextActIndex, IReadOnlyList<Player> orderedPlayers)
     {
         _nextActIndex = nextActIndex;
+        _orderedPlayers.Clear();
+        _orderedPlayers.AddRange(orderedPlayers);
+        _localPlayer = _orderedPlayers.FirstOrDefault(LocalContext.IsMe);
     }
 
     public async Task<int> RunRoundAsync(RoundDefinition round)
@@ -225,6 +244,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _reactionAncientId = round.ReactionAncientId;
         _pendingPoolIndex = null;
         _selectedPoolIndex = null;
+        _finalChosenPoolIndex = null;
+        _currentlyHighlightedVotePlayer = null;
+        _votesByPlayerNetId.Clear();
         _resolved = false;
         _hoveredSlot = null;
         _lastHoveredPoolIndex = null;
@@ -253,6 +275,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _slotsCanvas = _layoutRoot.GetNode<Control>("StageMargin/StageArea/SlotsCanvas");
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
         _clickSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("ClickSfx");
+
+        if (_clickSfx != null)
+        {
+            _clickSfx.VolumeDb = -16f;
+        }
 
         _layoutRoot.MouseFilter = MouseFilterEnum.Ignore;
 
@@ -422,7 +449,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
                 if (icon != null)
                 {
-                    icon.Visible = false;
+                    icon.Modulate = new Color(1f, 1f, 1f, 0f);
+                    icon.Position += new Vector2(0f, 8f);
                 }
 
                 Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
@@ -469,7 +497,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
                 if (icon != null)
                 {
-                    icon.Position += new Vector2(0f, 8f);
                     Tween iconTween = CreateTween();
                     iconTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
                     iconTween.TweenInterval(delay + 0.18);
@@ -566,6 +593,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         RefreshLayout();
         RefreshSlotVisuals(animate: false);
         RefreshButtonTexts();
+        RefreshVoteDisplays(animate: false);
         GrabInitialFocus();
     }
 
@@ -660,9 +688,28 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
         Label infoLabel = cardRoot.GetNode<Label>("Padding/VBox/InfoLabel");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButton");
+        Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
 
+        NMultiplayerVoteContainer? voteContainer = null;
+        if (_orderedPlayers.Count > 1)
+        {
+            voteContainer = new NMultiplayerVoteContainer
+            {
+                Name = "VoteContainer",
+                MouseFilter = MouseFilterEnum.Ignore,
+                FocusMode = FocusModeEnum.None,
+                ZIndex = 8,
+            };
+            SetFullRect(voteContainer);
+            voteContainer.Initialize(
+                player => _votesByPlayerNetId.TryGetValue(player.NetId, out int votedPoolIndex) && votedPoolIndex == poolIndex,
+                _orderedPlayers);
+            voteIconsAnchor.AddChild(voteContainer);
+        }
+
+        voteIconsAnchor.ZIndex = 8;
         previewAnchor.ZIndex = 3;
         reactionAnchor.ZIndex = 4;
         topAccent.Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.82f);
@@ -710,9 +757,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             EpithetLabel = epithetLabel,
             InfoLabel = infoLabel,
             ChooseButton = chooseButton,
+            VoteIconsAnchor = voteIconsAnchor,
             PreviewAnchor = previewAnchor,
             ReactionAnchor = reactionAnchor,
             AccentColor = accentColor,
+            VoteContainer = voteContainer,
             Shape = default,
         };
     }
@@ -923,14 +972,17 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             CustomMinimumSize = new Vector2(56f, 56f),
             MouseFilter = MouseFilterEnum.Ignore,
             FocusMode = FocusModeEnum.None,
-            Modulate = new Color(1f, 1f, 1f, 0f),
         };
         line.AddChild(iconRoot);
+
+        Texture2D? reactionIconTexture = ancient.RunHistoryIcon ?? ancient.MapIcon;
+        Texture2D? reactionOutlineTexture = ancient.RunHistoryIconOutline ?? ancient.MapIcon;
 
         TextureRect icon = new()
         {
             Name = "Icon",
-            Texture = ancient.RunHistoryIcon,
+            Texture = reactionIconTexture,
+            Modulate = new Color(1f, 1f, 1f, 0f),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             MouseFilter = MouseFilterEnum.Ignore,
@@ -945,7 +997,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         TextureRect outline = new()
         {
             Name = "Outline",
-            Texture = ancient.RunHistoryIconOutline,
+            Texture = reactionOutlineTexture,
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             MouseFilter = MouseFilterEnum.Ignore,
@@ -1172,7 +1224,21 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             HoverTipAlignment alignment = wrapperCenterX < viewportMid
                 ? HoverTipAlignment.Right
                 : HoverTipAlignment.Left;
-            NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, alignment);
+            NHoverTipSet hoverTipSet = NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, alignment);
+            hoverTipSet.ZIndex = 5000;
+            hoverTipSet.TopLevel = true;
+            hoverTipSet.ProcessMode = ProcessModeEnum.Always;
+            hoverTipSet.Show();
+            if (hoverTipSet.GetParent() != null)
+            {
+                hoverTipSet.GetParent().MoveChild(hoverTipSet, hoverTipSet.GetParent().GetChildCount() - 1);
+            }
+
+            foreach (Control tipChild in hoverTipSet.GetChildren().OfType<Control>())
+            {
+                tipChild.ZIndex = 5001;
+                tipChild.TopLevel = true;
+            }
         }
         catch
         {
@@ -1339,6 +1405,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
             ApplyPortalGeometry(shape, refs);
             ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
+            LayoutVoteIcons(refs);
             LayoutPreview(refs);
             LayoutReaction(refs);
         }
@@ -1776,11 +1843,313 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         }
     }
 
+
+    public void RecordVote(Player player, int poolIndex)
+    {
+        if (!GodotObject.IsInstanceValid(this))
+        {
+            return;
+        }
+
+        _votesByPlayerNetId[player.NetId] = poolIndex;
+        RefreshVoteDisplays(animate: true);
+    }
+
+    private void RefreshVoteDisplays(bool animate, bool highlightLocalPlayer = true)
+    {
+        foreach (SlotRefs refs in _slots)
+        {
+            if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
+            {
+                continue;
+            }
+
+            refs.VoteContainer.RefreshPlayerVotes(animate);
+            LayoutVoteIcons(refs);
+
+            if (highlightLocalPlayer && _localPlayer != null)
+            {
+                try
+                {
+                    refs.VoteContainer.SetPlayerHighlighted(
+                        _localPlayer,
+                        _votesByPlayerNetId.TryGetValue(_localPlayer.NetId, out int voteIndex) && voteIndex == refs.PoolIndex);
+                }
+                catch
+                {
+                }
+            }
+        }
+    }
+
+
+    public async Task PlayFinalVoteResolutionAsync(IReadOnlyList<int> finalVotesByPlayerSlotOrder, int chosenPoolIndex)
+    {
+        if (!GodotObject.IsInstanceValid(this) || !IsInsideTree() || _roundType != VoteRoundType.FinalRevealVote)
+        {
+            return;
+        }
+
+        _finalChosenPoolIndex = chosenPoolIndex;
+        RefreshVoteDisplays(animate: false, highlightLocalPlayer: false);
+
+        List<(Player player, int poolIndex)> recordedVotes = new();
+        for (int i = 0; i < Math.Min(_orderedPlayers.Count, finalVotesByPlayerSlotOrder.Count); i++)
+        {
+            int poolIndex = finalVotesByPlayerSlotOrder[i];
+            if (poolIndex >= 0 && poolIndex < _pool.Count)
+            {
+                recordedVotes.Add((_orderedPlayers[i], poolIndex));
+            }
+        }
+
+        int distinctVoteCount = recordedVotes
+            .Select(v => v.poolIndex)
+            .Distinct()
+            .Count();
+
+        if (distinctVoteCount > 1)
+        {
+            List<Player> sortedPlayers = recordedVotes
+                .OrderBy(v => v.poolIndex)
+                .ThenBy(v => GetVoteIconIndex(v.player, v.poolIndex))
+                .Select(v => v.player)
+                .ToList();
+
+            List<Player> chosenPlayers = recordedVotes
+                .Where(v => v.poolIndex == chosenPoolIndex)
+                .Select(v => v.player)
+                .ToList();
+
+            if (sortedPlayers.Count > 0 && chosenPlayers.Count > 0)
+            {
+                int seed = BuildVoteResolutionSeed(finalVotesByPlayerSlotOrder, chosenPoolIndex);
+                int ticks = 12 + PositiveMod(seed, 6);
+                float settleDelay = Mathf.Lerp(
+                    VoteResolutionSettleDelayMin,
+                    VoteResolutionSettleDelayMax,
+                    PositiveMod(seed >> 4, 256) / 255f);
+
+                Player winningPlayer = chosenPlayers[PositiveMod(seed >> 8, chosenPlayers.Count)];
+                int winnerIndex = sortedPlayers.IndexOf(winningPlayer);
+                double tickDelay = VoteResolutionSpinDuration / Math.Max(1, ticks);
+
+                for (int step = 0; step <= ticks; step++)
+                {
+                    int rawIndex = winnerIndex - (ticks - step);
+                    int index = PositiveMod(rawIndex, sortedPlayers.Count);
+                    HighlightVotePlayer(sortedPlayers[index]);
+
+                    try
+                    {
+                        NDebugAudioManager.Instance.Play("map_split_tick.mp3", 0.15f, PitchVariance.Small);
+                    }
+                    catch
+                    {
+                    }
+
+                    await Cmd.Wait((float)tickDelay, ignoreCombatEnd: true);
+                }
+
+                await Cmd.Wait(settleDelay, ignoreCombatEnd: true);
+            }
+        }
+
+        HighlightVotePlayer(null);
+        _selectedPoolIndex = chosenPoolIndex;
+        RefreshButtonTexts();
+        RefreshSlotVisuals(animate: true);
+
+        SlotRefs? chosenSlot = FindSlot(chosenPoolIndex);
+        if (chosenSlot?.VoteContainer != null && GodotObject.IsInstanceValid(chosenSlot.VoteContainer))
+        {
+            chosenSlot.VoteContainer.BouncePlayers();
+        }
+
+        try
+        {
+            SfxCmd.Play("event:/sfx/ui/map/map_select");
+        }
+        catch
+        {
+        }
+
+        if (_subtitleLabel != null && chosenSlot != null)
+        {
+            _subtitleLabel.Text = $"{chosenSlot.Ancient.Title.GetFormattedText()} wins the vote.";
+        }
+
+        await Cmd.Wait(0.45f, ignoreCombatEnd: true);
+    }
+
+    private void HighlightVotePlayer(Player? player)
+    {
+        if (_currentlyHighlightedVotePlayer == player)
+        {
+            return;
+        }
+
+        if (_currentlyHighlightedVotePlayer != null)
+        {
+            foreach (SlotRefs refs in _slots)
+            {
+                if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    refs.VoteContainer.SetPlayerHighlighted(_currentlyHighlightedVotePlayer, isHighlighted: false);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        _currentlyHighlightedVotePlayer = player;
+
+        if (player == null)
+        {
+            return;
+        }
+
+        foreach (SlotRefs refs in _slots)
+        {
+            if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
+            {
+                continue;
+            }
+
+            try
+            {
+                bool votedForThisSlot = _votesByPlayerNetId.TryGetValue(player.NetId, out int poolIndex) && poolIndex == refs.PoolIndex;
+                refs.VoteContainer.SetPlayerHighlighted(player, votedForThisSlot);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private int GetVoteIconIndex(Player player, int poolIndex)
+    {
+        SlotRefs? slot = FindSlot(poolIndex);
+        if (slot?.VoteContainer != null && GodotObject.IsInstanceValid(slot.VoteContainer))
+        {
+            try
+            {
+                int index = slot.VoteContainer.GetVoteIndex(player);
+                if (index >= 0)
+                {
+                    return index;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        int fallbackIndex = _orderedPlayers.IndexOf(player);
+        return fallbackIndex >= 0 ? fallbackIndex : 999;
+    }
+
+    private int BuildVoteResolutionSeed(IReadOnlyList<int> finalVotesByPlayerSlotOrder, int chosenPoolIndex)
+    {
+        unchecked
+        {
+            int seed = 17;
+            seed = (seed * 31) + _nextActIndex;
+            seed = (seed * 31) + chosenPoolIndex;
+
+            foreach (Player player in _orderedPlayers)
+            {
+                seed = (seed * 31) + (int)(player.NetId & 0x7FFFFFFF);
+                if (_votesByPlayerNetId.TryGetValue(player.NetId, out int vote))
+                {
+                    seed = (seed * 31) + vote;
+                }
+            }
+
+            foreach (int vote in finalVotesByPlayerSlotOrder)
+            {
+                seed = (seed * 31) + vote;
+            }
+
+            return seed;
+        }
+    }
+
+    private static int PositiveMod(int value, int mod)
+    {
+        if (mod <= 0)
+        {
+            return 0;
+        }
+
+        int result = value % mod;
+        return result < 0 ? result + mod : result;
+    }
+
+    private void LayoutVoteIcons(SlotRefs refs)
+    {
+        if (refs.VoteIconsAnchor == null || !GodotObject.IsInstanceValid(refs.VoteIconsAnchor))
+        {
+            return;
+        }
+
+        if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
+        {
+            return;
+        }
+
+        refs.VoteIconsAnchor.LayoutMode = 1;
+        refs.VoteIconsAnchor.AnchorLeft = 1f;
+        refs.VoteIconsAnchor.AnchorTop = 1f;
+        refs.VoteIconsAnchor.AnchorRight = 1f;
+        refs.VoteIconsAnchor.AnchorBottom = 1f;
+        refs.VoteIconsAnchor.OffsetLeft = -112f;
+        refs.VoteIconsAnchor.OffsetTop = -88f;
+        refs.VoteIconsAnchor.OffsetRight = -16f;
+        refs.VoteIconsAnchor.OffsetBottom = -48f;
+
+        List<Control> icons = refs.VoteContainer.GetChildren()
+            .OfType<Control>()
+            .OrderBy(node => node.GetIndex())
+            .ToList();
+
+        if (icons.Count == 0)
+        {
+            return;
+        }
+
+        float spacing = VoteIconSize - VoteIconOverlap;
+        float totalWidth = VoteIconSize + ((icons.Count - 1) * spacing);
+        float startX = MathF.Max(0f, refs.VoteIconsAnchor.Size.X - totalWidth);
+        float y = MathF.Max(0f, (refs.VoteIconsAnchor.Size.Y - VoteIconSize) * 0.5f);
+
+        for (int i = 0; i < icons.Count; i++)
+        {
+            Control icon = icons[i];
+            icon.LayoutMode = 1;
+            icon.AnchorLeft = 0f;
+            icon.AnchorTop = 0f;
+            icon.AnchorRight = 0f;
+            icon.AnchorBottom = 0f;
+            icon.Position = new Vector2(startX + (i * spacing), y);
+            icon.Size = new Vector2(VoteIconSize, VoteIconSize);
+            icon.ZIndex = 12;
+            icon.MouseFilter = MouseFilterEnum.Ignore;
+        }
+    }
+
     private void RefreshButtonTexts()
     {
         foreach (SlotRefs refs in _slots)
         {
             bool resolvedSelected = _resolved && _selectedPoolIndex == refs.PoolIndex;
+            bool finalWinner = _finalChosenPoolIndex.HasValue && _finalChosenPoolIndex.Value == refs.PoolIndex;
 
             refs.InfoLabel.Text = _roundType == VoteRoundType.InitialKeepVote
                 ? "Vote once to keep this ancient in the final round."
@@ -1789,7 +2158,14 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             if (_resolved)
             {
                 refs.ChooseButton.Disabled = true;
-                refs.ChooseButton.Text = resolvedSelected ? "Vote Locked" : "Unavailable";
+                if (_finalChosenPoolIndex.HasValue)
+                {
+                    refs.ChooseButton.Text = finalWinner ? "Selected Ancient" : "Voting Closed";
+                }
+                else
+                {
+                    refs.ChooseButton.Text = resolvedSelected ? "Vote Locked" : "Unavailable";
+                }
             }
             else
             {
@@ -1816,6 +2192,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _pendingPoolIndex = null;
         _hoveredSlot = null;
         _lastHoveredPoolIndex = null;
+
+        if (_localPlayer != null)
+        {
+            RecordVote(_localPlayer, poolIndex);
+        }
 
         if (_clickSfx?.Stream != null)
         {
@@ -1926,11 +2307,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 _generatedClickStream ??= BuildUiTone(
                     baseFrequencyHz: 164f,
                     overtoneFrequencyHz: 328f,
-                    durationSeconds: 0.16f,
-                    peakAmplitude: 0.30f,
+                    durationSeconds: 0.14f,
+                    peakAmplitude: 0.18f,
                     attackSeconds: 0.003f,
-                    releaseSeconds: 0.11f,
-                    noiseAmount: 0.018f);
+                    releaseSeconds: 0.10f,
+                    noiseAmount: 0.012f);
                 _clickSfx.Stream = _generatedClickStream;
             }
         }
