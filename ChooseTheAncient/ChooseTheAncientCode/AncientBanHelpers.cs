@@ -7,6 +7,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
@@ -19,6 +20,14 @@ public static class AncientBanHelpers
     private static readonly MethodInfo GenerateInitialOptionsWrapperMethod =
         AccessTools.Method(typeof(AncientEventModel), "GenerateInitialOptionsWrapper")
         ?? throw new InvalidOperationException("Could not locate AncientEventModel.GenerateInitialOptionsWrapper.");
+
+    private static readonly FieldInfo EventOwnerBackingField =
+        AccessTools.Field(typeof(EventModel), "<Owner>k__BackingField")
+        ?? throw new InvalidOperationException("Could not locate EventModel owner backing field.");
+
+    private static readonly FieldInfo EventRngBackingField =
+        AccessTools.Field(typeof(EventModel), "<Rng>k__BackingField")
+        ?? throw new InvalidOperationException("Could not locate EventModel RNG backing field.");
 
     public sealed class AncientPreviewData
     {
@@ -132,20 +141,24 @@ public static class AncientBanHelpers
             {
                 runState.CurrentActIndex = nextActIndex;
 
-                Traverse previewTraverse = Traverse.Create(previewEvent);
-                previewTraverse.Property("Owner").SetValue(player);
+                EventOwnerBackingField.SetValue(previewEvent, player);
 
                 uint seed = (uint)(runState.Rng.Seed
                     + (previewEvent.IsShared ? 0UL : player.NetId)
                     + (ulong)StringHelper.GetDeterministicHashCode(previewEvent.Id.Entry));
 
-                previewTraverse.Property("Rng").SetValue(new Rng(seed));
+                Rng previewRng = new(seed);
+                EventRngBackingField.SetValue(previewEvent, previewRng);
+
+                GD.Print($"[ChooseTheAncient] Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} at act index {nextActIndex}.");
 
                 previewEvent.CalculateVars();
 
                 IReadOnlyList<EventOption> options =
                     (GenerateInitialOptionsWrapperMethod.Invoke(previewEvent, Array.Empty<object>()) as IReadOnlyList<EventOption>)
                     ?? Array.Empty<EventOption>();
+
+                LogPreviewOptions(previewEvent, ancient, options);
 
                 return new AncientPreviewData
                 {
@@ -162,6 +175,49 @@ public static class AncientBanHelpers
         {
             GD.PrintErr($"[ChooseTheAncient] Failed to generate preview data for ancient {ancient.Id.Entry}: {ex}");
             return null;
+        }
+    }
+
+
+    private static string SafeFormatLoc(LocString? loc)
+    {
+        if (loc == null)
+        {
+            return "<null>";
+        }
+
+        try
+        {
+            return loc.GetFormattedText();
+        }
+        catch (Exception ex)
+        {
+            return $"<loc format failed: {ex.GetType().Name}>";
+        }
+    }
+
+    private static void LogPreviewOptions(AncientEventModel previewEvent, AncientEventModel ancient, IReadOnlyList<EventOption> options)
+    {
+        GD.Print($"[ChooseTheAncient] Preview options for {ancient.Id.Entry}: count={options.Count}");
+
+        for (int i = 0; i < options.Count; i++)
+        {
+            EventOption option = options[i];
+            try
+            {
+                previewEvent.DynamicVars.AddTo(option.Title);
+                previewEvent.DynamicVars.AddTo(option.Description);
+            }
+            catch
+            {
+            }
+
+            string relicId = option.Relic?.Id.Entry ?? "<none>";
+            string relicTitle = option.Relic != null ? SafeFormatLoc(option.Relic.Title) : "<none>";
+            string title = SafeFormatLoc(option.Title);
+            string description = SafeFormatLoc(option.Description);
+
+            GD.Print($"[ChooseTheAncient]   [{i}] textKey={option.TextKey}, relicId={relicId}, relicTitle={relicTitle}, title={title}, description={description}");
         }
     }
 

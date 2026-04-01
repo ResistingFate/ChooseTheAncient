@@ -77,7 +77,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required Label EpithetLabel { get; init; }
         public required Label InfoLabel { get; init; }
         public required Button ChooseButton { get; init; }
-        public required Control PreviewRoot { get; init; }
+        public required Control PreviewAnchor { get; init; }
         public required Color AccentColor { get; init; }
 
         public Node? SceneRoot { get; set; }
@@ -269,10 +269,14 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Tween tween = CreateTween();
         tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
 
-        foreach (SlotRefs refs in _slots)
+        for (int i = 0; i < _slots.Count; i++)
         {
-            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 0f, 0.14f);
-            tween.Parallel().TweenProperty(refs.SlotRoot, "scale", new Vector2(0.985f, 0.985f), 0.14f);
+            SlotRefs refs = _slots[i];
+            float horizontalOffset = (i - ((_slots.Count - 1) * 0.5f)) * 120f;
+            float verticalOffset = -32f;
+
+            tween.Parallel().TweenProperty(refs.SlotRoot, "position", new Vector2(horizontalOffset, verticalOffset), 0.16f);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 0f, 0.16f);
         }
 
         await ToSignal(tween, Tween.SignalName.Finished);
@@ -280,10 +284,17 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void PrimeSlotsForTransitionIn()
     {
-        foreach (SlotRefs refs in _slots)
+        for (int i = 0; i < _slots.Count; i++)
         {
+            SlotRefs refs = _slots[i];
+            float horizontalOffset = (i == 0) ? -200f : 200f;
+            if (_slots.Count == 3)
+            {
+                horizontalOffset = (i - 1) * 180f;
+            }
+
+            refs.SlotRoot.Position = new Vector2(horizontalOffset, 0f);
             refs.SlotRoot.Modulate = new Color(1f, 1f, 1f, 0f);
-            refs.SlotRoot.Scale = new Vector2(1.015f, 1.015f);
         }
     }
 
@@ -299,8 +310,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         foreach (SlotRefs refs in _slots)
         {
-            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 1f, 0.18f);
-            tween.Parallel().TweenProperty(refs.SlotRoot, "scale", Vector2.One, 0.18f);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "position", Vector2.Zero, 0.22f);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 1f, 0.22f);
         }
 
         await ToSignal(tween, Tween.SignalName.Finished);
@@ -319,12 +330,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         if (_roundType == VoteRoundType.InitialKeepVote)
         {
             _titleLabel.Text = $"Choose the {actLabel} Finalists";
-            _subtitleLabel.Text = "Vote for the ancient you want to keep. The least-voted ancient is eliminated.";
+            _subtitleLabel.Text = "Vote once. The least-voted ancient is eliminated, and ties for last are broken with this mod's deterministic RNG.";
         }
         else
         {
             _titleLabel.Text = $"Final Ancient Vote Before {actLabel}";
-            _subtitleLabel.Text = "The final 2 ancients now reveal the rewards they would offer. Vote for the ancient you want next act.";
+            _subtitleLabel.Text = "The final 2 ancients now reveal the rewards they would offer. Vote once to lock in the ancient you want next act.";
         }
     }
 
@@ -440,17 +451,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         };
         slotRoot.AddChild(rightRim);
 
-        Control previewRoot = new()
-        {
-            Name = "PreviewRoot",
-            MouseFilter = MouseFilterEnum.Ignore,
-            FocusMode = FocusModeEnum.None,
-            ClipContents = false,
-            ZIndex = 3,
-        };
-        SetFullRect(previewRoot);
-        slotRoot.AddChild(previewRoot);
-
         Control cardRoot = cardScene.Instantiate<Control>();
         cardRoot.Name = $"AncientChoice_{ancient.Id.Entry}";
         cardRoot.ClipContents = false;
@@ -464,7 +464,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
         Label infoLabel = cardRoot.GetNode<Label>("Padding/VBox/InfoLabel");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButton");
+        Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
 
+        previewAnchor.ZIndex = 3;
         topAccent.Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.82f);
         icon.Texture = ancient.MapIcon;
         nameLabel.Text = ancient.Title.GetFormattedText();
@@ -510,7 +512,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             EpithetLabel = epithetLabel,
             InfoLabel = infoLabel,
             ChooseButton = chooseButton,
-            PreviewRoot = previewRoot,
+            PreviewAnchor = previewAnchor,
             AccentColor = accentColor,
             Shape = default,
         };
@@ -518,23 +520,31 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void PopulatePreview(SlotRefs refs)
     {
-        ClearChildren(refs.PreviewRoot);
+        ClearChildren(refs.PreviewAnchor);
         refs.PreviewWrappers.Clear();
 
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
-            refs.PreviewRoot.Visible = false;
+            refs.PreviewAnchor.Visible = false;
             return;
         }
 
-        if (!_previewDataByAncientId.TryGetValue(refs.Ancient.Id.Entry, out AncientBanHelpers.AncientPreviewData? preview)
-            || preview.Options.Count == 0)
+        if (!_previewDataByAncientId.TryGetValue(refs.Ancient.Id.Entry, out AncientBanHelpers.AncientPreviewData? preview))
         {
-            refs.PreviewRoot.Visible = false;
+            GD.Print($"[ChooseTheAncient] No preview data found for {refs.Ancient.Id.Entry}.");
+            refs.PreviewAnchor.Visible = false;
             return;
         }
 
-        refs.PreviewRoot.Visible = true;
+        GD.Print($"[ChooseTheAncient] Building preview UI for {refs.Ancient.Id.Entry} with {preview.Options.Count} option(s).");
+
+        if (preview.Options.Count == 0)
+        {
+            refs.PreviewAnchor.Visible = false;
+            return;
+        }
+
+        refs.PreviewAnchor.Visible = true;
 
         for (int i = 0; i < preview.Options.Count; i++)
         {
@@ -547,8 +557,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 FocusMode = FocusModeEnum.None,
                 ClipContents = false,
                 ZIndex = 3,
+                CustomMinimumSize = new Vector2(0f, 76f),
             };
-            refs.PreviewRoot.AddChild(previewWrapper);
+            refs.PreviewAnchor.AddChild(previewWrapper);
 
             NEventOptionButton previewButton = NEventOptionButton.Create(preview.PreviewEvent, option, i);
             previewButton.MouseFilter = MouseFilterEnum.Ignore;
@@ -557,14 +568,16 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             previewButton.ZIndex = 3;
             SetFullRect(previewButton);
 
+            previewWrapper.AddChild(previewButton);
+
             Control? voteContainer = previewButton.GetNodeOrNull<Control>("PlayerVoteContainer");
             if (voteContainer != null)
             {
                 voteContainer.Visible = false;
             }
-
-            previewWrapper.AddChild(previewButton);
             refs.PreviewWrappers.Add(previewWrapper);
+
+            GD.Print($"[ChooseTheAncient] Added preview widget {i} for {refs.Ancient.Id.Entry}: relic={(option.Relic?.Id.Entry ?? "<none>")}, textKey={option.TextKey}");
         }
     }
 
@@ -653,16 +666,26 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void LayoutPreview(SlotRefs refs)
     {
-        if (!refs.PreviewRoot.Visible || refs.PreviewWrappers.Count == 0)
+        if (!refs.PreviewAnchor.Visible || refs.PreviewWrappers.Count == 0)
         {
             return;
         }
 
-        float scaleX = _slots.Count == 2 ? 0.78f : 0.74f;
-        float scaleY = _slots.Count == 2 ? 0.68f : 0.64f;
-        float previewWidth = refs.Shape.CardRect.Size.X * (_slots.Count == 2 ? 0.95f : 0.90f);
-        float left = refs.Shape.CardRect.Position.X + ((refs.Shape.CardRect.Size.X - previewWidth) * 0.5f);
-        float yStart = MathF.Max(26f, refs.Shape.CardRect.Position.Y - (refs.PreviewWrappers.Count * 74f) - 28f);
+        Vector2 anchorSize = refs.PreviewAnchor.Size;
+        if (anchorSize.X <= 1f || anchorSize.Y <= 1f)
+        {
+            anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 24f), 280f);
+        }
+
+        float scaleX = _slots.Count == 2 ? 0.82f : 0.78f;
+        float scaleY = _slots.Count == 2 ? 0.72f : 0.68f;
+        float displayWidth = anchorSize.X;
+        float displayHeight = 70f;
+        float gap = 8f;
+        float totalHeight = (refs.PreviewWrappers.Count * displayHeight) + (Math.Max(0, refs.PreviewWrappers.Count - 1) * gap);
+        float startY = MathF.Max(0f, anchorSize.Y - totalHeight);
+
+        GD.Print($"[ChooseTheAncient] Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWrappers.Count}, startY={startY}");
 
         for (int i = 0; i < refs.PreviewWrappers.Count; i++)
         {
@@ -672,8 +695,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             wrapper.AnchorTop = 0f;
             wrapper.AnchorRight = 0f;
             wrapper.AnchorBottom = 0f;
-            wrapper.Position = new Vector2(left, yStart + (i * 74f));
-            wrapper.Size = new Vector2(previewWidth / scaleX, 104f / scaleY);
+            wrapper.Position = new Vector2(0f, startY + (i * (displayHeight + gap)));
+            wrapper.Size = new Vector2(displayWidth / scaleX, displayHeight / scaleY);
             wrapper.Scale = new Vector2(scaleX, scaleY);
             wrapper.PivotOffset = Vector2.Zero;
         }
@@ -1020,7 +1043,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 tween.Parallel().TweenProperty(refs.CardShade, "color", shadeColor, 0.10f);
                 tween.Parallel().TweenProperty(refs.ScenePolygon, "modulate", slotModulate, 0.10f);
                 tween.Parallel().TweenProperty(refs.CardRoot, "modulate", slotModulate, 0.10f);
-                tween.Parallel().TweenProperty(refs.PreviewRoot, "modulate", slotModulate, 0.10f);
+                tween.Parallel().TweenProperty(refs.PreviewAnchor, "modulate", slotModulate, 0.10f);
                 tween.Parallel().TweenProperty(refs.LeftRim, "color", rimColor, 0.12f);
                 tween.Parallel().TweenProperty(refs.RightRim, "color", rimColor, 0.12f);
                 tween.Parallel().TweenProperty(refs.TopAccent, "color", accentColor, 0.12f);
@@ -1032,7 +1055,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 refs.CardShade.Color = shadeColor;
                 refs.ScenePolygon.Modulate = slotModulate;
                 refs.CardRoot.Modulate = slotModulate;
-                refs.PreviewRoot.Modulate = slotModulate;
+                refs.PreviewAnchor.Modulate = slotModulate;
                 refs.LeftRim.Color = rimColor;
                 refs.RightRim.Color = rimColor;
                 refs.TopAccent.Color = accentColor;
@@ -1046,11 +1069,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     {
         foreach (SlotRefs refs in _slots)
         {
-            bool pendingSelected = !_resolved && _pendingPoolIndex == refs.PoolIndex;
             bool resolvedSelected = _resolved && _selectedPoolIndex == refs.PoolIndex;
 
             refs.InfoLabel.Text = _roundType == VoteRoundType.InitialKeepVote
-                ? "Vote to keep this ancient in the final round."
+                ? "Vote once to keep this ancient in the final round."
                 : "These previewed options are your local rewards for this ancient.";
 
             if (_resolved)
@@ -1061,20 +1083,14 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             else
             {
                 refs.ChooseButton.Disabled = false;
-                refs.ChooseButton.Text = pendingSelected
-                    ? "Confirm Vote"
-                    : _pendingPoolIndex.HasValue ? "Switch Vote" : "Vote For This Ancient";
+                refs.ChooseButton.Text = "Vote For This Ancient";
             }
         }
     }
 
     private void GrabInitialFocus()
     {
-        Control? target = _pendingPoolIndex.HasValue
-            ? FindSlot(_pendingPoolIndex.Value)?.ChooseButton
-            : DefaultFocusedControl;
-
-        target?.CallDeferred(Control.MethodName.GrabFocus);
+        DefaultFocusedControl?.CallDeferred(Control.MethodName.GrabFocus);
     }
 
     private void Select(int poolIndex)
@@ -1084,35 +1100,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             return;
         }
 
-        if (_pendingPoolIndex.HasValue && _pendingPoolIndex.Value == poolIndex)
-        {
-            ConfirmSelection();
-            return;
-        }
-
-        _pendingPoolIndex = poolIndex;
-        _selectedPoolIndex = null;
-        _hoveredSlot = FindSlot(poolIndex);
-        _lastHoveredPoolIndex = poolIndex;
-
-        RefreshButtonTexts();
-        RefreshSlotVisuals(animate: true);
-
-        if (_subtitleLabel != null)
-        {
-            _subtitleLabel.Text = "Selection staged. Click the same ancient again to confirm, or choose another ancient to switch your vote.";
-        }
-    }
-
-    private void ConfirmSelection()
-    {
-        if (_resolved || !_pendingPoolIndex.HasValue)
-        {
-            return;
-        }
-
         _resolved = true;
-        _selectedPoolIndex = _pendingPoolIndex.Value;
+        _selectedPoolIndex = poolIndex;
         _pendingPoolIndex = null;
         _hoveredSlot = null;
         _lastHoveredPoolIndex = null;
@@ -1131,25 +1120,31 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             _subtitleLabel.Text = "Vote submitted. Waiting for the rest of the party...";
         }
 
-        _voteSubmitted.TrySetResult(_selectedPoolIndex.Value);
+        _voteSubmitted.TrySetResult(poolIndex);
     }
 
     public void CloseScreen()
     {
-        if (_closing)
+        if (_closing || !GodotObject.IsInstanceValid(this))
         {
             return;
         }
 
         _closing = true;
 
-        if (IsInsideTree())
+        try
         {
-            NOverlayStack.Instance.Remove(this);
+            if (IsInsideTree())
+            {
+                NOverlayStack.Instance.Remove(this);
+            }
+            else
+            {
+                QueueFree();
+            }
         }
-        else
+        catch (ObjectDisposedException)
         {
-            QueueFree();
         }
     }
 

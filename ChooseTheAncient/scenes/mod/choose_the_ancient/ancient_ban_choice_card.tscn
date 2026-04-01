@@ -87,6 +87,21 @@ grow_horizontal = 2
 mouse_filter = 2
 color = Color(0.980392, 0.686275, 0.290196, 0.78)
 
+
+[node name="PreviewAnchor" type="Control" parent="."]
+z_index = 3
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 0.0
+offset_top = -332.0
+offset_right = 0.0
+offset_bottom = -8.0
+grow_horizontal = 2
+mouse_filter = 2
+clip_contents = false
+custom_minimum_size = Vector2(0, 324)
+
 [node name="Padding" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -95,7 +110,7 @@ anchor_bottom = 1.0
 offset_left = 20.0
 offset_top = 18.0
 offset_right = -20.0
-offset_bottom = -18.0
+offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 0
