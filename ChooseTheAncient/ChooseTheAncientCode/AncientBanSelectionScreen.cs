@@ -1,10 +1,13 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Godot;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
+using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes.Events;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 
@@ -22,6 +25,17 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private const float CardBottomInset = 18f;
     private const float CardHeightRatio = 0.275f;
     private const float PortalRimThickness = 6f;
+
+    public enum VoteRoundType
+    {
+        InitialKeepVote,
+        FinalRevealVote,
+    }
+
+    public readonly record struct RoundDefinition(
+        IReadOnlyList<AncientEventModel> Pool,
+        VoteRoundType RoundType,
+        IReadOnlyDictionary<string, AncientBanHelpers.AncientPreviewData>? PreviewDataByAncientId);
 
     private readonly record struct AncientSceneConfig(
         Vector2 BaseSize,
@@ -61,13 +75,16 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required TextureRect Icon { get; init; }
         public required Label NameLabel { get; init; }
         public required Label EpithetLabel { get; init; }
+        public required Label InfoLabel { get; init; }
         public required Button ChooseButton { get; init; }
+        public required Control PreviewRoot { get; init; }
         public required Color AccentColor { get; init; }
 
         public Node? SceneRoot { get; set; }
         public Vector2 BaseSize { get; set; }
         public Vector2 CardBasePosition { get; set; }
         public PortalShape Shape { get; set; }
+        public List<Control> PreviewWrappers { get; } = new();
     }
 
     private static readonly Dictionary<string, string> AncientScenePaths = new()
@@ -100,21 +117,27 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private static AudioStreamWav? _generatedHoverStream;
     private static AudioStreamWav? _generatedClickStream;
 
-    private readonly TaskCompletionSource<int> _voteSubmitted = new();
     private readonly List<SlotRefs> _slots = new();
+    private readonly TaskCompletionSource<bool> _readyCompletion = new();
+
+    private TaskCompletionSource<int> _voteSubmitted = new();
 
     private IReadOnlyList<AncientEventModel> _pool = Array.Empty<AncientEventModel>();
+    private VoteRoundType _roundType = VoteRoundType.InitialKeepVote;
+    private Dictionary<string, AncientBanHelpers.AncientPreviewData> _previewDataByAncientId = new();
     private int _nextActIndex;
+    private int? _pendingPoolIndex;
     private int? _selectedPoolIndex;
     private bool _resolved;
     private bool _closing;
+    private bool _uiReady;
+    private bool _hasLoadedRound;
     private SlotRefs? _hoveredSlot;
     private int? _lastHoveredPoolIndex;
 
     private Control? _layoutRoot;
     private Control? _headerPanel;
     private Control? _footerPanel;
-    private MarginContainer? _stageMargin;
     private Label? _titleLabel;
     private Label? _subtitleLabel;
     private Control? _stageArea;
@@ -135,21 +158,37 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         SetFullRect(this);
     }
 
-    public static AncientBanSelectionScreen Show(IReadOnlyList<AncientEventModel> pool, int nextActIndex)
+    public static AncientBanSelectionScreen Show(int nextActIndex)
     {
         AncientBanSelectionScreen screen = new();
-        screen.Initialize(pool, nextActIndex);
+        screen.Initialize(nextActIndex);
         NOverlayStack.Instance.Push(screen);
         return screen;
     }
 
-    public void Initialize(IReadOnlyList<AncientEventModel> pool, int nextActIndex)
+    public void Initialize(int nextActIndex)
     {
-        _pool = pool;
         _nextActIndex = nextActIndex;
     }
 
-    public Task<int> WaitForVoteAsync() => _voteSubmitted.Task;
+    public async Task<int> RunRoundAsync(RoundDefinition round)
+    {
+        await _readyCompletion.Task;
+
+        _voteSubmitted = new TaskCompletionSource<int>();
+        _pool = round.Pool;
+        _roundType = round.RoundType;
+        _previewDataByAncientId = round.PreviewDataByAncientId?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            ?? new Dictionary<string, AncientBanHelpers.AncientPreviewData>();
+        _pendingPoolIndex = null;
+        _selectedPoolIndex = null;
+        _resolved = false;
+        _hoveredSlot = null;
+        _lastHoveredPoolIndex = null;
+
+        await ApplyRoundAsync();
+        return await _voteSubmitted.Task;
+    }
 
     public override void _Ready()
     {
@@ -165,17 +204,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         _headerPanel = _layoutRoot.GetNode<Control>("HeaderPanel");
         _footerPanel = _layoutRoot.GetNodeOrNull<Control>("FooterPanel");
-        _stageMargin = _layoutRoot.GetNode<MarginContainer>("StageMargin");
         _titleLabel = _layoutRoot.GetNode<Label>("HeaderPanel/HeaderPadding/TopBox/TitleLabel");
         _subtitleLabel = _layoutRoot.GetNode<Label>("HeaderPanel/HeaderPadding/TopBox/SubtitleLabel");
         _stageArea = _layoutRoot.GetNode<Control>("StageMargin/StageArea");
         _slotsCanvas = _layoutRoot.GetNode<Control>("StageMargin/StageArea/SlotsCanvas");
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
         _clickSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("ClickSfx");
-
-        ColorRect _dim = _layoutRoot.GetNode<ColorRect>("Dim");
-        ColorRect _backdropTint = _layoutRoot.GetNode<ColorRect>("BackdropTint");
-        ColorRect _topScrim = _layoutRoot.GetNode<ColorRect>("TopScrim");
 
         _layoutRoot.MouseFilter = MouseFilterEnum.Ignore;
 
@@ -184,27 +218,14 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         if (_headerPanel != null)
         {
             _headerPanel.OffsetTop = 96f;
-            _headerPanel.OffsetBottom = 174f;
+            _headerPanel.OffsetBottom = 184f;
             _headerPanel.ZIndex = 2;
         }
 
         if (_footerPanel != null)
         {
-            _footerPanel.OffsetTop = -304;
-            _footerPanel.OffsetBottom = -244f;
-            _footerPanel.Visible = true;
-            _footerPanel.ZIndex = 2;
+            _footerPanel.Visible = false;
         }
-
-        //_dim.Visible = false;
-        //_backdropTint.Visible = false;
-        //_topScrim.Visible = false;
-
-
-        _titleLabel.Text = _nextActIndex == 1
-            ? "Choose 1 Ancient to Remove Before Act 2:"
-            : "Choose 1 Ancient to Remove Before Act 3";
-        _subtitleLabel.Text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly.";
 
         _stageArea.ClipContents = true;
         _slotsCanvas.ClipContents = false;
@@ -212,7 +233,99 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _slotsCanvas.MouseFilter = MouseFilterEnum.Ignore;
         _stageArea.Resized += RefreshLayout;
 
-        CallDeferred(nameof(BuildUi));
+        _uiReady = true;
+        _readyCompletion.TrySetResult(true);
+    }
+
+    private async Task ApplyRoundAsync()
+    {
+        UpdateRoundText();
+
+        if (!_uiReady)
+        {
+            return;
+        }
+
+        if (!_hasLoadedRound)
+        {
+            BuildUi();
+            _hasLoadedRound = true;
+            return;
+        }
+
+        await AnimateOutSlotsAsync();
+        BuildUi();
+        PrimeSlotsForTransitionIn();
+        await AnimateInSlotsAsync();
+    }
+
+    private async Task AnimateOutSlotsAsync()
+    {
+        if (_slots.Count == 0)
+        {
+            return;
+        }
+
+        Tween tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
+
+        foreach (SlotRefs refs in _slots)
+        {
+            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 0f, 0.14f);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "scale", new Vector2(0.985f, 0.985f), 0.14f);
+        }
+
+        await ToSignal(tween, Tween.SignalName.Finished);
+    }
+
+    private void PrimeSlotsForTransitionIn()
+    {
+        foreach (SlotRefs refs in _slots)
+        {
+            refs.SlotRoot.Modulate = new Color(1f, 1f, 1f, 0f);
+            refs.SlotRoot.Scale = new Vector2(1.015f, 1.015f);
+        }
+    }
+
+    private async Task AnimateInSlotsAsync()
+    {
+        if (_slots.Count == 0)
+        {
+            return;
+        }
+
+        Tween tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+
+        foreach (SlotRefs refs in _slots)
+        {
+            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 1f, 0.18f);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "scale", Vector2.One, 0.18f);
+        }
+
+        await ToSignal(tween, Tween.SignalName.Finished);
+        GrabInitialFocus();
+    }
+
+    private void UpdateRoundText()
+    {
+        if (_titleLabel == null || _subtitleLabel == null)
+        {
+            return;
+        }
+
+        string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
+
+        if (_roundType == VoteRoundType.InitialKeepVote)
+        {
+            _titleLabel.Text = $"Choose the {actLabel} Finalists";
+            _subtitleLabel.Text = "Vote for the ancient you want to keep. The least-voted ancient is eliminated.";
+        }
+        else
+        {
+            _titleLabel.Text = $"Final Ancient Vote Before {actLabel}";
+            _subtitleLabel.Text = "The final 2 ancients now reveal the rewards they would offer. Vote for the ancient you want next act.";
+        }
     }
 
     private void BuildUi()
@@ -230,9 +343,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         ClearChildren(_slotsCanvas);
         _slots.Clear();
-        _selectedPoolIndex = null;
-        _hoveredSlot = null;
-        _lastHoveredPoolIndex = null;
         DefaultFocusedControl = null;
 
         for (int i = 0; i < _pool.Count; i++)
@@ -243,10 +353,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             _slots.Add(refs);
             DefaultFocusedControl ??= refs.ChooseButton;
             LoadAncientScene(refs);
+            PopulatePreview(refs);
         }
 
         RefreshLayout();
         RefreshSlotVisuals(animate: false);
+        RefreshButtonTexts();
         GrabInitialFocus();
     }
 
@@ -266,7 +378,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             Name = "SceneViewport",
             Disable3D = true,
-            TransparentBg = false, // true,
+            TransparentBg = false,
             HandleInputLocally = false,
             RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
             RenderTargetClearMode = SubViewport.ClearMode.Always,
@@ -328,10 +440,21 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         };
         slotRoot.AddChild(rightRim);
 
+        Control previewRoot = new()
+        {
+            Name = "PreviewRoot",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+            ClipContents = false,
+            ZIndex = 3,
+        };
+        SetFullRect(previewRoot);
+        slotRoot.AddChild(previewRoot);
+
         Control cardRoot = cardScene.Instantiate<Control>();
         cardRoot.Name = $"AncientChoice_{ancient.Id.Entry}";
         cardRoot.ClipContents = false;
-        cardRoot.ZIndex = 2; // 20 a bit high, going for 2
+        cardRoot.ZIndex = 2;
         slotRoot.AddChild(cardRoot);
 
         ColorRect cardShade = cardRoot.GetNode<ColorRect>("BottomShade");
@@ -339,6 +462,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         TextureRect icon = cardRoot.GetNode<TextureRect>("Padding/VBox/Header/Icon");
         Label nameLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/NameLabel");
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
+        Label infoLabel = cardRoot.GetNode<Label>("Padding/VBox/InfoLabel");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButton");
 
         topAccent.Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.82f);
@@ -356,7 +480,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             epithetLabel.Visible = false;
         }
 
-        chooseButton.Text = "Ban This Ancient";
         chooseButton.MouseEntered += () => OnSlotHovered(poolIndex);
         chooseButton.MouseExited += () => OnSlotUnhovered(poolIndex);
         chooseButton.FocusEntered += () => OnSlotHovered(poolIndex);
@@ -385,10 +508,64 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             Icon = icon,
             NameLabel = nameLabel,
             EpithetLabel = epithetLabel,
+            InfoLabel = infoLabel,
             ChooseButton = chooseButton,
+            PreviewRoot = previewRoot,
             AccentColor = accentColor,
             Shape = default,
         };
+    }
+
+    private void PopulatePreview(SlotRefs refs)
+    {
+        ClearChildren(refs.PreviewRoot);
+        refs.PreviewWrappers.Clear();
+
+        if (_roundType != VoteRoundType.FinalRevealVote)
+        {
+            refs.PreviewRoot.Visible = false;
+            return;
+        }
+
+        if (!_previewDataByAncientId.TryGetValue(refs.Ancient.Id.Entry, out AncientBanHelpers.AncientPreviewData? preview)
+            || preview.Options.Count == 0)
+        {
+            refs.PreviewRoot.Visible = false;
+            return;
+        }
+
+        refs.PreviewRoot.Visible = true;
+
+        for (int i = 0; i < preview.Options.Count; i++)
+        {
+            EventOption option = preview.Options[i];
+
+            Control previewWrapper = new()
+            {
+                Name = $"PreviewWrapper_{i}",
+                MouseFilter = MouseFilterEnum.Ignore,
+                FocusMode = FocusModeEnum.None,
+                ClipContents = false,
+                ZIndex = 3,
+            };
+            refs.PreviewRoot.AddChild(previewWrapper);
+
+            NEventOptionButton previewButton = NEventOptionButton.Create(preview.PreviewEvent, option, i);
+            previewButton.MouseFilter = MouseFilterEnum.Ignore;
+            previewButton.FocusMode = FocusModeEnum.None;
+            previewButton.ProcessMode = ProcessModeEnum.Always;
+            previewButton.ZIndex = 3;
+            SetFullRect(previewButton);
+
+            Control? voteContainer = previewButton.GetNodeOrNull<Control>("PlayerVoteContainer");
+            if (voteContainer != null)
+            {
+                voteContainer.Visible = false;
+            }
+
+            previewWrapper.AddChild(previewButton);
+            refs.PreviewWrappers.Add(previewWrapper);
+        }
     }
 
     private void LoadAncientScene(SlotRefs refs)
@@ -436,11 +613,16 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         }
 
         float cardHeight = Math.Clamp(MathF.Round(area.Y * CardHeightRatio), 188f, 224f);
-        float cardWidth = Math.Clamp(area.X * 0.29f, 430f, 520f);
+        float cardWidth = _slots.Count == 2
+            ? Math.Clamp(area.X * 0.34f, 430f, 620f)
+            : Math.Clamp(area.X * 0.29f, 430f, 520f);
 
-        PortalShape[] shapes = _slots.Count == 3
-            ? BuildThreePortalShapes(area, cardWidth, cardHeight)
-            : BuildFallbackShapes(area, cardWidth, cardHeight, _slots.Count);
+        PortalShape[] shapes = _slots.Count switch
+        {
+            3 => BuildThreePortalShapes(area, cardWidth, cardHeight),
+            2 => BuildTwoPortalShapes(area, cardWidth, cardHeight),
+            _ => BuildFallbackShapes(area, cardWidth, cardHeight, _slots.Count)
+        };
 
         for (int i = 0; i < _slots.Count; i++)
         {
@@ -453,7 +635,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             refs.SlotRoot.Position = Vector2.Zero;
             refs.SlotRoot.Size = area;
             refs.SlotRoot.PivotOffset = area * 0.5f;
-            refs.SlotRoot.ZIndex = 2;//shape.ZIndex; //Middle ancient over top tool bar with shape.ZIndex
+            refs.SlotRoot.ZIndex = 2;
 
             refs.SceneViewport.Size = new Vector2I(
                 Math.Max(1, (int)MathF.Ceiling(area.X)),
@@ -465,6 +647,35 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
             ApplyPortalGeometry(shape, refs);
             ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
+            LayoutPreview(refs);
+        }
+    }
+
+    private void LayoutPreview(SlotRefs refs)
+    {
+        if (!refs.PreviewRoot.Visible || refs.PreviewWrappers.Count == 0)
+        {
+            return;
+        }
+
+        float scaleX = _slots.Count == 2 ? 0.78f : 0.74f;
+        float scaleY = _slots.Count == 2 ? 0.68f : 0.64f;
+        float previewWidth = refs.Shape.CardRect.Size.X * (_slots.Count == 2 ? 0.95f : 0.90f);
+        float left = refs.Shape.CardRect.Position.X + ((refs.Shape.CardRect.Size.X - previewWidth) * 0.5f);
+        float yStart = MathF.Max(26f, refs.Shape.CardRect.Position.Y - (refs.PreviewWrappers.Count * 74f) - 28f);
+
+        for (int i = 0; i < refs.PreviewWrappers.Count; i++)
+        {
+            Control wrapper = refs.PreviewWrappers[i];
+            wrapper.LayoutMode = 1;
+            wrapper.AnchorLeft = 0f;
+            wrapper.AnchorTop = 0f;
+            wrapper.AnchorRight = 0f;
+            wrapper.AnchorBottom = 0f;
+            wrapper.Position = new Vector2(left, yStart + (i * 74f));
+            wrapper.Size = new Vector2(previewWidth / scaleX, 104f / scaleY);
+            wrapper.Scale = new Vector2(scaleX, scaleY);
+            wrapper.PivotOffset = Vector2.Zero;
         }
     }
 
@@ -479,19 +690,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Rect2 centerCard = new(new Vector2(outerPad + cardWidth + cardGap, cardY), new Vector2(cardWidth, cardHeight));
         Rect2 rightCard = new(new Vector2(outerPad + ((cardWidth + cardGap) * 2f), cardY), new Vector2(cardWidth, cardHeight));
 
-        // Seam line gradient, define a point for the slope to start
-        float leftGraident = (area.X*0.06f) / area.Y;
-        float rightGraident = (area.X*0.06f) / area.Y ;
-        float seamLeftTopX = area.X * 0.38f; // 0.40
-        float seamLeftBottomX = seamLeftTopX - (area.Y  * leftGraident);
-        float seamRightTopX = area.X * 0.72f; // 0.70
-        float seamRightBottomX = seamRightTopX - (area.Y * rightGraident);
-        
-        
-        //float seamLeftTopX = area.X * 0.43f; //0.43f;
-        //float seamLeftBottomX = area.X * 0.27f;// 0.33f;
-        //float seamRightTopX = area.X * 0.73f; // 0.68f;
-        //float seamRightBottomX = area.X * 0.63f; // 0.58f;
+        float leftGradient = (area.X * 0.06f) / area.Y;
+        float rightGradient = (area.X * 0.06f) / area.Y;
+        float seamLeftTopX = area.X * 0.38f;
+        float seamLeftBottomX = seamLeftTopX - (area.Y * leftGradient);
+        float seamRightTopX = area.X * 0.72f;
+        float seamRightBottomX = seamRightTopX - (area.Y * rightGradient);
 
         float leftLogicalWidth = MathF.Max(seamLeftTopX, seamLeftBottomX) + (area.X * 0.28f);
         float centerLogicalLeft = MathF.Min(seamLeftTopX, seamLeftBottomX) - (area.X * 0.14f);
@@ -523,6 +727,42 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 new Vector2(area.X, 0f),
                 new Vector2(area.X, h),
                 new Vector2(seamRightBottomX, h),
+                1),
+        };
+    }
+
+    private static PortalShape[] BuildTwoPortalShapes(Vector2 area, float cardWidth, float cardHeight)
+    {
+        float h = area.Y;
+        float outerPad = Math.Max(42f, (area.X - (cardWidth * 2f)) / 3f);
+        float cardGap = outerPad;
+        float cardY = h - cardHeight - CardBottomInset;
+
+        Rect2 leftCard = new(new Vector2(outerPad, cardY), new Vector2(cardWidth, cardHeight));
+        Rect2 rightCard = new(new Vector2(outerPad + cardWidth + cardGap, cardY), new Vector2(cardWidth, cardHeight));
+
+        float seamTopX = area.X * 0.56f;
+        float seamBottomX = area.X * 0.46f;
+        float leftLogicalWidth = MathF.Max(seamTopX, seamBottomX) + (area.X * 0.24f);
+        float rightLogicalLeft = MathF.Min(seamTopX, seamBottomX) - (area.X * 0.24f);
+
+        return new[]
+        {
+            new PortalShape(
+                new Rect2(0f, 0f, leftLogicalWidth, h),
+                leftCard,
+                new Vector2(0f, 0f),
+                new Vector2(seamTopX, 0f),
+                new Vector2(seamBottomX, h),
+                new Vector2(0f, h),
+                1),
+            new PortalShape(
+                new Rect2(rightLogicalLeft, 0f, area.X - rightLogicalLeft, h),
+                rightCard,
+                new Vector2(seamTopX, 0f),
+                new Vector2(area.X, 0f),
+                new Vector2(area.X, h),
+                new Vector2(seamBottomX, h),
                 1),
         };
     }
@@ -562,9 +802,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             shape.BottomRight,
             shape.BottomLeft,
         };
+
         refs.ScenePolygon.Polygon = polygon;
         refs.ScenePolygon.Set("uv", polygon);
-
         refs.GlowPolygon.Polygon = polygon;
         refs.HoverFlashPolygon.Polygon = polygon;
 
@@ -613,10 +853,14 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Vector2 baseSize = ResolveSceneBaseSize(refs, cfg);
         float appliedScale = cfg.Scale * (hovered ? HoverSceneScaleMultiplier : 1f);
 
-        Vector2 slotAnchorPx = new((refs.Shape.TopLeft.X + refs.Shape.TopRight.X + refs.Shape.BottomLeft.X + refs.Shape.BottomRight.X) * 0.25f, 0f);
+        Vector2 slotAnchorPx = new(
+            (refs.Shape.TopLeft.X + refs.Shape.TopRight.X + refs.Shape.BottomLeft.X + refs.Shape.BottomRight.X) * 0.25f,
+            0f);
+
         Vector2 sourceAnchorPx = new(
             baseSize.X * appliedScale * cfg.SourceAnchor01.X,
             baseSize.Y * appliedScale * cfg.SourceAnchor01.Y);
+
         Vector2 extraPx = new(
             refs.BaseSize.X * cfg.ExtraOffset01.X,
             refs.BaseSize.Y * cfg.ExtraOffset01.Y);
@@ -738,26 +982,27 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private void RefreshSlotVisuals(bool animate)
     {
         bool anyHovered = !_resolved && _hoveredSlot != null;
-        
+
         foreach (SlotRefs refs in _slots)
         {
             bool hovered = anyHovered && ReferenceEquals(_hoveredSlot, refs);
+            bool pendingSelected = !_resolved && _pendingPoolIndex == refs.PoolIndex;
             bool selected = _resolved && _selectedPoolIndex == refs.PoolIndex;
 
-            float glowAlpha = 0f;
-            float flashAlpha = 0f;
+            float glowAlpha = pendingSelected ? 0.10f : 0f;
+            float flashAlpha = hovered && !pendingSelected ? 0.05f : 0f;
             float shadeAlpha = _resolved
                 ? (selected ? 0.06f : 0.34f)
-                : (hovered ? 0.10f : 0.18f);
+                : (pendingSelected ? 0.04f : hovered ? 0.10f : 0.18f);
             float slotAlpha = _resolved
                 ? (selected ? 1f : 0.42f)
-                : (anyHovered ? (hovered ? 1f : 0.84f) : 1f);
+                : (pendingSelected ? 1f : anyHovered ? (hovered ? 1f : 0.84f) : 1f);
             float rimAlpha = _resolved
                 ? (selected ? 0.94f : 0.28f)
-                : (hovered ? 0.86f : 0.58f);
+                : (pendingSelected ? 0.98f : hovered ? 0.86f : 0.58f);
             float accentAlpha = _resolved
                 ? (selected ? 0.96f : 0.35f)
-                : (hovered ? 0.95f : 0.78f);
+                : (pendingSelected ? 1f : hovered ? 0.95f : 0.78f);
 
             Color glowColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, glowAlpha);
             Color flashColor = new(1f, 1f, 1f, flashAlpha);
@@ -775,6 +1020,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 tween.Parallel().TweenProperty(refs.CardShade, "color", shadeColor, 0.10f);
                 tween.Parallel().TweenProperty(refs.ScenePolygon, "modulate", slotModulate, 0.10f);
                 tween.Parallel().TweenProperty(refs.CardRoot, "modulate", slotModulate, 0.10f);
+                tween.Parallel().TweenProperty(refs.PreviewRoot, "modulate", slotModulate, 0.10f);
                 tween.Parallel().TweenProperty(refs.LeftRim, "color", rimColor, 0.12f);
                 tween.Parallel().TweenProperty(refs.RightRim, "color", rimColor, 0.12f);
                 tween.Parallel().TweenProperty(refs.TopAccent, "color", accentColor, 0.12f);
@@ -786,30 +1032,88 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 refs.CardShade.Color = shadeColor;
                 refs.ScenePolygon.Modulate = slotModulate;
                 refs.CardRoot.Modulate = slotModulate;
+                refs.PreviewRoot.Modulate = slotModulate;
                 refs.LeftRim.Color = rimColor;
                 refs.RightRim.Color = rimColor;
                 refs.TopAccent.Color = accentColor;
             }
 
             ApplySceneTransform(refs, hovered, animate);
-            
+        }
+    }
+
+    private void RefreshButtonTexts()
+    {
+        foreach (SlotRefs refs in _slots)
+        {
+            bool pendingSelected = !_resolved && _pendingPoolIndex == refs.PoolIndex;
+            bool resolvedSelected = _resolved && _selectedPoolIndex == refs.PoolIndex;
+
+            refs.InfoLabel.Text = _roundType == VoteRoundType.InitialKeepVote
+                ? "Vote to keep this ancient in the final round."
+                : "These previewed options are your local rewards for this ancient.";
+
+            if (_resolved)
+            {
+                refs.ChooseButton.Disabled = true;
+                refs.ChooseButton.Text = resolvedSelected ? "Vote Locked" : "Unavailable";
+            }
+            else
+            {
+                refs.ChooseButton.Disabled = false;
+                refs.ChooseButton.Text = pendingSelected
+                    ? "Confirm Vote"
+                    : _pendingPoolIndex.HasValue ? "Switch Vote" : "Vote For This Ancient";
+            }
         }
     }
 
     private void GrabInitialFocus()
     {
-        DefaultFocusedControl?.CallDeferred(Control.MethodName.GrabFocus);
+        Control? target = _pendingPoolIndex.HasValue
+            ? FindSlot(_pendingPoolIndex.Value)?.ChooseButton
+            : DefaultFocusedControl;
+
+        target?.CallDeferred(Control.MethodName.GrabFocus);
     }
 
-    private void Select(int bannedIndex)
+    private void Select(int poolIndex)
     {
         if (_resolved)
         {
             return;
         }
 
+        if (_pendingPoolIndex.HasValue && _pendingPoolIndex.Value == poolIndex)
+        {
+            ConfirmSelection();
+            return;
+        }
+
+        _pendingPoolIndex = poolIndex;
+        _selectedPoolIndex = null;
+        _hoveredSlot = FindSlot(poolIndex);
+        _lastHoveredPoolIndex = poolIndex;
+
+        RefreshButtonTexts();
+        RefreshSlotVisuals(animate: true);
+
+        if (_subtitleLabel != null)
+        {
+            _subtitleLabel.Text = "Selection staged. Click the same ancient again to confirm, or choose another ancient to switch your vote.";
+        }
+    }
+
+    private void ConfirmSelection()
+    {
+        if (_resolved || !_pendingPoolIndex.HasValue)
+        {
+            return;
+        }
+
         _resolved = true;
-        _selectedPoolIndex = bannedIndex;
+        _selectedPoolIndex = _pendingPoolIndex.Value;
+        _pendingPoolIndex = null;
         _hoveredSlot = null;
         _lastHoveredPoolIndex = null;
 
@@ -819,13 +1123,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             _clickSfx.Play();
         }
 
-        foreach (SlotRefs refs in _slots)
-        {
-            bool selected = refs.PoolIndex == bannedIndex;
-            refs.ChooseButton.Disabled = true;
-            refs.ChooseButton.Text = selected ? "Vote Locked" : "Unavailable";
-        }
-
+        RefreshButtonTexts();
         RefreshSlotVisuals(animate: true);
 
         if (_subtitleLabel != null)
@@ -833,7 +1131,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             _subtitleLabel.Text = "Vote submitted. Waiting for the rest of the party...";
         }
 
-        _voteSubmitted.TrySetResult(bannedIndex);
+        _voteSubmitted.TrySetResult(_selectedPoolIndex.Value);
     }
 
     public void CloseScreen()

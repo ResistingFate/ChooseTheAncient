@@ -20,19 +20,22 @@ public static class AncientBanCoordinator
         int nextActIndex,
         AncientBanFlowState flow)
     {
+        AncientBanSelectionScreen? localScreen = null;
+
         try
         {
-            var nextAct = runState.Acts[nextActIndex];
+            ActModel nextAct = runState.Acts[nextActIndex];
             List<AncientEventModel> pool = AncientBanHelpers.BuildCandidatePool(nextAct, runState);
+            pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool);
 
-            AncientBanHelpers.LogPool($"Act {nextActIndex + 1} ancient candidate pool", pool);
+            AncientBanHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
 
             if (pool.Count <= 1)
             {
                 if (pool.Count == 1)
                 {
                     AncientBanHelpers.SetChosenAncient(nextAct, pool[0]);
-                    GD.Print($"[YourMod] Only one ancient available for act {nextActIndex + 1}: {pool[0].Id.Entry}");
+                    GD.Print($"[ChooseTheAncient] Only one ancient available for act {nextActIndex + 1}: {pool[0].Id.Entry}");
                 }
 
                 flow.ResolvedActs.Add(nextActIndex);
@@ -41,26 +44,82 @@ public static class AncientBanCoordinator
                 return;
             }
 
-            List<int> votesInPlayerSlotOrder = await CollectVotes(runState, pool, nextActIndex);
-            int bannedIndex = ResolveBannedIndex(runState, nextActIndex, votesInPlayerSlotOrder);
-
-            List<AncientEventModel> remaining = pool
-                .Where((_, i) => i != bannedIndex)
+            List<Player> orderedPlayers = runState.Players
+                .OrderBy(runState.GetPlayerSlotIndex)
                 .ToList();
-            
-            AncientBanHelpers.LogPool($"Act {nextActIndex + 1} remaining after ban", remaining);
-            AncientEventModel chosen;
-            if (remaining.Count == 1)
+
+            Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+            if (localPlayer != null)
             {
-                chosen = remaining[0];
+                localScreen = AncientBanSelectionScreen.Show(nextActIndex);
+            }
+
+            List<AncientEventModel> finalists = pool;
+
+            if (pool.Count >= 3)
+            {
+                var firstRound = new AncientBanSelectionScreen.RoundDefinition(
+                    pool,
+                    AncientBanSelectionScreen.VoteRoundType.InitialKeepVote,
+                    null);
+
+                List<int> firstVotes = await CollectVotes(
+                    orderedPlayers,
+                    firstRound,
+                    localScreen);
+
+                int removedIndex = ResolveLeastVotedIndex(
+                    runState,
+                    nextActIndex,
+                    pool.Count,
+                    firstVotes);
+
+                AncientEventModel removedAncient = pool[removedIndex];
+                finalists = pool
+                    .Where((_, index) => index != removedIndex)
+                    .ToList();
+
+                GD.Print($"[ChooseTheAncient] First-pass elimination removed {removedAncient.Id.Entry}.");
+                AncientBanHelpers.LogPool($"Act {nextActIndex + 1} finalists", finalists);
+            }
+
+            AncientEventModel chosen;
+            if (finalists.Count == 1)
+            {
+                chosen = finalists[0];
             }
             else
             {
-                chosen = ResolveSpawnedAncient(runState, nextActIndex, remaining);
-            }
-            AncientBanHelpers.SetChosenAncient(nextAct, chosen);
+                Dictionary<string, AncientBanHelpers.AncientPreviewData>? localPreviewData = null;
+                if (localPlayer != null)
+                {
+                    localPreviewData = AncientBanHelpers.BuildPreviewDataByAncientId(
+                        localPlayer,
+                        finalists,
+                        nextActIndex);
+                }
 
-            GD.Print($"[ChooseTheAncient] Banned ancient index {bannedIndex}; chosen spawn for act {nextActIndex + 1}: {chosen.Id.Entry}");
+                var secondRound = new AncientBanSelectionScreen.RoundDefinition(
+                    finalists,
+                    AncientBanSelectionScreen.VoteRoundType.FinalRevealVote,
+                    localPreviewData);
+
+                List<int> finalVotes = await CollectVotes(
+                    orderedPlayers,
+                    secondRound,
+                    localScreen);
+
+                int chosenIndex = ResolveMostVotedIndex(
+                    runState,
+                    nextActIndex,
+                    finalists.Count,
+                    finalVotes);
+
+                chosen = finalists[chosenIndex];
+            }
+
+            AncientBanHelpers.SetChosenAncient(nextAct, chosen);
+            GD.Print($"[ChooseTheAncient] Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}");
 
             flow.ResolvedActs.Add(nextActIndex);
             flow.ContinueEnterNextAct = true;
@@ -68,25 +127,22 @@ public static class AncientBanCoordinator
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"[ChooseTheAncient] Ancient ban flow failed: {ex}");
+            GD.PrintErr($"[ChooseTheAncient] Ancient selection flow failed: {ex}");
             flow.ContinueEnterNextAct = true;
             await runManager.EnterNextAct();
         }
         finally
         {
+            localScreen?.CloseScreen();
             flow.FlowInProgress = false;
         }
     }
-    
-    private static async Task<List<int>> CollectVotes(
-        RunState runState,
-        IReadOnlyList<AncientEventModel> pool,
-        int nextActIndex)
-    {
-        List<Player> orderedPlayers = runState.Players
-            .OrderBy(p => runState.GetPlayerSlotIndex(p))
-            .ToList();
 
+    private static async Task<List<int>> CollectVotes(
+        IReadOnlyList<Player> orderedPlayers,
+        AncientBanSelectionScreen.RoundDefinition round,
+        AncientBanSelectionScreen? localScreen)
+    {
         Dictionary<ulong, uint> choiceIdsByPlayer = new();
 
         foreach (Player player in orderedPlayers)
@@ -95,55 +151,38 @@ public static class AncientBanCoordinator
             choiceIdsByPlayer[player.NetId] = choiceId;
         }
 
-        AncientBanSelectionScreen? localScreen = null;
-        Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+        Task<int>[] voteTasks = orderedPlayers
+            .Select(player => GetVoteForPlayer(
+                player,
+                choiceIdsByPlayer[player.NetId],
+                round,
+                localScreen))
+            .ToArray();
 
-        if (localPlayer != null)
+        int[] votes = await Task.WhenAll(voteTasks);
+
+        for (int i = 0; i < orderedPlayers.Count; i++)
         {
-            localScreen = AncientBanSelectionScreen.Show(pool, nextActIndex);
+            GD.Print($"[ChooseTheAncient] Vote received for player {orderedPlayers[i].NetId}: {votes[i]}");
         }
 
-        try
-        {
-            Task<int>[] voteTasks = orderedPlayers
-                .Select(player => GetVoteForPlayer(
-                    player,
-                    choiceIdsByPlayer[player.NetId],
-                    pool,
-                    nextActIndex,
-                    localScreen))
-                .ToArray();
-
-            int[] votes = await Task.WhenAll(voteTasks);
-
-            for (int i = 0; i < orderedPlayers.Count; i++)
-            {
-                GD.Print($"[ChooseTheAncient] Received vote for player {orderedPlayers[i].NetId}: {votes[i]}");
-            }
-
-            return votes.ToList();
-        }
-        finally
-        {
-            localScreen?.CloseScreen();
-        }
-    } 
+        return votes.ToList();
+    }
 
     private static async Task<int> GetVoteForPlayer(
         Player player,
         uint choiceId,
-        IReadOnlyList<AncientEventModel> pool,
-        int nextActIndex,
+        AncientBanSelectionScreen.RoundDefinition round,
         AncientBanSelectionScreen? localScreen)
     {
         if (ShouldSelectLocally(player))
         {
             if (localScreen == null)
             {
-                throw new InvalidOperationException("Local ancient ban screen was not created.");
+                throw new InvalidOperationException("Local ancient selection screen was not created.");
             }
 
-            int localVote = await localScreen.WaitForVoteAsync();
+            int localVote = await localScreen.RunRoundAsync(round);
 
             RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
                 player,
@@ -167,68 +206,76 @@ public static class AncientBanCoordinator
 
         return false;
     }
-    
-    private static AncientEventModel ResolveSpawnedAncient(
+
+    private static int ResolveLeastVotedIndex(
         RunState runState,
         int nextActIndex,
-        IReadOnlyList<AncientEventModel> remaining)
-    {
-        if (remaining.Count == 0)
-        {
-            throw new InvalidOperationException("No ancients remain after ban.");
-        }
-
-        if (remaining.Count == 1)
-        {
-            return remaining[0];
-        }
-
-        var rng = AncientBanHelpers.CreateSpawnResolutionRng(runState, nextActIndex);
-        int chosenIndex = rng.NextInt(remaining.Count);
-        return remaining[chosenIndex];
-    }
-
-    private static int ResolveBannedIndex(
-        RunState runState,
-        int nextActIndex,
+        int optionCount,
         IReadOnlyList<int> votesInPlayerSlotOrder)
     {
-        List<int> validVotes = votesInPlayerSlotOrder
-            .Where(i => i >= 0)
-            .ToList();
+        List<int> trailers = ResolveIndicesWithTargetCount(
+            optionCount,
+            votesInPlayerSlotOrder,
+            selectMinimum: true);
 
-        if (validVotes.Count == 0)
+        if (trailers.Count == 1)
         {
-            return 0;
+            return trailers[0];
         }
 
-        Dictionary<int, int> counts = new();
-        foreach (int vote in validVotes)
-        {
-            counts[vote] = counts.GetValueOrDefault(vote, 0) + 1;
-        }
+        var rng = AncientBanHelpers.CreateEliminationResolutionRng(runState, nextActIndex);
+        return trailers[rng.NextInt(trailers.Count)];
+    }
 
-        int highestCount = counts.Values.Max();
-
-        List<int> leaders = counts
-            .Where(kvp => kvp.Value == highestCount)
-            .Select(kvp => kvp.Key)
-            .OrderBy(i => i)
-            .ToList();
+    private static int ResolveMostVotedIndex(
+        RunState runState,
+        int nextActIndex,
+        int optionCount,
+        IReadOnlyList<int> votesInPlayerSlotOrder)
+    {
+        List<int> leaders = ResolveIndicesWithTargetCount(
+            optionCount,
+            votesInPlayerSlotOrder,
+            selectMinimum: false);
 
         if (leaders.Count == 1)
         {
             return leaders[0];
         }
 
-        var rng = AncientBanHelpers.CreateVoteResolutionRng(runState, nextActIndex);
-        int nextVote = rng.NextItem(leaders);
-        if (nextVote != null)
-        {
-            return nextVote;
-        } else { 
-            throw new InvalidOperationException("Failed to resolve tied ancient ban vote.");
-            
-        }
+        var rng = AncientBanHelpers.CreateFinalVoteResolutionRng(runState, nextActIndex);
+        return leaders[rng.NextInt(leaders.Count)];
     }
-} 
+
+    private static List<int> ResolveIndicesWithTargetCount(
+        int optionCount,
+        IReadOnlyList<int> votesInPlayerSlotOrder,
+        bool selectMinimum)
+    {
+        if (optionCount <= 0)
+        {
+            throw new InvalidOperationException("Cannot resolve a vote for an empty option list.");
+        }
+
+        Dictionary<int, int> counts = Enumerable.Range(0, optionCount)
+            .ToDictionary(index => index, _ => 0);
+
+        foreach (int vote in votesInPlayerSlotOrder)
+        {
+            if (vote >= 0 && vote < optionCount)
+            {
+                counts[vote]++;
+            }
+        }
+
+        int target = selectMinimum
+            ? counts.Values.Min()
+            : counts.Values.Max();
+
+        return counts
+            .Where(kvp => kvp.Value == target)
+            .Select(kvp => kvp.Key)
+            .OrderBy(index => index)
+            .ToList();
+    }
+}
