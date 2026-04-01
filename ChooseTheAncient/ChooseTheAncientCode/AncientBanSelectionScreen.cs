@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Godot;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Models;
@@ -25,6 +26,13 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private const float CardBottomInset = 18f;
     private const float CardHeightRatio = 0.275f;
     private const float PortalRimThickness = 6f;
+    private const float ReactionBubbleHeight = 96f;
+    private const float ReactionBubbleGap = 10f;
+    private static readonly string DialogueBubbleTexturePath = "res://images/ui/dialogue_nine_patch.png";
+    private static readonly string DialogueTailTexturePath = "res://images/ui/dialogue_tail.png";
+    private static readonly string DialogueRegularFontPath = "res://themes/kreon_regular_glyph_space_one.tres";
+    private static readonly string DialogueBoldFontPath = "res://themes/kreon_bold_glyph_space_one.tres";
+    private static readonly string DialogueItalicFontPath = "res://themes/bitter_medium_italic_glyph_space_one.tres";
 
     public enum VoteRoundType
     {
@@ -35,7 +43,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     public readonly record struct RoundDefinition(
         IReadOnlyList<AncientEventModel> Pool,
         VoteRoundType RoundType,
-        IReadOnlyDictionary<string, AncientBanHelpers.AncientPreviewData>? PreviewDataByAncientId);
+        IReadOnlyDictionary<string, AncientBanHelpers.AncientPreviewData>? PreviewDataByAncientId,
+        string? SuppressedPreviewAncientId,
+        string? ReactionAncientId);
 
     private readonly record struct AncientSceneConfig(
         Vector2 BaseSize,
@@ -78,9 +88,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required Label InfoLabel { get; init; }
         public required Button ChooseButton { get; init; }
         public required Control PreviewAnchor { get; init; }
+        public required Control ReactionAnchor { get; init; }
         public required Color AccentColor { get; init; }
 
         public Node? SceneRoot { get; set; }
+        public Control? ReactionBubble { get; set; }
         public Vector2 BaseSize { get; set; }
         public Vector2 CardBasePosition { get; set; }
         public PortalShape Shape { get; set; }
@@ -125,6 +137,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private IReadOnlyList<AncientEventModel> _pool = Array.Empty<AncientEventModel>();
     private VoteRoundType _roundType = VoteRoundType.InitialKeepVote;
     private Dictionary<string, AncientBanHelpers.AncientPreviewData> _previewDataByAncientId = new();
+    private string? _suppressedPreviewAncientId;
+    private string? _reactionAncientId;
     private int _nextActIndex;
     private int? _pendingPoolIndex;
     private int? _selectedPoolIndex;
@@ -180,6 +194,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _roundType = round.RoundType;
         _previewDataByAncientId = round.PreviewDataByAncientId?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
             ?? new Dictionary<string, AncientBanHelpers.AncientPreviewData>();
+        _suppressedPreviewAncientId = round.SuppressedPreviewAncientId;
+        _reactionAncientId = round.ReactionAncientId;
         _pendingPoolIndex = null;
         _selectedPoolIndex = null;
         _resolved = false;
@@ -250,12 +266,25 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             BuildUi();
             _hasLoadedRound = true;
+
+            if (_roundType == VoteRoundType.FinalRevealVote)
+            {
+                PrimeFinalRoundElementAnimation();
+                CallDeferred(nameof(StartFinalRoundElementAnimation));
+            }
+
             return;
         }
 
         await AnimateOutSlotsAsync();
         BuildUi();
         PrimeSlotsForTransitionIn();
+
+        if (_roundType == VoteRoundType.FinalRevealVote)
+        {
+            PrimeFinalRoundElementAnimation();
+        }
+
         await AnimateInSlotsAsync();
     }
 
@@ -315,6 +344,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         }
 
         await ToSignal(tween, Tween.SignalName.Finished);
+
+        if (_roundType == VoteRoundType.FinalRevealVote)
+        {
+            StartFinalRoundElementAnimation();
+        }
+
         GrabInitialFocus();
     }
 
@@ -337,6 +372,125 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             _titleLabel.Text = $"Final Ancient Vote Before {actLabel}";
             _subtitleLabel.Text = "The final 2 ancients now reveal the rewards they would offer. Vote once to lock in the ancient you want next act.";
         }
+    }
+
+
+    private void PrimeFinalRoundElementAnimation()
+    {
+        if (_roundType != VoteRoundType.FinalRevealVote)
+        {
+            return;
+        }
+
+        foreach (SlotRefs refs in _slots)
+        {
+            if (refs.ReactionBubble != null)
+            {
+                refs.ReactionBubble.Modulate = new Color(1f, 1f, 1f, 0f);
+                refs.ReactionBubble.Position += new Vector2(0f, -12f);
+                refs.ReactionBubble.Scale *= new Vector2(0.97f, 0.97f);
+
+                Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("AncientIcon");
+                if (icon != null)
+                {
+                    icon.Visible = false;
+                }
+
+                Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineText");
+                if (text != null)
+                {
+                    text.Modulate = new Color(1f, 1f, 1f, 0f);
+                    text.Position += new Vector2(-8f, 0f);
+                }
+            }
+
+            if (refs.PreviewAnchor.Visible)
+            {
+                foreach (Control wrapper in refs.PreviewWrappers)
+                {
+                    wrapper.Modulate = new Color(1f, 1f, 1f, 0f);
+                    wrapper.Position += new Vector2(0f, 14f);
+                    wrapper.Scale *= new Vector2(0.985f, 0.985f);
+                }
+            }
+        }
+    }
+
+    private void StartFinalRoundElementAnimation()
+    {
+        if (_roundType != VoteRoundType.FinalRevealVote)
+        {
+            return;
+        }
+
+        float delay = 0f;
+
+        foreach (SlotRefs refs in _slots)
+        {
+            if (refs.ReactionBubble != null)
+            {
+                Control bubble = refs.ReactionBubble;
+                Tween bubbleTween = CreateTween();
+                bubbleTween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+                bubbleTween.TweenInterval(delay);
+                bubbleTween.TweenProperty(bubble, "modulate:a", 1f, 0.16f);
+                bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, 12f), 0.16f);
+                bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.97f, 0.97f), 0.16f);
+
+                Control? icon = bubble.GetNodeOrNull<Control>("AncientIcon");
+                if (icon != null)
+                {
+                    bubbleTween.TweenInterval(0.03f);
+                    bubbleTween.TweenCallback(Callable.From(() => icon.Visible = true));
+                }
+
+                Control? text = bubble.GetNodeOrNull<Control>("LineText");
+                if (text != null)
+                {
+                    Tween textTween = CreateTween();
+                    textTween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+                    textTween.TweenInterval(delay + 0.05f);
+                    textTween.TweenProperty(text, "modulate:a", 1f, 0.14f);
+                    textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(8f, 0f), 0.14f);
+                }
+
+                delay += 0.03f;
+            }
+
+            if (refs.PreviewAnchor.Visible)
+            {
+                foreach (Control wrapper in refs.PreviewWrappers)
+                {
+                    Tween tween = CreateTween();
+                    tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+                    tween.TweenInterval(delay);
+                    tween.TweenProperty(wrapper, "modulate:a", 1f, 0.14f);
+                    tween.Parallel().TweenProperty(wrapper, "position", wrapper.Position + new Vector2(0f, -14f), 0.14f);
+                    tween.Parallel().TweenProperty(wrapper, "scale", wrapper.Scale / new Vector2(0.985f, 0.985f), 0.14f);
+                    delay += 0.035f;
+                }
+            }
+        }
+    }
+
+    private float GetPreviewListStartY(SlotRefs refs, Vector2 anchorSize)
+    {
+        if (refs.PreviewWrappers.Count == 0)
+        {
+            return 0f;
+        }
+
+        float displayHeight = 70f;
+        float gap = 8f;
+        float totalHeight = (refs.PreviewWrappers.Count * displayHeight) + (Math.Max(0, refs.PreviewWrappers.Count - 1) * gap);
+
+        float reserveTop = 0f;
+        if (refs.ReactionBubble != null)
+        {
+            reserveTop = ReactionBubbleHeight + ReactionBubbleGap;
+        }
+
+        return MathF.Max(reserveTop, anchorSize.Y - totalHeight);
     }
 
     private void BuildUi()
@@ -367,6 +521,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             PopulatePreview(refs);
         }
 
+        RefreshLayout();
+        ApplySecondVotePresentation(animate: false);
         RefreshLayout();
         RefreshSlotVisuals(animate: false);
         RefreshButtonTexts();
@@ -465,8 +621,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Label infoLabel = cardRoot.GetNode<Label>("Padding/VBox/InfoLabel");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButton");
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
+        Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
 
         previewAnchor.ZIndex = 3;
+        reactionAnchor.ZIndex = 4;
         topAccent.Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.82f);
         icon.Texture = ancient.MapIcon;
         nameLabel.Text = ancient.Title.GetFormattedText();
@@ -513,6 +671,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             InfoLabel = infoLabel,
             ChooseButton = chooseButton,
             PreviewAnchor = previewAnchor,
+            ReactionAnchor = reactionAnchor,
             AccentColor = accentColor,
             Shape = default,
         };
@@ -521,6 +680,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private void PopulatePreview(SlotRefs refs)
     {
         ClearChildren(refs.PreviewAnchor);
+        ClearChildren(refs.ReactionAnchor);
+        refs.ReactionBubble = null;
         refs.PreviewWrappers.Clear();
 
         if (_roundType != VoteRoundType.FinalRevealVote)
@@ -580,6 +741,336 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             GD.Print($"[ChooseTheAncient] Added preview widget {i} for {refs.Ancient.Id.Entry}: relic={(option.Relic?.Id.Entry ?? "<none>")}, textKey={option.TextKey}");
         }
     }
+
+
+    private void ApplySecondVotePresentation(bool animate)
+    {
+        foreach (SlotRefs refs in _slots)
+        {
+            if (refs.ReactionBubble != null && GodotObject.IsInstanceValid(refs.ReactionBubble))
+            {
+                refs.ReactionBubble.QueueFree();
+            }
+
+            ClearChildren(refs.ReactionAnchor);
+            refs.ReactionBubble = null;
+            refs.ReactionAnchor.Visible = false;
+            refs.ReactionAnchor.Modulate = Colors.White;
+            refs.PreviewAnchor.Modulate = Colors.White;
+        }
+
+        if (_roundType != VoteRoundType.FinalRevealVote)
+        {
+            foreach (SlotRefs refs in _slots)
+            {
+                refs.PreviewAnchor.Visible = refs.PreviewWrappers.Count > 0;
+            }
+
+            return;
+        }
+
+        foreach (SlotRefs refs in _slots)
+        {
+            bool suppressPreview = !string.IsNullOrEmpty(_suppressedPreviewAncientId)
+                && refs.Ancient.Id.Entry == _suppressedPreviewAncientId;
+
+            refs.PreviewAnchor.Visible = refs.PreviewWrappers.Count > 0 && !suppressPreview;
+
+            if (!string.IsNullOrEmpty(_reactionAncientId) && refs.Ancient.Id.Entry == _reactionAncientId)
+            {
+                TryShowReactionBubble(refs, animate);
+            }
+        }
+
+        GD.Print($"[ChooseTheAncient] Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, reaction={_reactionAncientId ?? "<none>"}");
+    }
+
+    private void TryShowReactionBubble(SlotRefs refs, bool animate)
+    {
+        refs.ReactionBubble = null;
+
+        Control bubble = BuildReactionBubble(refs.Ancient);
+        bubble.ZIndex = 6;
+        refs.PreviewAnchor.AddChild(bubble);
+        refs.ReactionBubble = bubble;
+        refs.ReactionAnchor.Visible = false;
+
+        try
+        {
+            SfxCmd.Play("event:/sfx/ui/enchant_simple");
+        }
+        catch
+        {
+        }
+
+        GD.Print($"[ChooseTheAncient] Showing custom reaction bubble for {refs.Ancient.Id.Entry}: How about now?");
+    }
+
+
+    private Control BuildReactionBubble(AncientEventModel ancient)
+    {
+        Texture2D bubbleTexture = GD.Load<Texture2D>(DialogueBubbleTexturePath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueBubbleTexturePath}");
+        Texture2D tailTexture = GD.Load<Texture2D>(DialogueTailTexturePath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueTailTexturePath}");
+        Font regularFont = GD.Load<Font>(DialogueRegularFontPath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueRegularFontPath}");
+        Font boldFont = GD.Load<Font>(DialogueBoldFontPath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueBoldFontPath}");
+        Font italicFont = GD.Load<Font>(DialogueItalicFontPath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueItalicFontPath}");
+
+        Control root = new()
+        {
+            Name = $"ReactionBubble_{ancient.Id.Entry}",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(0f, ReactionBubbleHeight),
+        };
+        root.LayoutMode = 1;
+        root.AnchorLeft = 0f;
+        root.AnchorTop = 0f;
+        root.AnchorRight = 1f;
+        root.AnchorBottom = 0f;
+        root.OffsetLeft = 0f;
+        root.OffsetTop = 0f;
+        root.OffsetRight = 0f;
+        root.OffsetBottom = ReactionBubbleHeight;
+
+        HBoxContainer line = new()
+        {
+            Name = "LineRoot",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(0f, 68f),
+        };
+        line.LayoutMode = 1;
+        line.AnchorLeft = 0f;
+        line.AnchorTop = 0f;
+        line.AnchorRight = 1f;
+        line.AnchorBottom = 0f;
+        line.OffsetLeft = 0f;
+        line.OffsetTop = 0f;
+        line.OffsetRight = 0f;
+        line.OffsetBottom = 68f;
+        root.AddChild(line);
+
+        Control iconRoot = new()
+        {
+            Name = "AncientIcon",
+            CustomMinimumSize = new Vector2(56f, 56f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+        line.AddChild(iconRoot);
+
+        TextureRect icon = new()
+        {
+            Name = "Icon",
+            Texture = ancient.RunHistoryIcon,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        icon.LayoutMode = 1;
+        icon.AnchorLeft = 0f;
+        icon.AnchorTop = 0f;
+        icon.AnchorRight = 1f;
+        icon.AnchorBottom = 1f;
+        iconRoot.AddChild(icon);
+
+        TextureRect outline = new()
+        {
+            Name = "Outline",
+            Texture = ancient.RunHistoryIconOutline,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+            Modulate = new Color(0f, 0f, 0f, 0.5f),
+            ShowBehindParent = true,
+        };
+        outline.LayoutMode = 1;
+        outline.AnchorLeft = 0f;
+        outline.AnchorTop = 0f;
+        outline.AnchorRight = 1f;
+        outline.AnchorBottom = 1f;
+        iconRoot.AddChild(outline);
+
+        MarginContainer dialogueContainer = new()
+        {
+            Name = "DialogueContainer",
+            CustomMinimumSize = new Vector2(0f, 68f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+        dialogueContainer.LayoutMode = 2;
+        dialogueContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        line.AddChild(dialogueContainer);
+
+        HBoxContainer tailRow = new()
+        {
+            Name = "TailRow",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+        tailRow.LayoutMode = 1;
+        tailRow.AnchorLeft = 0f;
+        tailRow.AnchorTop = 0f;
+        tailRow.AnchorRight = 1f;
+        tailRow.AnchorBottom = 1f;
+        tailRow.AddThemeConstantOverride("separation", -12);
+        dialogueContainer.AddChild(tailRow);
+
+        TextureRect tail = new()
+        {
+            Name = "DialogueTailLeft",
+            Texture = tailTexture,
+            CustomMinimumSize = new Vector2(28f, 0f),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+            SelfModulate = ancient.DialogueColor,
+        };
+        tailRow.AddChild(tail);
+
+        TextureRect tailShadow = new()
+        {
+            Name = "Shadow",
+            Texture = tailTexture,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+            SelfModulate = new Color(0f, 0f, 0f, 0.25098f),
+            ShowBehindParent = true,
+        };
+        tailShadow.LayoutMode = 1;
+        tailShadow.AnchorLeft = 0f;
+        tailShadow.AnchorTop = 0f;
+        tailShadow.AnchorRight = 1f;
+        tailShadow.AnchorBottom = 1f;
+        tailShadow.OffsetLeft = 2f;
+        tailShadow.OffsetTop = 5f;
+        tailShadow.OffsetRight = 2f;
+        tailShadow.OffsetBottom = 5f;
+        tail.AddChild(tailShadow);
+
+        NinePatchRect bubble = new()
+        {
+            Name = "Bubble",
+            Texture = bubbleTexture,
+            RegionRect = new Rect2(0f, 0f, 116f, 85f),
+            PatchMarginLeft = 27,
+            PatchMarginTop = 28,
+            PatchMarginRight = 27,
+            PatchMarginBottom = 28,
+            AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Stretch,
+            AxisStretchVertical = NinePatchRect.AxisStretchMode.Stretch,
+            SelfModulate = ancient.DialogueColor,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        bubble.LayoutMode = 2;
+        bubble.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        tailRow.AddChild(bubble);
+
+        NinePatchRect bubbleShadow = new()
+        {
+            Name = "Shadow",
+            Texture = bubbleTexture,
+            RegionRect = new Rect2(0f, 0f, 116f, 85f),
+            PatchMarginLeft = 27,
+            PatchMarginTop = 28,
+            PatchMarginRight = 27,
+            PatchMarginBottom = 28,
+            AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Stretch,
+            AxisStretchVertical = NinePatchRect.AxisStretchMode.Stretch,
+            SelfModulate = new Color(0f, 0f, 0f, 0.25098f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            ShowBehindParent = true,
+        };
+        bubbleShadow.LayoutMode = 1;
+        bubbleShadow.AnchorLeft = 0f;
+        bubbleShadow.AnchorTop = 0f;
+        bubbleShadow.AnchorRight = 1f;
+        bubbleShadow.AnchorBottom = 1f;
+        bubbleShadow.OffsetLeft = 2f;
+        bubbleShadow.OffsetTop = 5f;
+        bubbleShadow.OffsetRight = 2f;
+        bubbleShadow.OffsetBottom = 5f;
+        bubble.AddChild(bubbleShadow);
+
+        MarginContainer textContainer = new()
+        {
+            Name = "TextContainer",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+        textContainer.LayoutMode = 1;
+        textContainer.AnchorLeft = 0f;
+        textContainer.AnchorTop = 0f;
+        textContainer.AnchorRight = 1f;
+        textContainer.AnchorBottom = 1f;
+        textContainer.AddThemeConstantOverride("margin_left", 20);
+        textContainer.AddThemeConstantOverride("margin_top", 8);
+        textContainer.AddThemeConstantOverride("margin_right", 18);
+        textContainer.AddThemeConstantOverride("margin_bottom", 10);
+        dialogueContainer.AddChild(textContainer);
+
+        VBoxContainer textBox = new()
+        {
+            Name = "TextBox",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        textBox.LayoutMode = 2;
+        textBox.AddThemeConstantOverride("separation", 0);
+        textContainer.AddChild(textBox);
+
+        RichTextLabel speakerLabel = new()
+        {
+            Name = "SpeakerLabel",
+            BbcodeEnabled = true,
+            Text = $"[b]{ancient.Title.GetFormattedText()}[/b]",
+            FitContent = true,
+            ScrollActive = false,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        speakerLabel.AddThemeColorOverride("default_color", new Color(1f, 0.964706f, 0.886275f, 1f));
+        speakerLabel.AddThemeFontOverride("normal_font", regularFont);
+        speakerLabel.AddThemeFontOverride("bold_font", boldFont);
+        speakerLabel.AddThemeFontOverride("italics_font", italicFont);
+        speakerLabel.AddThemeFontSizeOverride("normal_font_size", 14);
+        speakerLabel.AddThemeFontSizeOverride("bold_font_size", 14);
+        speakerLabel.AddThemeFontSizeOverride("italics_font_size", 14);
+        speakerLabel.AddThemeConstantOverride("line_separation", -2);
+        textBox.AddChild(speakerLabel);
+
+        RichTextLabel lineText = new()
+        {
+            Name = "LineText",
+            BbcodeEnabled = true,
+            Text = "[i]How about now?[/i]",
+            FitContent = true,
+            ScrollActive = false,
+            MouseFilter = MouseFilterEnum.Ignore,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        lineText.AddThemeColorOverride("default_color", new Color(1f, 0.964706f, 0.886275f, 1f));
+        lineText.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.25098f));
+        lineText.AddThemeConstantOverride("shadow_offset_x", 3);
+        lineText.AddThemeConstantOverride("shadow_offset_y", 2);
+        lineText.AddThemeConstantOverride("line_separation", -2);
+        lineText.AddThemeFontOverride("normal_font", regularFont);
+        lineText.AddThemeFontOverride("bold_font", boldFont);
+        lineText.AddThemeFontOverride("italics_font", italicFont);
+        lineText.AddThemeFontSizeOverride("normal_font_size", 24);
+        lineText.AddThemeFontSizeOverride("bold_font_size", 24);
+        lineText.AddThemeFontSizeOverride("italics_font_size", 24);
+        textBox.AddChild(lineText);
+
+        return root;
+    }
+
 
     private void LoadAncientScene(SlotRefs refs)
     {
@@ -661,6 +1152,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             ApplyPortalGeometry(shape, refs);
             ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
             LayoutPreview(refs);
+            LayoutReaction(refs);
         }
     }
 
@@ -682,8 +1174,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         float displayWidth = anchorSize.X;
         float displayHeight = 70f;
         float gap = 8f;
-        float totalHeight = (refs.PreviewWrappers.Count * displayHeight) + (Math.Max(0, refs.PreviewWrappers.Count - 1) * gap);
-        float startY = MathF.Max(0f, anchorSize.Y - totalHeight);
+        float startY = GetPreviewListStartY(refs, anchorSize);
 
         GD.Print($"[ChooseTheAncient] Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWrappers.Count}, startY={startY}");
 
@@ -700,6 +1191,35 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             wrapper.Scale = new Vector2(scaleX, scaleY);
             wrapper.PivotOffset = Vector2.Zero;
         }
+    }
+
+
+
+    private void LayoutReaction(SlotRefs refs)
+    {
+        if (refs.ReactionBubble == null)
+        {
+            return;
+        }
+
+        Vector2 anchorSize = refs.PreviewAnchor.Size;
+        if (anchorSize.X <= 1f || anchorSize.Y <= 1f)
+        {
+            anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 24f), 280f);
+        }
+
+        float startY = GetPreviewListStartY(refs, anchorSize);
+        float bubbleY = MathF.Max(0f, startY - ReactionBubbleHeight - ReactionBubbleGap);
+
+        refs.ReactionBubble.LayoutMode = 1;
+        refs.ReactionBubble.AnchorLeft = 0f;
+        refs.ReactionBubble.AnchorTop = 0f;
+        refs.ReactionBubble.AnchorRight = 1f;
+        refs.ReactionBubble.AnchorBottom = 0f;
+        refs.ReactionBubble.OffsetLeft = 0f;
+        refs.ReactionBubble.OffsetTop = bubbleY;
+        refs.ReactionBubble.OffsetRight = 0f;
+        refs.ReactionBubble.OffsetBottom = bubbleY + ReactionBubbleHeight;
     }
 
     private static PortalShape[] BuildThreePortalShapes(Vector2 area, float cardWidth, float cardHeight)

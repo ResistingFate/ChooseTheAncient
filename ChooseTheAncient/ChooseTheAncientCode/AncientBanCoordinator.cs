@@ -55,15 +55,18 @@ public static class AncientBanCoordinator
             }
 
             List<AncientEventModel> finalists = pool;
+            List<int> firstVotes = new();
 
             if (pool.Count >= 3)
             {
                 var firstRound = new AncientBanSelectionScreen.RoundDefinition(
                     pool,
                     AncientBanSelectionScreen.VoteRoundType.InitialKeepVote,
+                    null,
+                    null,
                     null);
 
-                List<int> firstVotes = await CollectVotes(
+                firstVotes = await CollectVotes(
                     orderedPlayers,
                     firstRound,
                     localScreen);
@@ -99,10 +102,19 @@ public static class AncientBanCoordinator
                         nextActIndex);
                 }
 
+                (string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
+                    runState,
+                    nextActIndex,
+                    pool,
+                    finalists,
+                    firstVotes);
+
                 var secondRound = new AncientBanSelectionScreen.RoundDefinition(
                     finalists,
                     AncientBanSelectionScreen.VoteRoundType.FinalRevealVote,
-                    localPreviewData);
+                    localPreviewData,
+                    suppressedPreviewAncientId,
+                    reactionAncientId);
 
                 List<int> finalVotes = await CollectVotes(
                     orderedPlayers,
@@ -205,6 +217,59 @@ public static class AncientBanCoordinator
         }
 
         return false;
+    }
+
+    private static (string? suppressedPreviewAncientId, string? reactionAncientId) ResolveSecondRoundPresentation(
+        RunState runState,
+        int nextActIndex,
+        IReadOnlyList<AncientEventModel> firstRoundPool,
+        IReadOnlyList<AncientEventModel> finalists,
+        IReadOnlyList<int> firstVotes)
+    {
+        if (finalists.Count != 2)
+        {
+            return (null, null);
+        }
+
+        Dictionary<string, int> finalistVoteCounts = finalists
+            .ToDictionary(ancient => ancient.Id.Entry, _ => 0);
+
+        foreach (int vote in firstVotes)
+        {
+            if (vote < 0 || vote >= firstRoundPool.Count)
+            {
+                continue;
+            }
+
+            string votedAncientId = firstRoundPool[vote].Id.Entry;
+            if (finalistVoteCounts.ContainsKey(votedAncientId))
+            {
+                finalistVoteCounts[votedAncientId]++;
+            }
+        }
+
+        AncientEventModel suppressedPreviewAncient;
+        int leftCount = finalistVoteCounts[finalists[0].Id.Entry];
+        int rightCount = finalistVoteCounts[finalists[1].Id.Entry];
+
+        if (leftCount == rightCount)
+        {
+            var rng = AncientBanHelpers.CreateSecondRoundPresentationRng(runState, nextActIndex);
+            suppressedPreviewAncient = finalists[rng.NextInt(finalists.Count)];
+        }
+        else
+        {
+            suppressedPreviewAncient = leftCount > rightCount
+                ? finalists[0]
+                : finalists[1];
+        }
+
+        AncientEventModel reactionAncient = finalists
+            .First(ancient => ancient.Id.Entry != suppressedPreviewAncient.Id.Entry);
+
+        GD.Print($"[ChooseTheAncient] Second vote presentation decided from round-one votes: suppress={suppressedPreviewAncient.Id.Entry}, reaction={reactionAncient.Id.Entry}, voteCounts={leftCount}/{rightCount}");
+
+        return (suppressedPreviewAncient.Id.Entry, reactionAncient.Id.Entry);
     }
 
     private static int ResolveLeastVotedIndex(

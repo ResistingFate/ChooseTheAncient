@@ -107,6 +107,11 @@ public static class AncientBanHelpers
         return new Rng(runState.Rng.Seed, $"choose_the_ancient_final_vote_act_{nextActIndex}");
     }
 
+    public static Rng CreateSecondRoundPresentationRng(RunState runState, int nextActIndex)
+    {
+        return new Rng(runState.Rng.Seed, $"choose_the_ancient_second_vote_presentation_act_{nextActIndex}");
+    }
+
     public static Dictionary<string, AncientPreviewData> BuildPreviewDataByAncientId(
         Player player,
         IEnumerable<AncientEventModel> ancients,
