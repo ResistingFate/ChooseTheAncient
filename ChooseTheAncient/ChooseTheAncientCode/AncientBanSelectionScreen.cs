@@ -7,8 +7,11 @@ using Godot;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Events;
+using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Events;
+using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 
@@ -33,6 +36,13 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private static readonly string DialogueRegularFontPath = "res://themes/kreon_regular_glyph_space_one.tres";
     private static readonly string DialogueBoldFontPath = "res://themes/kreon_bold_glyph_space_one.tres";
     private static readonly string DialogueItalicFontPath = "res://themes/bitter_medium_italic_glyph_space_one.tres";
+    private const float ReactionEntranceOffset = 22f;
+    private const float PreviewEntranceOffset = 28f;
+    private const double ReactionEntranceDuration = 0.34;
+    private const double PreviewEntranceDuration = 0.28;
+    private const double ReactionTextDuration = 0.24;
+    private const double FinalRoundStagger = 0.08;
+    private const float PreviewHoverScaleMultiplier = 1.01f;
 
     public enum VoteRoundType
     {
@@ -96,7 +106,20 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public Vector2 BaseSize { get; set; }
         public Vector2 CardBasePosition { get; set; }
         public PortalShape Shape { get; set; }
-        public List<Control> PreviewWrappers { get; } = new();
+        public List<PreviewWidgetRefs> PreviewWidgets { get; } = new();
+    }
+
+
+    private sealed class PreviewWidgetRefs
+    {
+        public required Control Wrapper { get; init; }
+        public required NEventOptionButton Button { get; init; }
+        public required EventOption Option { get; init; }
+        public required HoverTipAlignment HoverAlignment { get; init; }
+        public NinePatchRect? Outline { get; init; }
+        public ShaderMaterial? HsvMaterial { get; init; }
+        public Vector2 BasePosition { get; set; }
+        public Vector2 BaseScale { get; set; }
     }
 
     private static readonly Dictionary<string, string> AncientScenePaths = new()
@@ -128,6 +151,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private static AudioStreamWav? _generatedHoverStream;
     private static AudioStreamWav? _generatedClickStream;
+    private static Shader? _dialogueWaveShader;
 
     private readonly List<SlotRefs> _slots = new();
     private readonly TaskCompletionSource<bool> _readyCompletion = new();
@@ -148,6 +172,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private bool _hasLoadedRound;
     private SlotRefs? _hoveredSlot;
     private int? _lastHoveredPoolIndex;
+    private PreviewWidgetRefs? _hoveredPreviewWidget;
 
     private Control? _layoutRoot;
     private Control? _headerPanel;
@@ -387,30 +412,30 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             if (refs.ReactionBubble != null)
             {
                 refs.ReactionBubble.Modulate = new Color(1f, 1f, 1f, 0f);
-                refs.ReactionBubble.Position += new Vector2(0f, -12f);
-                refs.ReactionBubble.Scale *= new Vector2(0.97f, 0.97f);
+                refs.ReactionBubble.Position += new Vector2(0f, ReactionEntranceOffset);
+                refs.ReactionBubble.Scale *= new Vector2(0.975f, 0.975f);
 
-                Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("AncientIcon");
+                Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
                 if (icon != null)
                 {
                     icon.Visible = false;
                 }
 
-                Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineText");
+                Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
                 if (text != null)
                 {
                     text.Modulate = new Color(1f, 1f, 1f, 0f);
-                    text.Position += new Vector2(-8f, 0f);
+                    text.Position += new Vector2(0f, 8f);
                 }
             }
 
             if (refs.PreviewAnchor.Visible)
             {
-                foreach (Control wrapper in refs.PreviewWrappers)
+                foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
                 {
-                    wrapper.Modulate = new Color(1f, 1f, 1f, 0f);
-                    wrapper.Position += new Vector2(0f, 14f);
-                    wrapper.Scale *= new Vector2(0.985f, 0.985f);
+                    widget.Wrapper.Modulate = new Color(1f, 1f, 1f, 0f);
+                    widget.Wrapper.Position += new Vector2(0f, PreviewEntranceOffset);
+                    widget.Wrapper.Scale *= new Vector2(0.982f, 0.982f);
                 }
             }
         }
@@ -423,7 +448,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             return;
         }
 
-        float delay = 0f;
+        double delay = 0.0;
 
         foreach (SlotRefs refs in _slots)
         {
@@ -431,43 +456,44 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             {
                 Control bubble = refs.ReactionBubble;
                 Tween bubbleTween = CreateTween();
-                bubbleTween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+                bubbleTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
                 bubbleTween.TweenInterval(delay);
-                bubbleTween.TweenProperty(bubble, "modulate:a", 1f, 0.16f);
-                bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, 12f), 0.16f);
-                bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.97f, 0.97f), 0.16f);
+                bubbleTween.TweenProperty(bubble, "modulate:a", 1f, ReactionEntranceDuration);
+                bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, -ReactionEntranceOffset), ReactionEntranceDuration);
+                bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.975f, 0.975f), ReactionEntranceDuration);
 
-                Control? icon = bubble.GetNodeOrNull<Control>("AncientIcon");
+                Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
                 if (icon != null)
                 {
-                    bubbleTween.TweenInterval(0.03f);
+                    bubbleTween.TweenInterval(0.06f);
                     bubbleTween.TweenCallback(Callable.From(() => icon.Visible = true));
                 }
 
-                Control? text = bubble.GetNodeOrNull<Control>("LineText");
+                Control? text = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
                 if (text != null)
                 {
                     Tween textTween = CreateTween();
-                    textTween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
-                    textTween.TweenInterval(delay + 0.05f);
-                    textTween.TweenProperty(text, "modulate:a", 1f, 0.14f);
-                    textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(8f, 0f), 0.14f);
+                    textTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                    textTween.TweenInterval(delay + 0.10);
+                    textTween.TweenProperty(text, "modulate:a", 1f, ReactionTextDuration);
+                    textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(0f, -8f), ReactionTextDuration);
                 }
 
-                delay += 0.03f;
+                StartReactionWave(bubble);
+                delay += FinalRoundStagger;
             }
 
             if (refs.PreviewAnchor.Visible)
             {
-                foreach (Control wrapper in refs.PreviewWrappers)
+                foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
                 {
                     Tween tween = CreateTween();
-                    tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+                    tween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
                     tween.TweenInterval(delay);
-                    tween.TweenProperty(wrapper, "modulate:a", 1f, 0.14f);
-                    tween.Parallel().TweenProperty(wrapper, "position", wrapper.Position + new Vector2(0f, -14f), 0.14f);
-                    tween.Parallel().TweenProperty(wrapper, "scale", wrapper.Scale / new Vector2(0.985f, 0.985f), 0.14f);
-                    delay += 0.035f;
+                    tween.TweenProperty(widget.Wrapper, "modulate:a", 1f, PreviewEntranceDuration);
+                    tween.Parallel().TweenProperty(widget.Wrapper, "position", widget.Wrapper.Position + new Vector2(0f, -PreviewEntranceOffset), PreviewEntranceDuration);
+                    tween.Parallel().TweenProperty(widget.Wrapper, "scale", widget.Wrapper.Scale / new Vector2(0.982f, 0.982f), PreviewEntranceDuration);
+                    delay += FinalRoundStagger;
                 }
             }
         }
@@ -475,14 +501,14 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private float GetPreviewListStartY(SlotRefs refs, Vector2 anchorSize)
     {
-        if (refs.PreviewWrappers.Count == 0)
+        if (refs.PreviewWidgets.Count == 0)
         {
             return 0f;
         }
 
         float displayHeight = 70f;
         float gap = 8f;
-        float totalHeight = (refs.PreviewWrappers.Count * displayHeight) + (Math.Max(0, refs.PreviewWrappers.Count - 1) * gap);
+        float totalHeight = (refs.PreviewWidgets.Count * displayHeight) + (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap);
 
         float reserveTop = 0f;
         if (refs.ReactionBubble != null)
@@ -504,6 +530,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         if (cardScene == null)
         {
             throw new InvalidOperationException($"Could not load card scene: {CardScenePath}");
+        }
+
+        if (_hoveredPreviewWidget != null)
+        {
+            NHoverTipSet.Remove(_hoveredPreviewWidget.Wrapper);
+            _hoveredPreviewWidget = null;
         }
 
         ClearChildren(_slotsCanvas);
@@ -682,7 +714,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         ClearChildren(refs.PreviewAnchor);
         ClearChildren(refs.ReactionAnchor);
         refs.ReactionBubble = null;
-        refs.PreviewWrappers.Clear();
+        //refs.PreviewWrappers.Clear();
 
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
@@ -714,7 +746,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             Control previewWrapper = new()
             {
                 Name = $"PreviewWrapper_{i}",
-                MouseFilter = MouseFilterEnum.Ignore,
+                MouseFilter = MouseFilterEnum.Stop,
                 FocusMode = FocusModeEnum.None,
                 ClipContents = false,
                 ZIndex = 3,
@@ -736,7 +768,28 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             {
                 voteContainer.Visible = false;
             }
-            refs.PreviewWrappers.Add(previewWrapper);
+
+            int previewIndex = i;
+            previewWrapper.MouseEntered += () => OnPreviewHovered(refs, previewIndex);
+            previewWrapper.MouseExited += () => OnPreviewUnhovered(refs, previewIndex);
+            NinePatchRect? previewOutline = previewButton.GetNodeOrNull<NinePatchRect>("Outline");
+            if (previewOutline != null)
+            {
+                previewOutline.Modulate = new Color(previewOutline.Modulate.R, previewOutline.Modulate.G, previewOutline.Modulate.B, 0f);
+            }
+
+            ShaderMaterial? previewHsvMaterial = previewButton.GetNodeOrNull<NinePatchRect>("Image")?.Material as ShaderMaterial;
+            previewHsvMaterial?.SetShaderParameter("v", 0.9f);
+
+            refs.PreviewWidgets.Add(new PreviewWidgetRefs
+            {
+                Wrapper = previewWrapper,
+                Button = previewButton,
+                Option = option,
+                HoverAlignment = refs.PoolIndex == 0 ? HoverTipAlignment.Left : HoverTipAlignment.Right,
+                Outline = previewOutline,
+                HsvMaterial = previewHsvMaterial,
+            });
 
             GD.Print($"[ChooseTheAncient] Added preview widget {i} for {refs.Ancient.Id.Entry}: relic={(option.Relic?.Id.Entry ?? "<none>")}, textKey={option.TextKey}");
         }
@@ -763,7 +816,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             foreach (SlotRefs refs in _slots)
             {
-                refs.PreviewAnchor.Visible = refs.PreviewWrappers.Count > 0;
+                refs.PreviewAnchor.Visible = refs.PreviewWidgets.Count > 0;
             }
 
             return;
@@ -774,7 +827,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             bool suppressPreview = !string.IsNullOrEmpty(_suppressedPreviewAncientId)
                 && refs.Ancient.Id.Entry == _suppressedPreviewAncientId;
 
-            refs.PreviewAnchor.Visible = refs.PreviewWrappers.Count > 0 && !suppressPreview;
+            refs.PreviewAnchor.Visible = refs.PreviewWidgets.Count > 0 && !suppressPreview;
 
             if (!string.IsNullOrEmpty(_reactionAncientId) && refs.Ancient.Id.Entry == _reactionAncientId)
             {
@@ -1072,6 +1125,118 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     }
 
 
+    private void OnPreviewHovered(SlotRefs refs, int previewIndex)
+    {
+        if (previewIndex < 0 || previewIndex >= refs.PreviewWidgets.Count)
+        {
+            return;
+        }
+
+        PreviewWidgetRefs widget = refs.PreviewWidgets[previewIndex];
+        if (_hoveredPreviewWidget == widget)
+        {
+            return;
+        }
+
+        if (_hoveredPreviewWidget != null)
+        {
+            ApplyPreviewHoverVisuals(_hoveredPreviewWidget, hovered: false);
+            NHoverTipSet.Remove(_hoveredPreviewWidget.Wrapper);
+        }
+
+        _hoveredPreviewWidget = widget;
+        ApplyPreviewHoverVisuals(widget, hovered: true);
+
+        try
+        {
+            NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, widget.HoverAlignment);
+        }
+        catch
+        {
+        }
+    }
+
+    private void OnPreviewUnhovered(SlotRefs refs, int previewIndex)
+    {
+        if (previewIndex < 0 || previewIndex >= refs.PreviewWidgets.Count)
+        {
+            return;
+        }
+
+        PreviewWidgetRefs widget = refs.PreviewWidgets[previewIndex];
+        if (_hoveredPreviewWidget != widget)
+        {
+            return;
+        }
+
+        _hoveredPreviewWidget = null;
+        ApplyPreviewHoverVisuals(widget, hovered: false);
+        NHoverTipSet.Remove(widget.Wrapper);
+    }
+
+    private void ApplyPreviewHoverVisuals(PreviewWidgetRefs widget, bool hovered)
+    {
+        if (widget.Wrapper == null || !GodotObject.IsInstanceValid(widget.Wrapper))
+        {
+            return;
+        }
+
+        Tween tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+
+        Vector2 targetScale = hovered
+            ? widget.BaseScale * PreviewHoverScaleMultiplier
+            : widget.BaseScale;
+
+        tween.TweenProperty(widget.Wrapper, "scale", targetScale, hovered ? 0.08f : 0.18f);
+
+        if (widget.Outline != null)
+        {
+            Color targetOutline = hovered
+                ? StsColors.blueGlow
+                : new Color(widget.Outline.Modulate.R, widget.Outline.Modulate.G, widget.Outline.Modulate.B, 0f);
+            tween.Parallel().TweenProperty(widget.Outline, "modulate", targetOutline, hovered ? 0.08f : 0.18f);
+        }
+
+        if (widget.HsvMaterial != null)
+        {
+            widget.HsvMaterial.SetShaderParameter("v", hovered ? 1.2f : 0.9f);
+        }
+    }
+
+    private void StartReactionWave(Control bubble)
+    {
+        RichTextLabel? speakerLabel = bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/SpeakerLabel");
+        RichTextLabel? lineText = bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
+
+        if (_dialogueWaveShader == null)
+        {
+            _dialogueWaveShader = new Shader
+            {
+                Code = "shader_type canvas_item; uniform float amplitude = 1.2; uniform float speed = 2.4; uniform float frequency = 0.055; void vertex() { VERTEX.y += sin((VERTEX.x * frequency) + (TIME * speed)) * amplitude; }"
+            };
+        }
+
+        if (speakerLabel != null)
+        {
+            ShaderMaterial speakerMat = new() { Shader = _dialogueWaveShader };
+            speakerMat.SetShaderParameter("amplitude", 0.55f);
+            speakerMat.SetShaderParameter("speed", 2.0f);
+            speakerMat.SetShaderParameter("frequency", 0.08f);
+            speakerLabel.Material = speakerMat;
+        }
+
+        if (lineText != null)
+        {
+            ShaderMaterial lineMat = new() { Shader = _dialogueWaveShader };
+            lineMat.SetShaderParameter("amplitude", 1.1f);
+            lineMat.SetShaderParameter("speed", 2.35f);
+            lineMat.SetShaderParameter("frequency", 0.06f);
+            lineText.Material = lineMat;
+        }
+    }
+
+
     private void LoadAncientScene(SlotRefs refs)
     {
         ClearChildren(refs.SceneMount);
@@ -1158,7 +1323,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void LayoutPreview(SlotRefs refs)
     {
-        if (!refs.PreviewAnchor.Visible || refs.PreviewWrappers.Count == 0)
+        if (!refs.PreviewAnchor.Visible || refs.PreviewWidgets.Count == 0)
         {
             return;
         }
@@ -1176,11 +1341,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         float gap = 8f;
         float startY = GetPreviewListStartY(refs, anchorSize);
 
-        GD.Print($"[ChooseTheAncient] Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWrappers.Count}, startY={startY}");
+        GD.Print($"[ChooseTheAncient] Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWidgets.Count}, startY={startY}");
 
-        for (int i = 0; i < refs.PreviewWrappers.Count; i++)
+        for (int i = 0; i < refs.PreviewWidgets.Count; i++)
         {
-            Control wrapper = refs.PreviewWrappers[i];
+            PreviewWidgetRefs widget = refs.PreviewWidgets[i];
+            Control wrapper = widget.Wrapper;
             wrapper.LayoutMode = 1;
             wrapper.AnchorLeft = 0f;
             wrapper.AnchorTop = 0f;
@@ -1190,6 +1356,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             wrapper.Size = new Vector2(displayWidth / scaleX, displayHeight / scaleY);
             wrapper.Scale = new Vector2(scaleX, scaleY);
             wrapper.PivotOffset = Vector2.Zero;
+            widget.BasePosition = wrapper.Position;
+            widget.BaseScale = wrapper.Scale;
         }
     }
 
