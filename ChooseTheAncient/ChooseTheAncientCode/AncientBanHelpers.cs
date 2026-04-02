@@ -44,6 +44,9 @@ public static class AncientBanHelpers
 
     public static List<AncientEventModel> BuildCandidatePool(ActModel act, RunState runState)
     {
+        /*
+         * Makes a list of ancients with same ordering for all players based on act
+         */
         List<AncientEventModel> sharedSubset = Traverse.Create(act)
             .Field("_sharedAncientSubset")
             .GetValue<List<AncientEventModel>>() ?? new List<AncientEventModel>();
@@ -59,11 +62,20 @@ public static class AncientBanHelpers
     public static List<AncientEventModel> LimitCandidatePoolForVote(
         RunState runState,
         int nextActIndex,
-        List<AncientEventModel> pool)
+        List<AncientEventModel> pool, int ancientCount)
     {
-        if (pool.Count <= 3)
+        /*
+         * Takes runstate, and act index, and available ancients, and number of ancients to return
+         * Returns the list of ancients that will be used be the ancient ban selection screen
+         */
+        if (pool.Count <= ancientCount)
         {
             return pool;
+        }
+
+        if (pool.Count > ancientCount)
+        {
+            ancientCount = pool.Count;
         }
 
         List<AncientEventModel> shuffled = pool.ToList();
@@ -71,7 +83,7 @@ public static class AncientBanHelpers
         rng.Shuffle(shuffled);
 
         List<AncientEventModel> limited = shuffled
-            .Take(3)
+            .Take(ancientCount)
             .ToList();
 
         LogPool($"Act {nextActIndex + 1} limited ballot", limited);
@@ -111,6 +123,11 @@ public static class AncientBanHelpers
     {
         return new Rng(runState.Rng.Seed, $"choose_the_ancient_second_vote_presentation_act_{nextActIndex}");
     }
+    
+    public static Rng CreateAncientRelicOptionsRng(RunState runstate, int nextActIndex, ulong player, string ancient)
+    {
+        return new Rng(runstate.Rng.Seed, $"choose_the_ancient_relic_options_{nextActIndex}_{ancient}_{player}");
+    }
 
     public static Dictionary<string, AncientPreviewData> BuildPreviewDataByAncientId(
         Player player,
@@ -121,6 +138,7 @@ public static class AncientBanHelpers
 
         foreach (AncientEventModel ancient in ancients)
         {
+            // Weird situations where I couldn't find the Ancient options so cased in double try block
             AncientPreviewData? preview = TryGeneratePreviewData(player, ancient, nextActIndex);
             if (preview != null)
             {
@@ -136,27 +154,26 @@ public static class AncientBanHelpers
         AncientEventModel ancient,
         int nextActIndex)
     {
+        /* simulate the next act, and what the relic options are going to be.*/ 
         try
         {
             AncientEventModel previewEvent = (AncientEventModel)ancient.ToMutable();
-            IRunState runState = player.RunState;
+            RunState runState = player.RunState as RunState;
             int originalActIndex = runState.CurrentActIndex;
 
             try
             {
                 runState.CurrentActIndex = nextActIndex;
-
                 EventOwnerBackingField.SetValue(previewEvent, player);
-
-                uint seed = (uint)(runState.Rng.Seed
-                    + (previewEvent.IsShared ? 0UL : player.NetId)
-                    + (ulong)StringHelper.GetDeterministicHashCode(previewEvent.Id.Entry));
-
-                Rng previewRng = new(seed);
+                // check if previewEvent.IsShared condition is the right way round. AI things it should be the other way.
+                Rng previewRng = CreateAncientRelicOptionsRng(
+                    runState, nextActIndex, (previewEvent.IsShared ? player.NetId : 0UL), previewEvent.Id.Entry);
+                // We use are new rng to change how the ancients randomness work and don't change it back
                 EventRngBackingField.SetValue(previewEvent, previewRng);
 
                 GD.Print($"[ChooseTheAncient] Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} at act index {nextActIndex}.");
 
+                // This is what BeginEvents does in Megacritic EventModel
                 previewEvent.CalculateVars();
 
                 IReadOnlyList<EventOption> options =
@@ -182,7 +199,8 @@ public static class AncientBanHelpers
             return null;
         }
     }
-
+    
+    // Log stuff below
 
     private static string SafeFormatLoc(LocString? loc)
     {

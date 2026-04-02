@@ -14,6 +14,8 @@ namespace ChooseTheAncient.ChooseTheAncientCode;
 
 public static class AncientBanCoordinator
 {
+    public static int AncientCount = 3;
+    
     public static async Task RunAsync(
         RunManager runManager,
         RunState runState,
@@ -26,7 +28,7 @@ public static class AncientBanCoordinator
         {
             ActModel nextAct = runState.Acts[nextActIndex];
             List<AncientEventModel> pool = AncientBanHelpers.BuildCandidatePool(nextAct, runState);
-            pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool);
+            pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, AncientCount);
 
             AncientBanHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
 

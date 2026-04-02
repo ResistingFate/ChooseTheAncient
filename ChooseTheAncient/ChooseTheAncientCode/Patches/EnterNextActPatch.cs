@@ -17,7 +17,7 @@ public static class EnterNextActPatch
 
         int nextActIndex = runState.CurrentActIndex + 1;
 
-        if (nextActIndex is not (1 or 2))
+        if (nextActIndex is not (1 or 2)) // only act 2 and act 3 have ancients currently
         {
             return true;
         }
