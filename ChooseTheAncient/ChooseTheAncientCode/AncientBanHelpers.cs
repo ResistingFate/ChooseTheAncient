@@ -165,9 +165,12 @@ public static class AncientBanHelpers
             {
                 runState.CurrentActIndex = nextActIndex;
                 EventOwnerBackingField.SetValue(previewEvent, player);
-                // check if previewEvent.IsShared condition is the right way round. AI things it should be the other way.
+                // I want to experiment with the relics rewards for all players being a shared event being a shared
+                // pool. Shared pools should have the same RNG for each player, where as independent offerings
+                // should have Rng based on their player ID.
+                bool groupAncientOptionsPool = false;
                 Rng previewRng = CreateAncientRelicOptionsRng(
-                    runState, nextActIndex, (previewEvent.IsShared ? player.NetId : 0UL), previewEvent.Id.Entry);
+                    runState, nextActIndex, (groupAncientOptionsPool ? 0UL : player.NetId), previewEvent.Id.Entry);
                 // We use are new rng to change how the ancients randomness work and don't change it back
                 EventRngBackingField.SetValue(previewEvent, previewRng);
 
