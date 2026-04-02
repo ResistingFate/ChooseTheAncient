@@ -14,7 +14,7 @@ namespace ChooseTheAncient.ChooseTheAncientCode;
 
 public static class AncientBanCoordinator
 {
-    public static int AncientCount = 3;
+    public static int AncientCount { get; set; } = 3;
     
     public static async Task RunAsync(
         RunManager runManager,
@@ -50,6 +50,7 @@ public static class AncientBanCoordinator
                 .OrderBy(runState.GetPlayerSlotIndex)
                 .ToList();
 
+            // Copied code to get localPlayer from Megacrit
             Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
             if (localPlayer != null)
             {
@@ -59,7 +60,7 @@ public static class AncientBanCoordinator
             List<AncientEventModel> finalists = pool;
             List<int> firstVotes = new();
 
-            if (pool.Count >= 3)
+            if (pool.Count >= 2)
             {
                 var firstRound = new AncientBanSelectionScreen.RoundDefinition(
                     pool,
@@ -68,23 +69,30 @@ public static class AncientBanCoordinator
                     null,
                     null);
 
+                // firstVotes is a player sorted ancient index array
                 firstVotes = await CollectVotes(
                     orderedPlayers,
                     firstRound,
                     localScreen);
 
-                int removedIndex = ResolveLeastVotedIndex(
+                int firstPlaceIndex = ResolveMostVotedIndex(
                     runState,
                     nextActIndex,
                     pool.Count,
                     firstVotes);
 
-                AncientEventModel removedAncient = pool[removedIndex];
-                finalists = pool
-                    .Where((_, index) => index != removedIndex)
-                    .ToList();
+                int secondPlaceIndex = ResolveMostVotedIndex(
+                    runState,
+                    nextActIndex,
+                    pool.Count - 1,
+                    firstVotes.Where((_, index) => index != firstPlaceIndex).ToList());
 
-                GD.Print($"[ChooseTheAncient] First-pass elimination removed {removedAncient.Id.Entry}.");
+                AncientEventModel firstAncient = pool[firstPlaceIndex];
+                AncientEventModel secondAncient = pool[secondPlaceIndex];
+                finalists = pool
+                    .Where((_, index) => (index != firstPlaceIndex) | (index != secondPlaceIndex)).ToList();
+
+                GD.Print($"[ChooseTheAncient] First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
                 AncientBanHelpers.LogPool($"Act {nextActIndex + 1} finalists", finalists);
             }
 
@@ -98,6 +106,7 @@ public static class AncientBanCoordinator
                 Dictionary<string, AncientBanHelpers.AncientPreviewData>? localPreviewData = null;
                 if (localPlayer != null)
                 {
+                    // Builds for each ancient in case I want to allow all ancients to show relics
                     localPreviewData = AncientBanHelpers.BuildPreviewDataByAncientId(
                         localPlayer,
                         finalists,
@@ -205,6 +214,7 @@ public static class AncientBanCoordinator
 
             localScreen.RecordVote(player, localVote);
 
+            // It seems choice synchronizer needs localVote as they are done separately compared to remoteVote
             RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
                 player,
                 choiceId,
@@ -283,27 +293,7 @@ public static class AncientBanCoordinator
 
         return (suppressedPreviewAncient.Id.Entry, reactionAncient.Id.Entry);
     }
-
-    private static int ResolveLeastVotedIndex(
-        RunState runState,
-        int nextActIndex,
-        int optionCount,
-        IReadOnlyList<int> votesInPlayerSlotOrder)
-    {
-        List<int> trailers = ResolveIndicesWithTargetCount(
-            optionCount,
-            votesInPlayerSlotOrder,
-            selectMinimum: true);
-
-        if (trailers.Count == 1)
-        {
-            return trailers[0];
-        }
-
-        var rng = AncientBanHelpers.CreateEliminationResolutionRng(runState, nextActIndex);
-        return trailers[rng.NextInt(trailers.Count)];
-    }
-
+    
     private static int ResolveMostVotedIndex(
         RunState runState,
         int nextActIndex,
