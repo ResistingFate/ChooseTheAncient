@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MegaCrit.Sts2.Core.Audio.Debug;
 using MegaCrit.Sts2.Core.Context;
 using Godot;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -1325,22 +1326,44 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         }
     }
 
+    private static bool IsUsableScenePath(string? path)
+    {
+        return !string.IsNullOrWhiteSpace(path)
+               && path.StartsWith("res://", StringComparison.Ordinal)
+               && path.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase)
+               && !string.Equals(path, "res://", StringComparison.Ordinal);
+    }
+
+    private string? GetAncientScenePath(AncientEventModel ancient)
+    {
+        if (AncientScenePaths.TryGetValue(ancient.Id.Entry, out string? mapped) && IsUsableScenePath(mapped))
+            return mapped;
+
+        string? reflected = Traverse.Create(ancient)
+            .Property("BackgroundScenePath")
+            .GetValue<string?>();
+
+        GD.Print($"[ChooseTheAncient] Reflected BackgroundScenePath for {ancient.Id.Entry}: '{reflected ?? "<null>"}'");
+
+        return IsUsableScenePath(reflected) ? reflected : null;
+    }
 
     private void LoadAncientScene(SlotRefs refs)
     {
         ClearChildren(refs.SceneMount);
         refs.SceneRoot = null;
 
-        if (!AncientScenePaths.TryGetValue(refs.Ancient.Id.Entry, out string? scenePath))
+        string? scenePath = GetAncientScenePath(refs.Ancient);
+        if (!IsUsableScenePath(scenePath))
         {
-            GD.Print($"[ChooseTheAncient] No ancient scene mapping for {refs.Ancient.Id.Entry}; using overlay only.");
+            GD.Print($"[ChooseTheAncient] No usable ancient scene for {refs.Ancient.Id.Entry}. Path was '{scenePath ?? "<null>"}'. Using overlay only.");
             return;
         }
 
         PackedScene? scene = GD.Load<PackedScene>(scenePath);
         if (scene == null)
         {
-            GD.Print($"[ChooseTheAncient] Could not load ancient scene at {scenePath}");
+            GD.Print($"[ChooseTheAncient] Could not load ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}'");
             return;
         }
 
@@ -1353,10 +1376,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"[ChooseTheAncient] Failed to instantiate ancient scene {scenePath}: {ex}");
+            GD.PrintErr($"[ChooseTheAncient] Failed to instantiate ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}': {ex}");
         }
     }
-
     private void RefreshLayout()
     {
         if (_stageArea == null || _slots.Count == 0)
@@ -1568,31 +1590,87 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         };
     }
 
-    private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, float cardHeight, int count)
+private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, float cardHeight, int count)
+{
+    if (count <= 0)
+        return [];
+
+    if (count == 3)
+        return BuildThreePortalShapes(area, cardWidth, cardHeight);
+
+    float h = area.Y;
+
+    // Match the "3 portal" card spacing style as closely as possible.
+    float outerPad = MathF.Max(20f, (area.X - (cardWidth * count)) / (count + 1f));
+    float cardGap = outerPad;
+
+    // If the requested card width doesn't fit, shrink it gracefully.
+    float maxCardWidthThatFits = (area.X - (outerPad * (count + 1f))) / count;
+    float actualCardWidth = MathF.Min(cardWidth, maxCardWidthThatFits);
+    float cardY = h - cardHeight - CardBottomInset;
+
+    Rect2[] cards = new Rect2[count];
+    for (int i = 0; i < count; i++)
     {
-        PortalShape[] shapes = new PortalShape[count];
-        float gap = Math.Max(20f, area.X * 0.02f);
-        float portalWidth = (area.X - (gap * Math.Max(0, count - 1))) / Math.Max(1, count);
-        float cardY = area.Y - cardHeight - CardBottomInset;
-
-        for (int i = 0; i < count; i++)
-        {
-            float portalX = i * (portalWidth + gap);
-            Rect2 portal = new(new Vector2(portalX, 0f), new Vector2(portalWidth, area.Y));
-            float cardX = portalX + Math.Max(10f, (portalWidth - cardWidth) * 0.5f);
-            Rect2 card = new(new Vector2(cardX, cardY), new Vector2(Math.Min(cardWidth, portalWidth - 20f), cardHeight));
-            shapes[i] = new PortalShape(
-                portal,
-                card,
-                new Vector2(portalWidth * 0.05f, 0f),
-                new Vector2(portalWidth * 0.95f, 0f),
-                new Vector2(portalWidth * 0.90f, area.Y),
-                new Vector2(portalWidth * 0.10f, area.Y),
-                1);
-        }
-
-        return shapes;
+        float x = outerPad + (i * (actualCardWidth + cardGap));
+        cards[i] = new Rect2(new Vector2(x, cardY), new Vector2(actualCardWidth, cardHeight));
     }
+
+    // Internal seam positions are midway between neighboring cards, like the 3-portal layout.
+    float[] seamTopX = new float[count - 1];
+    float[] seamBottomX = new float[count - 1];
+
+    // Same leftward lean as BuildThreePortalShapes: bottom is shifted left by ~6% of screen width.
+    float seamShift = area.X * 0.06f;
+
+    for (int i = 0; i < count - 1; i++)
+    {
+        Rect2 left = cards[i];
+        Rect2 right = cards[i + 1];
+
+        float midpoint = (left.End.X + right.Position.X) * 0.5f;
+        seamTopX[i] = midpoint;
+        seamBottomX[i] = midpoint - seamShift;
+    }
+
+    PortalShape[] shapes = new PortalShape[count];
+
+    for (int i = 0; i < count; i++)
+    {
+        float leftTop = i == 0 ? 0f : seamTopX[i - 1];
+        float rightTop = i == count - 1 ? area.X : seamTopX[i];
+        float rightBottom = i == count - 1 ? area.X : seamBottomX[i];
+        float leftBottom = i == 0 ? 0f : seamBottomX[i - 1];
+
+        // Give each portal a slightly wider logical rect than the visible polygon,
+        // similar to the 3-portal version.
+        float logicalPad = area.X * 0.10f;
+        float logicalLeft = i == 0
+            ? 0f
+            : MathF.Max(0f, MathF.Min(leftTop, leftBottom) - logicalPad);
+
+        float logicalRight = i == count - 1
+            ? area.X
+            : MathF.Min(area.X, MathF.Max(rightTop, rightBottom) + logicalPad);
+
+        Rect2 logicalRect = new Rect2(
+            logicalLeft,
+            0f,
+            logicalRight - logicalLeft,
+            h);
+
+        shapes[i] = new PortalShape(
+            logicalRect,
+            cards[i],
+            new Vector2(leftTop, 0f),
+            new Vector2(rightTop, 0f),
+            new Vector2(rightBottom, h),
+            new Vector2(leftBottom, h),
+            1);
+    }
+
+    return shapes;
+}
 
     private void ApplyPortalGeometry(PortalShape shape, SlotRefs refs)
     {

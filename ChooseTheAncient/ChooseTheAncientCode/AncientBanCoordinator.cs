@@ -26,9 +26,12 @@ public static class AncientBanCoordinator
 
         try
         {
+            AncientBanCoordinator.AncientCount = 4;
             ActModel nextAct = runState.Acts[nextActIndex];
             List<AncientEventModel> pool = AncientBanHelpers.BuildCandidatePool(nextAct, runState);
-            pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, AncientCount);
+            String ancientpool = String.Join(",",pool.Select(ancient => ancient.Id.Entry));
+            GD.Print($"[ChooseTheAncient] Avialable ancients to draw {AncientCount} from: {ancientpool}");
+            pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, 4);
 
             AncientBanHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
 
@@ -69,7 +72,7 @@ public static class AncientBanCoordinator
                     null,
                     null);
 
-                // firstVotes is a player sorted ancient index array
+                // firstVotes is a list of voted ancient indices in the original pool
                 firstVotes = await CollectVotes(
                     orderedPlayers,
                     firstRound,
@@ -81,16 +84,30 @@ public static class AncientBanCoordinator
                     pool.Count,
                     firstVotes);
 
-                int secondPlaceIndex = ResolveMostVotedIndex(
+                // Map reduced-pool indices back to original-pool indices
+                List<int> remainingIndices = Enumerable.Range(0, pool.Count)
+                    .Where(i => i != firstPlaceIndex)
+                    .ToList();
+
+                // Remove votes for the first-place ancient, then reindex the rest
+                List<int> secondPlaceVotes = firstVotes
+                    .Where(voteIndex => voteIndex != firstPlaceIndex)
+                    .Select(voteIndex => voteIndex > firstPlaceIndex ? voteIndex - 1 : voteIndex)
+                    .ToList();
+
+                int secondPlaceReducedIndex = ResolveMostVotedIndex(
                     runState,
                     nextActIndex,
-                    pool.Count - 1,
-                    firstVotes.Where((_, index) => index != firstPlaceIndex).ToList());
+                    remainingIndices.Count,
+                    secondPlaceVotes);
+
+                int secondPlaceIndex = remainingIndices[secondPlaceReducedIndex];
 
                 AncientEventModel firstAncient = pool[firstPlaceIndex];
                 AncientEventModel secondAncient = pool[secondPlaceIndex];
-                finalists = pool
-                    .Where((_, index) => (index != firstPlaceIndex) | (index != secondPlaceIndex)).ToList();
+
+                // Build finalists directly instead of filtering the whole pool
+                finalists = [firstAncient, secondAncient];
 
                 GD.Print($"[ChooseTheAncient] First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
                 AncientBanHelpers.LogPool($"Act {nextActIndex + 1} finalists", finalists);

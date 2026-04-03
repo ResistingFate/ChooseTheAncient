@@ -9,6 +9,7 @@ using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Events;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
@@ -42,14 +43,43 @@ public static class AncientBanHelpers
             .GetValue<RunState>();
     }
 
-    public static List<AncientEventModel> BuildCandidatePool(ActModel act, RunState runState)
+    private static bool IsAncientValidForAct(AncientEventModel ancient, ActModel act)
     {
         /*
-         * Makes a list of ancients with same ordering for all players based on act
+         * Made to handle CustomAncients in BaseLib without using BaseLib
          */
-        List<AncientEventModel> sharedSubset = Traverse.Create(act)
-            .Field("_sharedAncientSubset")
-            .GetValue<List<AncientEventModel>>() ?? new List<AncientEventModel>();
+        MethodInfo? method = ancient.GetType().GetMethod(
+            "IsValidForAct",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            binder: null,
+            types: [typeof(ActModel)],
+            modifiers: null);
+
+        if (method == null || method.ReturnType != typeof(bool))
+            return true;
+
+        try
+        {
+            return (bool)method.Invoke(ancient, [act])!;
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[ChooseTheAncient] Failed to call IsValidForAct on {ancient.GetType().FullName}: {e}");
+            return true;
+        }
+    }
+
+    public static List<AncientEventModel> BuildCandidatePool(ActModel act, RunState runState)
+    {
+        if (!runState.UnlockState.SharedAncients.Any())
+            GD.Print("[ChooseTheAncient] runState.UnlockState.SharedAncients is empty");
+
+        List<AncientEventModel> sharedSubset = runState.UnlockState.SharedAncients
+            .Where(ancient => IsAncientValidForAct(ancient, act))
+            .ToList();
+
+        string sharedPool = string.Join(",", sharedSubset.Select(ancient => ancient.Id.Entry));
+        GD.Print($"[ChooseTheAncient] shared ancients valid for {act.Id.Entry}: {sharedPool}");
 
         return act
             .GetUnlockedAncients(runState.UnlockState)
@@ -58,6 +88,8 @@ public static class AncientBanHelpers
             .OrderBy(a => a.Id.Entry)
             .ToList();
     }
+    
+    public static List<AncientEventModel> _SharedAncientsNotUsed { get; set; }
 
     public static List<AncientEventModel> LimitCandidatePoolForVote(
         RunState runState,
