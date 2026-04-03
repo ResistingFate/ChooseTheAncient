@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://drsungogij8an"]
+[gd_scene load_steps=2 format=3 uid="uid://drsungogij8an"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
 bg_color = Color(0.0705882, 0.0862745, 0.113725, 0.955)
@@ -13,20 +13,6 @@ corner_radius_bottom_right = 24
 corner_radius_bottom_left = 24
 shadow_color = Color(0, 0, 0, 0.38)
 shadow_size = 28
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_footer"]
-bg_color = Color(0.0313726, 0.0431373, 0.0627451, 0.84)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(1, 1, 1, 0.06)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-shadow_color = Color(0, 0, 0, 0.32)
-shadow_size = 18
 
 [node name="AncientBanSelectionLayout" type="Control"]
 z_index = -2
@@ -108,7 +94,6 @@ grow_horizontal = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
-
 [node name="HeaderAccent" type="ColorRect" parent="HeaderPanel"]
 layout_mode = 1
 anchors_preset = 10
@@ -160,50 +145,6 @@ size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.82)
 theme_override_font_sizes/font_size = 16
 text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly."
-horizontal_alignment = 1
-autowrap_mode = 3
-
-[node name="FooterPanel" type="Panel" parent="."]
-visible = false
-modulate = Color(1, 1, 1, 0)
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -1.0
-offset_top = -1.0
-offset_right = 1.0
-offset_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_footer")
-
-[node name="FooterPadding" type="MarginContainer" parent="FooterPanel"]
-layout_mode = 1
-anchors_preset = 14
-anchor_top = 0.5
-anchor_right = 1.0
-anchor_bottom = 0.5
-offset_top = -918.5
-offset_bottom = 918.5
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 0
-theme_override_constants/margin_top = 0
-theme_override_constants/margin_right = 0
-theme_override_constants/margin_bottom = 0
-
-[node name="HintLabel" type="Label" parent="FooterPanel/FooterPadding"]
-custom_minimum_size = Vector2(800, 0)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.84)
-theme_override_font_sizes/font_size = 14
-text = "Hover or focus an ancient to preview it. Your vote locks as soon as you confirm."
 horizontal_alignment = 1
 autowrap_mode = 3
 

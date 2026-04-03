@@ -107,7 +107,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required TextureRect Icon { get; init; }
         public required Label NameLabel { get; init; }
         public required Label EpithetLabel { get; init; }
-        public required Label InfoLabel { get; init; }
         public required Button ChooseButton { get; init; }
         public required Control VoteIconsAnchor { get; init; }
         public required Control PreviewAnchor { get; init; }
@@ -126,6 +125,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private sealed class PreviewWidgetRefs
     {
+        /* For hover over ancient options in final preview vote */
         public required Control Wrapper { get; init; }
         public required NEventOptionButton Button { get; init; }
         public required EventOption Option { get; init; }
@@ -177,8 +177,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private IReadOnlyList<AncientEventModel> _pool = Array.Empty<AncientEventModel>();
     private VoteRoundType _roundType = VoteRoundType.InitialKeepVote;
     private Dictionary<string, AncientBanHelpers.AncientPreviewData> _previewDataByAncientId = new();
-    private string? _suppressedPreviewAncientId;
-    private string? _reactionAncientId;
+    private string? _suppressedPreviewAncientId; // ancient that does not reveal options, the initial vote
+    private string? _reactionAncientId; // ancient that reacts with dialogue on the final preview vote
     private int _nextActIndex;
     private int? _pendingPoolIndex;
     private int? _selectedPoolIndex;
@@ -195,9 +195,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private Control? _layoutRoot;
     private Control? _headerPanel;
-    private Control? _footerPanel;
-    private Label? _titleLabel;
-    private Label? _subtitleLabel;
+    private Label? _titleLabel; // Want to change to big entrance text that fades out
+    private Label? _subtitleLabel;  // Because of above is unneeded
     private Control? _stageArea;
     private Control? _slotsCanvas;
     private AudioStreamPlayer? _hoverSfx;
@@ -234,6 +233,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     public async Task<int> RunRoundAsync(RoundDefinition round)
     {
+        /* Handles each of the vote rounds for the selection screen */
         await _readyCompletion.Task;
 
         _voteSubmitted = new TaskCompletionSource<int>();
@@ -269,9 +269,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         AddChild(_layoutRoot);
 
         _headerPanel = _layoutRoot.GetNode<Control>("HeaderPanel");
-        _footerPanel = _layoutRoot.GetNodeOrNull<Control>("FooterPanel");
         _titleLabel = _layoutRoot.GetNode<Label>("HeaderPanel/HeaderPadding/TopBox/TitleLabel");
-        _subtitleLabel = _layoutRoot.GetNode<Label>("HeaderPanel/HeaderPadding/TopBox/SubtitleLabel");
+        _subtitleLabel = _layoutRoot.GetNode<Label>("HeaderPanel/HeaderPadding/TopBox/SubtitleLabel"); // Remove if only title needed
         _stageArea = _layoutRoot.GetNode<Control>("StageMargin/StageArea");
         _slotsCanvas = _layoutRoot.GetNode<Control>("StageMargin/StageArea/SlotsCanvas");
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
@@ -290,14 +289,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             _headerPanel.OffsetTop = 96f;
             _headerPanel.OffsetBottom = 184f;
-            _headerPanel.ZIndex = 2;
-        }
-
-        if (_footerPanel != null)
-        {
-            _footerPanel.Visible = false;
-            _footerPanel.Modulate = new Color(1f, 1f, 1f, 0f);
-            _footerPanel.MouseFilter = MouseFilterEnum.Ignore;
+            _headerPanel.ZIndex = 2;    //  Below ancients in godot scene tree with same ZIndex so appears above.
         }
 
         _stageArea.ClipContents = true;
@@ -312,6 +304,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private async Task ApplyRoundAsync()
     {
+        /* Has two branches. One for if round has not loaded. And the other that transitions the ancients in and out */
         UpdateRoundText();
 
         if (!_uiReady)
@@ -347,6 +340,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private async Task AnimateOutSlotsAsync()
     {
+        /* old slots slide slightly upward/outward and fade out. */
         if (_slots.Count == 0)
         {
             return;
@@ -370,6 +364,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void PrimeSlotsForTransitionIn()
     {
+        /* → places the new slot roots off to the sides and invisible so they are ready to tween in after they've been moved out*/
         for (int i = 0; i < _slots.Count; i++)
         {
             SlotRefs refs = _slots[i];
@@ -386,6 +381,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private async Task AnimateInSlotsAsync()
     {
+        /*
+         Slot slide/fade into place. After that tween finishes, if it’s FinalRevealVote, it directly calls the ancient preview animation.
+         */
         if (_slots.Count == 0)
         {
             return;
@@ -412,6 +410,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void UpdateRoundText()
     {
+        /*
+         Sets the text for the Title for each round of the selection screen. If making variations of the choose the
+             ancient game, edit the text and logic here.
+         */
         if (_titleLabel == null || _subtitleLabel == null)
         {
             return;
@@ -421,19 +423,20 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         if (_roundType == VoteRoundType.InitialKeepVote)
         {
-            _titleLabel.Text = $"Choose the {actLabel} Finalists";
-            _subtitleLabel.Text = "Vote once. The least-voted ancient is eliminated, and ties for last are broken with this mod's deterministic RNG.";
+            _titleLabel.Text = $"Choose the {actLabel} Ancients";
+            _subtitleLabel.Text = "";
         }
         else
         {
-            _titleLabel.Text = $"Final Ancient Vote Before {actLabel}";
-            _subtitleLabel.Text = "The final 2 ancients now reveal the rewards they would offer. Vote once to lock in the ancient you want next act.";
+            _titleLabel.Text = $"It's not Over";
+            _subtitleLabel.Text = "";
         }
     }
 
 
     private void PrimeFinalRoundElementAnimation()
     {
+        /* Readies the ancient preview elements to animation by setting alpha to 0, and putting down. */
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
             return;
@@ -476,6 +479,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void StartFinalRoundElementAnimation()
     {
+        /* animation the ancient preview animation */   
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
             return;
@@ -687,7 +691,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         TextureRect icon = cardRoot.GetNode<TextureRect>("Padding/VBox/Header/Icon");
         Label nameLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/NameLabel");
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
-        Label infoLabel = cardRoot.GetNode<Label>("Padding/VBox/InfoLabel");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButton");
         Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
@@ -756,7 +759,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             Icon = icon,
             NameLabel = nameLabel,
             EpithetLabel = epithetLabel,
-            InfoLabel = infoLabel,
             ChooseButton = chooseButton,
             VoteIconsAnchor = voteIconsAnchor,
             PreviewAnchor = previewAnchor,
@@ -769,6 +771,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void PopulatePreview(SlotRefs refs)
     {
+        /* for this slot, create the little final-round option preview cards and register them for later layout, hover, and entrance animation. */
         ClearChildren(refs.PreviewAnchor);
         ClearChildren(refs.ReactionAnchor);
         refs.ReactionBubble = null;
@@ -856,6 +859,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private void ApplySecondVotePresentation(bool animate)
     {
+        /*
+         * is the “final-round visibility policy” method: it hides the suppressed ancient’s preview, shows other previews,
+         * and attaches the special reaction bubble to the designated ancient.
+         */
         foreach (SlotRefs refs in _slots)
         {
             if (refs.ReactionBubble != null && GodotObject.IsInstanceValid(refs.ReactionBubble))
@@ -983,7 +990,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             Name = "Icon",
             Texture = reactionIconTexture,
-            Modulate = new Color(1f, 1f, 1f, 0f),
+            Modulate = Colors.White,
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             MouseFilter = MouseFilterEnum.Ignore,
@@ -1238,7 +1245,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             foreach (Control tipChild in hoverTipSet.GetChildren().OfType<Control>())
             {
                 tipChild.ZIndex = 5001;
-                tipChild.TopLevel = true;
+                    tipChild.TopLevel = true;
             }
         }
         catch
@@ -1328,6 +1335,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private static bool IsUsableScenePath(string? path)
     {
+       /* Made to handle Custom ancient scene paths not working. */ 
         return !string.IsNullOrWhiteSpace(path)
                && path.StartsWith("res://", StringComparison.Ordinal)
                && path.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase)
@@ -2228,10 +2236,6 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         {
             bool resolvedSelected = _resolved && _selectedPoolIndex == refs.PoolIndex;
             bool finalWinner = _finalChosenPoolIndex.HasValue && _finalChosenPoolIndex.Value == refs.PoolIndex;
-
-            refs.InfoLabel.Text = _roundType == VoteRoundType.InitialKeepVote
-                ? "Vote once to keep this ancient in the final round."
-                : "These previewed options are your local rewards for this ancient.";
 
             if (_resolved)
             {
