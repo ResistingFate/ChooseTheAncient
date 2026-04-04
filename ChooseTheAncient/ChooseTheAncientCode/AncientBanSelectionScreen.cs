@@ -50,7 +50,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private const double ReactionTextDuration = 0.58;
     private const double FinalRoundStagger = 0.22;
     private const float PreviewHoverScaleMultiplier = 1.008f;
-    private const float VoteIconSize = 28f;
+    private const float VoteIconSize = 28;
     private const float VoteIconOverlap = 10f;
     private const double VoteResolutionSpinDuration = 1.20;
     private const float VoteResolutionSettleDelayMin = 0.05f;
@@ -120,6 +120,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public Vector2 CardBasePosition { get; set; }
         public PortalShape Shape { get; set; }
         public List<PreviewWidgetRefs> PreviewWidgets { get; } = new();
+        public NinePatchRect ChooseButtonOutline { get; set; }
     }
 
 
@@ -270,7 +271,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         _headerPanel = _layoutRoot.GetNode<Control>("HeaderPanel");
         _titleLabel = _layoutRoot.GetNode<Label>("HeaderPanel/HeaderPadding/TopBox/TitleLabel");
-        _subtitleLabel = _layoutRoot.GetNode<Label>("HeaderPanel/HeaderPadding/TopBox/SubtitleLabel"); // Remove if only title needed
         _stageArea = _layoutRoot.GetNode<Control>("StageMargin/StageArea");
         _slotsCanvas = _layoutRoot.GetNode<Control>("StageMargin/StageArea/SlotsCanvas");
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
@@ -424,12 +424,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         if (_roundType == VoteRoundType.InitialKeepVote)
         {
             _titleLabel.Text = $"Choose the {actLabel} Ancients";
-            _subtitleLabel.Text = "";
         }
         else
         {
             _titleLabel.Text = $"It's not Over";
-            _subtitleLabel.Text = "";
         }
     }
 
@@ -581,6 +579,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         ClearChildren(_slotsCanvas);
         _slots.Clear();
         DefaultFocusedControl = null;
+        
 
         for (int i = 0; i < _pool.Count; i++)
         {
@@ -601,7 +600,114 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         RefreshVoteDisplays(animate: false);
         GrabInitialFocus();
     }
+    
+    private static readonly string VoteButtonTexturePath = "res://images/packed/common_ui/event_button.png";
+    private static readonly string VoteButtonOutlineTexturePath = "res://images/packed/common_ui/event_button_outline.png";
+    private static readonly string VoteButtonFontPath = "res://themes/kreon_bold_glyph_space_one.tres";
+    private static Shader? _voteButtonShader;
 
+    private static void ApplyVoteButtonLook(
+        Button chooseButton,
+        NinePatchRect chooseButtonOutline, bool bodyVisible = true)
+    {
+        Texture2D buttonTexture = GD.Load<Texture2D>(VoteButtonTexturePath)
+            ?? throw new InvalidOperationException($"Could not load {VoteButtonTexturePath}");
+        Texture2D outlineTexture = GD.Load<Texture2D>(VoteButtonOutlineTexturePath)
+            ?? throw new InvalidOperationException($"Could not load {VoteButtonOutlineTexturePath}");
+        Font buttonFont = GD.Load<Font>(VoteButtonFontPath)
+            ?? throw new InvalidOperationException($"Could not load {VoteButtonFontPath}");
+
+        // Style the button to have the game's event button texture
+        StyleBoxTexture normal = new()
+        {
+            Texture = buttonTexture,
+            TextureMarginLeft = 0f,
+            TextureMarginTop = 0f,
+            TextureMarginRight = 0f,
+            TextureMarginBottom = 0f,
+            AxisStretchHorizontal = StyleBoxTexture.AxisStretchMode.Stretch,
+            AxisStretchVertical = StyleBoxTexture.AxisStretchMode.Stretch,
+            ModulateColor = bodyVisible ? Colors.White : new Color(1f, 1f, 1f, 0f)
+        };
+
+        StyleBoxTexture hover = (StyleBoxTexture)normal.Duplicate();
+        hover.ModulateColor = bodyVisible ? Colors.White : new Color(1f, 1f, 1f, 0f);
+
+        StyleBoxTexture pressed = (StyleBoxTexture)normal.Duplicate();
+        pressed.ModulateColor = bodyVisible
+            ? new Color(0.92f, 0.92f, 0.92f, 1f)
+            : new Color(1f, 1f, 1f, 0f);
+
+        StyleBoxTexture disabled = (StyleBoxTexture)normal.Duplicate();
+        disabled.ModulateColor = bodyVisible
+            ? new Color(0.70f, 0.70f, 0.70f, 0.90f)
+            : new Color(1f, 1f, 1f, 0f);
+
+        StyleBoxEmpty focus = new();
+        
+        
+        // Put the art on the background nodes, not on the Button.
+        //chooseButton = buttonTexture;
+
+
+        chooseButtonOutline.Texture = outlineTexture;
+        chooseButtonOutline.PatchMarginLeft = 0;
+        chooseButtonOutline.PatchMarginTop = 18;
+        chooseButtonOutline.PatchMarginRight = 0;
+        chooseButtonOutline.PatchMarginBottom = 18;
+        chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
+
+        chooseButton.AddThemeStyleboxOverride("normal", normal);
+        chooseButton.AddThemeStyleboxOverride("hover", normal);
+        chooseButton.AddThemeStyleboxOverride("pressed", normal);
+        chooseButton.AddThemeStyleboxOverride("focus", normal);
+        chooseButton.AddThemeStyleboxOverride("disabled", normal);
+
+        chooseButton.CustomMinimumSize = new Vector2(0f, 72f);
+        chooseButton.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        chooseButton.Alignment = HorizontalAlignment.Center;
+
+        chooseButton.AddThemeFontOverride("font", buttonFont);
+        chooseButton.AddThemeFontSizeOverride("font_size", 24);
+        chooseButton.AddThemeColorOverride("font_color", Colors.White);
+        chooseButton.AddThemeColorOverride("font_hover_color", Colors.White);
+        chooseButton.AddThemeColorOverride("font_pressed_color", Colors.White);
+        chooseButton.AddThemeColorOverride("font_focus_color", Colors.White);
+        chooseButton.AddThemeColorOverride("font_disabled_color", new Color(0.78f, 0.78f, 0.78f, 1f));
+        chooseButton.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.70f));
+        chooseButton.AddThemeConstantOverride("outline_size", 6);
+
+        chooseButton.MouseEntered += () =>
+        {
+            if (!chooseButton.Disabled)
+            {
+                chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 1f);
+            }
+        };
+
+        chooseButton.MouseExited += () =>
+        {
+            if (!chooseButton.HasFocus())
+            {
+                chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
+            }
+        };
+
+        chooseButton.FocusEntered += () =>
+        {
+            if (!chooseButton.Disabled)
+            {
+                chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 1f);
+            }
+        };
+
+        chooseButton.FocusExited += () =>
+        {
+            chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
+        };
+
+    }
+    
     private SlotRefs CreateSlot(AncientEventModel ancient, int poolIndex, PackedScene cardScene)
     {
         Color accentColor = GetAccentColor(ancient.Id.Entry, poolIndex);
@@ -691,11 +797,21 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         TextureRect icon = cardRoot.GetNode<TextureRect>("Padding/VBox/Header/Icon");
         Label nameLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/NameLabel");
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
-        Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButton");
-        Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
+        Control chooseButtonWrap = cardRoot.GetNode<Control>("Padding/VBox/ChooseButtonWrap");
+        Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButtonWrap/ChooseButton");
+        NinePatchRect chooseButtonOutline = cardRoot.GetNode<NinePatchRect>("Padding/VBox/ChooseButtonWrap/ChooseButtonOutline");
+        //NinePatchRect chooseButtonBg = cardRoot.GetNode<NinePatchRect>("Padding/VBox/ChooseButtonWrap/ChooseButtonBg"); 
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
-
+        Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
+        
+        //GD.Print($"[ChooseTheAncient] bg tex null? {chooseButtonBg.Texture == null}, outline tex null? {chooseButtonOutline.Texture == null}");
+        //GD.Print($"wrap size={chooseButtonWrap.Size} min={chooseButtonWrap.CustomMinimumSize}");
+        //GD.Print($"btn size={chooseButton.Size} min={chooseButton.CustomMinimumSize}");
+        //GD.Print($"bg size={chooseButtonBg.Size} visible={chooseButtonBg.Visible} texNull={chooseButtonBg.Texture == null}");
+        //GD.Print($"outline size={chooseButtonOutline.Size} visible={chooseButtonOutline.Visible} texNull={chooseButtonOutline.Texture == null}");
+        ApplyVoteButtonLook(chooseButton, chooseButtonOutline, true);
+        
         NMultiplayerVoteContainer? voteContainer = null;
         if (_orderedPlayers.Count > 1)
         {
@@ -760,6 +876,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             NameLabel = nameLabel,
             EpithetLabel = epithetLabel,
             ChooseButton = chooseButton,
+            ChooseButtonOutline = chooseButtonOutline,
             VoteIconsAnchor = voteIconsAnchor,
             PreviewAnchor = previewAnchor,
             ReactionAnchor = reactionAnchor,
@@ -768,7 +885,25 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             Shape = default,
         };
     }
+    
+    private void UpdateVoteButtonOutline(SlotRefs refs)
+    {
+        bool show =
+            !_resolved &&
+            !refs.ChooseButton.Disabled &&
+            (ReferenceEquals(_hoveredSlot, refs) || refs.ChooseButton.HasFocus());
 
+        refs.ChooseButtonOutline.Modulate = new Color(1f, 1f, 1f, show ? 1f : 0f);
+    }
+    
+    private void RefreshAllVoteButtonOutlines()
+    {
+        foreach (SlotRefs refs in _slots)
+        {
+            UpdateVoteButtonOutline(refs);
+        }
+    }
+    
     private void PopulatePreview(SlotRefs refs)
     {
         /* for this slot, create the little final-round option preview cards and register them for later layout, hover, and entrance animation. */
@@ -1233,7 +1368,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
                 ? HoverTipAlignment.Right
                 : HoverTipAlignment.Left;
             NHoverTipSet hoverTipSet = NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, alignment);
-            hoverTipSet.ZIndex = 5000;
+            hoverTipSet.ZIndex = 9;
             hoverTipSet.TopLevel = true;
             hoverTipSet.ProcessMode = ProcessModeEnum.Always;
             hoverTipSet.Show();
@@ -1244,8 +1379,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
             foreach (Control tipChild in hoverTipSet.GetChildren().OfType<Control>())
             {
-                tipChild.ZIndex = 5001;
-                    tipChild.TopLevel = true;
+                tipChild.ZIndex = 8;
             }
         }
         catch
@@ -1831,10 +1965,16 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
         _hoveredSlot = refs;
         RefreshSlotVisuals(animate: true);
+        UpdateVoteButtonOutline(refs);
     }
 
     private void OnSlotUnhovered(int poolIndex)
     {
+        SlotRefs? refs = _slots.FirstOrDefault(s => s.PoolIndex == poolIndex);
+        if (refs != null)
+        {
+            bool keepVisible = refs.ChooseButton.HasFocus() && !refs.ChooseButton.Disabled;
+        }
         if (_resolved)
         {
             return;
@@ -1864,6 +2004,8 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         _hoveredSlot = null;
         _lastHoveredPoolIndex = null;
         RefreshSlotVisuals(animate: true);
+        
+        UpdateVoteButtonOutline(refs);
     }
 
     private void RefreshSlotVisuals(bool animate)
@@ -2254,12 +2396,22 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
                 refs.ChooseButton.Disabled = false;
                 refs.ChooseButton.Text = "Vote For This Ancient";
             }
+            
+            UpdateVoteButtonOutline(refs);
         }
     }
 
     private void GrabInitialFocus()
     {
         DefaultFocusedControl?.CallDeferred(Control.MethodName.GrabFocus);
+        CallDeferred(nameof(RefreshVoteButtonOutlinesAfterFocus));
+    }
+    
+    private void RefreshVoteButtonOutlinesAfterFocus()
+    {
+        /* Deferred to deal with timing to settle focus. Might need to be deferred twice if
+         this is not working. */
+        CallDeferred(nameof(RefreshAllVoteButtonOutlines));
     }
 
     private void Select(int poolIndex)
@@ -2520,4 +2672,5 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             child.QueueFree();
         }
     }
+    
 }

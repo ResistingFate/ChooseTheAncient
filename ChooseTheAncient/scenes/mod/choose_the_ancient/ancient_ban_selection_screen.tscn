@@ -135,18 +135,8 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(1, 0.960784, 0.878431, 1)
 theme_override_font_sizes/font_size = 32
-text = "Choose 1 Ancient to Remove Before Act 2"
+text = "It's Not Over"
 horizontal_alignment = 1
-
-[node name="SubtitleLabel" type="Label" parent="HeaderPanel/HeaderPadding/TopBox"]
-custom_minimum_size = Vector2(860, 0)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.82)
-theme_override_font_sizes/font_size = 16
-text = "Each player votes for 1 ancient to remove. Majority bans it; ties are broken randomly."
-horizontal_alignment = 1
-autowrap_mode = 3
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 volume_db = -14.0
