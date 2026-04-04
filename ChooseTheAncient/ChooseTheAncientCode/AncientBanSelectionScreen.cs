@@ -104,6 +104,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required Control CardRoot { get; init; }
         public required ColorRect CardShade { get; init; }
         public required ColorRect TopAccent { get; init; }
+        public required Panel CardOutline { get; init; }
         public required TextureRect Icon { get; init; }
         public required Label NameLabel { get; init; }
         public required Label EpithetLabel { get; init; }
@@ -619,6 +620,26 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         GrabInitialFocus();
     }
 
+    private static void ApplyCardOutlineLook(Panel outline)
+    {
+        StyleBoxFlat sb = new()
+        {
+            BgColor = new Color(0f, 0f, 0f, 0f),
+            DrawCenter = false,
+            BorderWidthLeft = 4,
+            BorderWidthTop = 4,
+            BorderWidthRight = 4,
+            BorderWidthBottom = 4,
+            BorderColor = Colors.White,
+            CornerRadiusTopLeft = 12,
+            CornerRadiusTopRight = 12,
+            CornerRadiusBottomRight = 12,
+            CornerRadiusBottomLeft = 12
+        };
+
+        outline.AddThemeStyleboxOverride("panel", sb);
+    }
+    
     private static void ApplyVoteButtonLook(
         Button chooseButton,
         NinePatchRect chooseButtonOutline, bool bodyVisible = true)
@@ -771,6 +792,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         ColorRect cardShade = cardRoot.GetNode<ColorRect>("BottomShade");
         ColorRect topAccent = cardRoot.GetNode<ColorRect>("TopAccent");
+        Panel cardOutline = cardRoot.GetNode<Panel>("CardOutline");
         TextureRect icon = cardRoot.GetNode<TextureRect>("Padding/VBox/Header/Icon");
         Label nameLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/NameLabel");
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
@@ -781,6 +803,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
         
         ApplyVoteButtonLook(chooseButton, chooseButtonOutline, true);
+        ApplyCardOutlineLook(cardOutline);
         
         NMultiplayerVoteContainer? voteContainer = null;
         if (_orderedPlayers.Count > 1)
@@ -842,6 +865,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             CardRoot = cardRoot,
             CardShade = cardShade,
             TopAccent = topAccent,
+            CardOutline = cardOutline,
             Icon = icon,
             NameLabel = nameLabel,
             EpithetLabel = epithetLabel,
@@ -1984,6 +2008,16 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             bool pendingSelected = !_resolved && _pendingPoolIndex == refs.PoolIndex;
             bool selected = _resolved && _selectedPoolIndex == refs.PoolIndex;
 
+            bool firstRoundWinnerOnSecondScreen =
+                _roundType == VoteRoundType.FinalRevealVote &&
+                !string.IsNullOrEmpty(_suppressedPreviewAncientId) &&
+                refs.Ancient.Id.Entry == _suppressedPreviewAncientId &&
+                !_finalChosenPoolIndex.HasValue;
+
+            bool finalVoteWinner =
+                _finalChosenPoolIndex.HasValue &&
+                _finalChosenPoolIndex.Value == refs.PoolIndex;
+
             float glowAlpha = pendingSelected ? 0.10f : 0f;
             float flashAlpha = hovered && !pendingSelected ? 0.05f : 0f;
             float shadeAlpha = _resolved
@@ -1999,6 +2033,28 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
                 ? (selected ? 0.96f : 0.35f)
                 : (pendingSelected ? 1f : hovered ? 0.95f : 0.78f);
 
+            // Extra emphasis for the round-1 survivor on the second screen.
+            if (firstRoundWinnerOnSecondScreen)
+            {
+                glowAlpha = MathF.Max(glowAlpha, 0.10f);
+                flashAlpha = MathF.Max(flashAlpha, 0.02f);
+                shadeAlpha = MathF.Min(shadeAlpha, 0.08f);
+                slotAlpha = MathF.Max(slotAlpha, 1f);
+                rimAlpha = MathF.Max(rimAlpha, 0.95f);
+                accentAlpha = MathF.Max(accentAlpha, 1f);
+            }
+
+            // Stronger emphasis for the true final winner.
+            if (finalVoteWinner)
+            {
+                glowAlpha = MathF.Max(glowAlpha, 0.18f);
+                flashAlpha = MathF.Max(flashAlpha, 0.05f);
+                shadeAlpha = MathF.Min(shadeAlpha, 0.03f);
+                slotAlpha = 1f;
+                rimAlpha = 1f;
+                accentAlpha = 1f;
+            }
+
             Color glowColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, glowAlpha);
             Color flashColor = new(1f, 1f, 1f, flashAlpha);
             Color shadeColor = new(0f, 0f, 0f, shadeAlpha);
@@ -2006,19 +2062,29 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             Color rimColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, rimAlpha);
             Color accentColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, accentAlpha);
 
+            Color cardOutlineColor =
+                finalVoteWinner
+                    ? new Color(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, 1f)
+                    : firstRoundWinnerOnSecondScreen
+                        ? new Color(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, 0.72f)
+                        : hovered
+                            ? new Color(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, 0f)
+                            : new Color(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, 0f);
+
             if (animate)
             {
                 Tween tween = CreateTween();
                 tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
-                tween.TweenProperty(refs.GlowPolygon, "color", glowColor, 0.10f);
-                tween.Parallel().TweenProperty(refs.HoverFlashPolygon, "color", flashColor, 0.08f);
-                tween.Parallel().TweenProperty(refs.CardShade, "color", shadeColor, 0.10f);
-                tween.Parallel().TweenProperty(refs.ScenePolygon, "modulate", slotModulate, 0.10f);
-                tween.Parallel().TweenProperty(refs.CardRoot, "modulate", slotModulate, 0.10f);
-                tween.Parallel().TweenProperty(refs.PreviewAnchor, "modulate", slotModulate, 0.10f);
+                tween.TweenProperty(refs.GlowPolygon, "color", glowColor, 0.12f);
+                tween.Parallel().TweenProperty(refs.HoverFlashPolygon, "color", flashColor, 0.12f);
+                tween.Parallel().TweenProperty(refs.CardShade, "color", shadeColor, 0.12f);
+                tween.Parallel().TweenProperty(refs.ScenePolygon, "modulate", slotModulate, 0.12f);
+                tween.Parallel().TweenProperty(refs.CardRoot, "modulate", slotModulate, 0.12f);
+                tween.Parallel().TweenProperty(refs.PreviewAnchor, "modulate", slotModulate, 0.12f);
                 tween.Parallel().TweenProperty(refs.LeftRim, "color", rimColor, 0.12f);
                 tween.Parallel().TweenProperty(refs.RightRim, "color", rimColor, 0.12f);
                 tween.Parallel().TweenProperty(refs.TopAccent, "color", accentColor, 0.12f);
+                tween.Parallel().TweenProperty(refs.CardOutline, "modulate", cardOutlineColor, 0.12f);
             }
             else
             {
@@ -2031,12 +2097,12 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
                 refs.LeftRim.Color = rimColor;
                 refs.RightRim.Color = rimColor;
                 refs.TopAccent.Color = accentColor;
+                refs.CardOutline.Modulate = cardOutlineColor;
             }
 
             ApplySceneTransform(refs, hovered, animate);
         }
     }
-
 
     public void RecordVote(Player player, int poolIndex)
     {
