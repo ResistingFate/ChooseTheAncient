@@ -200,9 +200,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private int? _finalChosenPoolIndex;
 
     private Control? _layoutRoot;
-    private Control? _headerPanel;
-    private Label? _titleLabel; // Want to change to big entrance text that fades out
-    private Label? _subtitleLabel;  // Because of above is unneeded
+    private Label? _roundIntroLabel;
+    private Tween? _roundIntroTween;
+    private Vector2 _roundIntroBasePosition;
     private Control? _stageArea;
     private Control? _slotsCanvas;
     private AudioStreamPlayer? _hoverSfx;
@@ -274,8 +274,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         SetFullRect(_layoutRoot);
         AddChild(_layoutRoot);
 
-        _headerPanel = _layoutRoot.GetNode<Control>("HeaderPanel");
-        _titleLabel = _layoutRoot.GetNode<Label>("HeaderPanel/HeaderPadding/TopBox/TitleLabel");
+        _roundIntroLabel = _layoutRoot.GetNode<Label>("RoundIntroOverlay/RoundIntroLabel");
+        _roundIntroBasePosition = _roundIntroLabel.Position;
+
         _stageArea = _layoutRoot.GetNode<Control>("StageMargin/StageArea");
         _slotsCanvas = _layoutRoot.GetNode<Control>("StageMargin/StageArea/SlotsCanvas");
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
@@ -290,13 +291,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         TryInstallGeneratedSounds();
 
-        if (_headerPanel != null)
-        {
-            _headerPanel.OffsetTop = 96f;
-            _headerPanel.OffsetBottom = 184f;
-            _headerPanel.ZIndex = 2;    //  Below ancients in godot scene tree with same ZIndex so appears above.
-        }
-
         _stageArea.ClipContents = true;
         _slotsCanvas.ClipContents = false;
         _stageArea.MouseFilter = MouseFilterEnum.Ignore;
@@ -305,13 +299,11 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         _uiReady = true;
         _readyCompletion.TrySetResult(true);
-    }
-
+    } 
+    
     private async Task ApplyRoundAsync()
     {
         /* Has two branches. One for if round has not loaded. And the other that transitions the ancients in and out */
-        UpdateRoundText();
-
         if (!_uiReady)
         {
             return;
@@ -321,6 +313,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         {
             BuildUi();
             _hasLoadedRound = true;
+            ShowRoundIntro();
 
             if (_roundType == VoteRoundType.FinalRevealVote)
             {
@@ -334,6 +327,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         await AnimateOutSlotsAsync();
         BuildUi();
         PrimeSlotsForTransitionIn();
+        ShowRoundIntro();
 
         if (_roundType == VoteRoundType.FinalRevealVote)
         {
@@ -341,7 +335,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         }
 
         await AnimateInSlotsAsync();
-    }
+    } 
 
     private async Task AnimateOutSlotsAsync()
     {
@@ -413,29 +407,71 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         GrabInitialFocus();
     }
 
-    private void UpdateRoundText()
+    private string GetRoundIntroText()
     {
-        /*
-         Sets the text for the Title for each round of the selection screen. If making variations of the choose the
-             ancient game, edit the text and logic here.
-         */
-        if (_titleLabel == null || _subtitleLabel == null)
+        string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
+
+        return _roundType == VoteRoundType.InitialKeepVote
+            ? $"Choose the {actLabel} Ancients"
+            : "It's Not Over";
+    }
+
+    private void ShowRoundIntro()
+    {
+        if (_roundIntroLabel == null)
         {
             return;
         }
 
-        string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
+        _roundIntroTween?.Kill();
 
-        if (_roundType == VoteRoundType.InitialKeepVote)
+        _roundIntroLabel.Visible = true;
+        _roundIntroLabel.Text = GetRoundIntroText().ToUpperInvariant();
+        _roundIntroLabel.Modulate = new Color(1f, 1f, 1f, 0f);
+        _roundIntroLabel.Position = _roundIntroBasePosition + new Vector2(0f, 18f);
+        _roundIntroLabel.Scale = new Vector2(1.04f, 1.04f);
+
+        Tween tween = CreateTween();
+        _roundIntroTween = tween;
+
+        tween.SetParallel();
+        tween.TweenProperty(_roundIntroLabel, "modulate:a", 1f, 0.20f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Cubic);
+
+        tween.TweenProperty(_roundIntroLabel, "position:y", _roundIntroBasePosition.Y, 0.35f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Circ);
+
+        tween.TweenProperty(_roundIntroLabel, "scale", Vector2.One, 0.35f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Circ);
+
+        tween.Chain();
+        tween.TweenInterval(1.10);
+
+        tween.Chain();
+        tween.TweenProperty(_roundIntroLabel, "modulate:a", 0f, 0.50f)
+            .SetEase(Tween.EaseType.In)
+            .SetTrans(Tween.TransitionType.Cubic);
+
+        tween.Parallel().TweenProperty(_roundIntroLabel, "position:y", _roundIntroBasePosition.Y - 22f, 0.50f)
+            .SetEase(Tween.EaseType.In)
+            .SetTrans(Tween.TransitionType.Circ);
+
+        tween.Chain();
+        tween.TweenCallback(Callable.From(() =>
         {
-            _titleLabel.Text = $"Choose the {actLabel} Ancients";
-        }
-        else
-        {
-            _titleLabel.Text = $"It's not Over";
-        }
+            if (_roundIntroLabel == null || !GodotObject.IsInstanceValid(_roundIntroLabel))
+            {
+                return;
+            }
+
+            _roundIntroLabel.Visible = false;
+            _roundIntroLabel.Position = _roundIntroBasePosition;
+            _roundIntroLabel.Scale = Vector2.One;
+        }));
     }
-
 
     private void PrimeFinalRoundElementAnimation()
     {
@@ -2234,11 +2270,6 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         {
         }
 
-        if (_subtitleLabel != null && chosenSlot != null)
-        {
-            _subtitleLabel.Text = $"{chosenSlot.Ancient.Title.GetFormattedText()} wins the vote.";
-        }
-
         await Cmd.Wait(0.45f, ignoreCombatEnd: true);
     }
 
@@ -2473,11 +2504,6 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         RefreshButtonTexts();
         RefreshSlotVisuals(animate: true);
 
-        if (_subtitleLabel != null)
-        {
-            _subtitleLabel.Text = "Vote submitted. Waiting for the rest of the party...";
-        }
-
         _voteSubmitted.TrySetResult(poolIndex);
     }
 
@@ -2521,6 +2547,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     public override void _ExitTree()
     {
+        _roundIntroTween?.Kill();
         if (!_voteSubmitted.Task.IsCompleted)
         {
             _voteSubmitted.TrySetCanceled();

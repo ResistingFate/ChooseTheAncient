@@ -1,19 +1,5 @@
 [gd_scene load_steps=2 format=3 uid="uid://drsungogij8an"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(0.0705882, 0.0862745, 0.113725, 0.955)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.980392, 0.686275, 0.290196, 0.22)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_right = 24
-corner_radius_bottom_left = 24
-shadow_color = Color(0, 0, 0, 0.38)
-shadow_size = 28
-
 [node name="AncientBanSelectionLayout" type="Control"]
 z_index = -2
 layout_mode = 3
@@ -62,7 +48,7 @@ offset_right = -2.0
 offset_bottom = 4.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_top = 80
+theme_override_constants/margin_top = 24
 
 [node name="StageArea" type="Control" parent="StageMargin"]
 clip_contents = true
@@ -80,63 +66,39 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="HeaderPanel" type="Panel" parent="."]
-z_index = 2
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -560.0
-offset_top = 33.0
-offset_right = 560.0
-offset_bottom = 150.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
-
-[node name="HeaderAccent" type="ColorRect" parent="HeaderPanel"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 28.0
-offset_top = 16.0
-offset_right = -28.0
-offset_bottom = 20.0
-grow_horizontal = 2
-mouse_filter = 2
-color = Color(0.980392, 0.686275, 0.290196, 0.46)
-
-[node name="HeaderPadding" type="MarginContainer" parent="HeaderPanel"]
+[node name="RoundIntroOverlay" type="Control" parent="."]
+z_index = 50
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 28.0
-offset_top = 20.0
-offset_right = -28.0
-offset_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 0
-theme_override_constants/margin_top = 0
-theme_override_constants/margin_right = 0
-theme_override_constants/margin_bottom = 0
 
-[node name="TopBox" type="VBoxContainer" parent="HeaderPanel/HeaderPadding"]
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="TitleLabel" type="Label" parent="HeaderPanel/HeaderPadding/TopBox"]
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_colors/font_color = Color(1, 0.960784, 0.878431, 1)
-theme_override_font_sizes/font_size = 32
-text = "It's Not Over"
+[node name="RoundIntroLabel" type="Label" parent="RoundIntroOverlay"]
+visible = false
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -700.0
+offset_top = -120.0
+offset_right = 700.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 88
+text = "IT'S NOT OVER"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 volume_db = -14.0
