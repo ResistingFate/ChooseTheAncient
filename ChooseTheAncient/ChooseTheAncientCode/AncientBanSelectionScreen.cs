@@ -677,35 +677,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         chooseButton.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.70f));
         chooseButton.AddThemeConstantOverride("outline_size", 6);
 
-        chooseButton.MouseEntered += () =>
-        {
-            if (!chooseButton.Disabled)
-            {
-                chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 1f);
-            }
-        };
-
-        chooseButton.MouseExited += () =>
-        {
-            if (!chooseButton.HasFocus())
-            {
-                chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
-            }
-        };
-
-        chooseButton.FocusEntered += () =>
-        {
-            if (!chooseButton.Disabled)
-            {
-                chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 1f);
-            }
-        };
-
-        chooseButton.FocusExited += () =>
-        {
-            chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
-        };
-
     }
     
     private SlotRefs CreateSlot(AncientEventModel ancient, int poolIndex, PackedScene cardScene)
@@ -891,7 +862,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         bool show =
             !_resolved &&
             !refs.ChooseButton.Disabled &&
-            (ReferenceEquals(_hoveredSlot, refs) || refs.ChooseButton.HasFocus());
+            ReferenceEquals(_hoveredSlot, refs);
 
         refs.ChooseButtonOutline.Modulate = new Color(1f, 1f, 1f, show ? 1f : 0f);
     }
@@ -1965,16 +1936,12 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
         _hoveredSlot = refs;
         RefreshSlotVisuals(animate: true);
-        UpdateVoteButtonOutline(refs);
+        RefreshAllVoteButtonOutlines();
     }
 
     private void OnSlotUnhovered(int poolIndex)
     {
         SlotRefs? refs = _slots.FirstOrDefault(s => s.PoolIndex == poolIndex);
-        if (refs != null)
-        {
-            bool keepVisible = refs.ChooseButton.HasFocus() && !refs.ChooseButton.Disabled;
-        }
         if (_resolved)
         {
             return;
