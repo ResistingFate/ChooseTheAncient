@@ -164,6 +164,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         ["NEOW"] = DefaultAncientSceneConfig,
     };
 
+    private static readonly string VoteButtonTexturePath = "res://images/packed/common_ui/event_button.png";
+    private static readonly string VoteButtonOutlineTexturePath = "res://images/packed/common_ui/event_button_outline.png";
+    private static readonly string VoteButtonFontPath = "res://themes/kreon_bold_glyph_space_one.tres";
+    
     private static AudioStreamWav? _generatedHoverStream;
     private static AudioStreamWav? _generatedClickStream;
     private static Shader? _dialogueWaveShader;
@@ -580,6 +584,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _slots.Clear();
         DefaultFocusedControl = null;
         
+        SlotRefs? preferredFocusRefs = null;
 
         for (int i = 0; i < _pool.Count; i++)
         {
@@ -587,11 +592,24 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
             SlotRefs refs = CreateSlot(ancient, i, cardScene);
             _slotsCanvas.AddChild(refs.SlotRoot);
             _slots.Add(refs);
+            if (_suppressedPreviewAncientId == refs.Ancient.Id.Entry)
+            {
+                preferredFocusRefs = refs;
+            }
             DefaultFocusedControl ??= refs.ChooseButton;
             LoadAncientScene(refs);
             PopulatePreview(refs);
         }
 
+        if (preferredFocusRefs != null && _roundType == VoteRoundType.FinalRevealVote)
+        {
+            DefaultFocusedControl = preferredFocusRefs.ChooseButton;
+
+            // Optional: start the second screen visually "on" that card too.
+            _hoveredSlot = preferredFocusRefs;
+            _lastHoveredPoolIndex = preferredFocusRefs.PoolIndex;
+        }
+        
         RefreshLayout();
         ApplySecondVotePresentation(animate: false);
         RefreshLayout();
@@ -600,11 +618,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         RefreshVoteDisplays(animate: false);
         GrabInitialFocus();
     }
-    
-    private static readonly string VoteButtonTexturePath = "res://images/packed/common_ui/event_button.png";
-    private static readonly string VoteButtonOutlineTexturePath = "res://images/packed/common_ui/event_button_outline.png";
-    private static readonly string VoteButtonFontPath = "res://themes/kreon_bold_glyph_space_one.tres";
-    private static Shader? _voteButtonShader;
 
     private static void ApplyVoteButtonLook(
         Button chooseButton,
@@ -642,13 +655,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         disabled.ModulateColor = bodyVisible
             ? new Color(0.70f, 0.70f, 0.70f, 0.90f)
             : new Color(1f, 1f, 1f, 0f);
-
-        StyleBoxEmpty focus = new();
-        
-        
-        // Put the art on the background nodes, not on the Button.
-        //chooseButton = buttonTexture;
-
 
         chooseButtonOutline.Texture = outlineTexture;
         chooseButtonOutline.PatchMarginLeft = 0;
@@ -768,19 +774,12 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         TextureRect icon = cardRoot.GetNode<TextureRect>("Padding/VBox/Header/Icon");
         Label nameLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/NameLabel");
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
-        Control chooseButtonWrap = cardRoot.GetNode<Control>("Padding/VBox/ChooseButtonWrap");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButtonWrap/ChooseButton");
         NinePatchRect chooseButtonOutline = cardRoot.GetNode<NinePatchRect>("Padding/VBox/ChooseButtonWrap/ChooseButtonOutline");
-        //NinePatchRect chooseButtonBg = cardRoot.GetNode<NinePatchRect>("Padding/VBox/ChooseButtonWrap/ChooseButtonBg"); 
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
         Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
         
-        //GD.Print($"[ChooseTheAncient] bg tex null? {chooseButtonBg.Texture == null}, outline tex null? {chooseButtonOutline.Texture == null}");
-        //GD.Print($"wrap size={chooseButtonWrap.Size} min={chooseButtonWrap.CustomMinimumSize}");
-        //GD.Print($"btn size={chooseButton.Size} min={chooseButton.CustomMinimumSize}");
-        //GD.Print($"bg size={chooseButtonBg.Size} visible={chooseButtonBg.Visible} texNull={chooseButtonBg.Texture == null}");
-        //GD.Print($"outline size={chooseButtonOutline.Size} visible={chooseButtonOutline.Visible} texNull={chooseButtonOutline.Texture == null}");
         ApplyVoteButtonLook(chooseButton, chooseButtonOutline, true);
         
         NMultiplayerVoteContainer? voteContainer = null;
