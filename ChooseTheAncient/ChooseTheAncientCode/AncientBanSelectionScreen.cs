@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Audio.Debug;
 using MegaCrit.Sts2.Core.Context;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -19,6 +20,9 @@ using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
+using MegaCrit.Sts2.Core.RichTextTags;
+using MegaCrit.Sts2.addons.mega_text;
+using MegaCrit.Sts2.Core.Nodes;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -55,7 +59,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private const double VoteResolutionSpinDuration = 1.20;
     private const float VoteResolutionSettleDelayMin = 0.05f;
     private const float VoteResolutionSettleDelayMax = 0.30f;
-
+    
     public enum VoteRoundType
     {
         InitialKeepVote,
@@ -200,9 +204,16 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private int? _finalChosenPoolIndex;
 
     private Control? _layoutRoot;
-    private Label? _roundIntroLabel;
+    private Control? _roundIntroAnchor;
+    private MegaRichTextLabel? _roundIntroLabel;
     private Tween? _roundIntroTween;
     private Vector2 _roundIntroBasePosition;
+    private RichTextAncientBanner? _roundIntroBannerEffect;
+
+    public double RoundIntroDuration { get; set; } = 1.70;
+
+    private const double RoundIntroFadeInDuration = 0.20;
+    private const double RoundIntroFadeOutDuration = 0.45;
     private Control? _stageArea;
     private Control? _slotsCanvas;
     private AudioStreamPlayer? _hoverSfx;
@@ -274,8 +285,42 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         SetFullRect(_layoutRoot);
         AddChild(_layoutRoot);
 
-        _roundIntroLabel = _layoutRoot.GetNode<Label>("RoundIntroOverlay/RoundIntroLabel");
-        _roundIntroBasePosition = _roundIntroLabel.Position;
+        _roundIntroAnchor = _layoutRoot.GetNode<Control>("RoundIntroOverlay/RoundIntroAnchor");
+
+        Node? existingIntro = _roundIntroAnchor.GetNodeOrNull("RoundIntroLabel");
+        existingIntro?.QueueFree();
+
+        _roundIntroLabel = new MegaRichTextLabel
+        {
+            Name = "RoundIntroLabel",
+            Visible = false,
+            Modulate = new Color(1f, 1f, 1f, 0f),
+            BbcodeEnabled = true,
+            FitContent = false,
+            ScrollActive = false,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            AutoSizeEnabled = true,
+            MinFontSize = 42,
+            MaxFontSize = 88,
+            IsHorizontallyBound = true,
+            IsVerticallyBound = true,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+
+        _roundIntroLabel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        _roundIntroLabel.AddThemeColorOverride("default_color", Colors.White);
+        _roundIntroLabel.AddThemeFontOverride("normal_font", GD.Load<Font>("res://themes/kreon_regular_glyph_space_one.tres"));
+        _roundIntroLabel.AddThemeFontOverride("bold_font", GD.Load<Font>("res://themes/kreon_bold_glyph_space_one.tres"));
+        _roundIntroLabel.AddThemeFontOverride("italics_font", GD.Load<Font>("res://themes/bitter_medium_italic_glyph_space_one.tres"));
+        _roundIntroLabel.AddThemeFontSizeOverride("normal_font_size", 88);
+        _roundIntroLabel.AddThemeFontSizeOverride("bold_font_size", 88);
+        _roundIntroLabel.AddThemeFontSizeOverride("italics_font_size", 88);
+        _roundIntroLabel.AddThemeFontSizeOverride("bold_italics_font_size", 88);
+        _roundIntroLabel.AddThemeFontSizeOverride("mono_font_size", 88);
+
+        _roundIntroAnchor.AddChild(_roundIntroLabel);
+        _roundIntroBasePosition = _roundIntroAnchor.Position;
 
         _stageArea = _layoutRoot.GetNode<Control>("StageMargin/StageArea");
         _slotsCanvas = _layoutRoot.GetNode<Control>("StageMargin/StageArea/SlotsCanvas");
@@ -301,14 +346,25 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _readyCompletion.TrySetResult(true);
     } 
     
+
     private async Task ApplyRoundAsync()
-    {
-        /* Has two branches. One for if round has not loaded. And the other that transitions the ancients in and out */
+    { 
+        /*
+         * Has two branches. One for if round has not loaded.
+         * And the other that transitions the ancients in and out.
+         */
         if (!_uiReady)
         {
             return;
         }
 
+        // Copy the Font style from Ancient Banner
+        AncientEventModel? sampleAncient = _slots.Count > 0 ? _slots[0].Ancient : null;
+        if (sampleAncient != null)
+        {
+            ApplyVanillaAncientBannerTitleStyle(sampleAncient);
+        }
+        
         if (!_hasLoadedRound)
         {
             BuildUi();
@@ -407,71 +463,96 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         GrabInitialFocus();
     }
 
-    private string GetRoundIntroText()
-    {
-        string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
+private string GetRoundIntroText()
+{
+    string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
 
-        return _roundType == VoteRoundType.InitialKeepVote
-            ? $"Choose the {actLabel} Ancients"
-            : "It's Not Over";
+    return _roundType == VoteRoundType.InitialKeepVote
+        ? $"Choose the {actLabel} Ancients"
+        : "It's Not Over";
+}
+
+private void ShowRoundIntro()
+{
+    if (_roundIntroAnchor == null || _roundIntroLabel == null)
+    {
+        return;
     }
 
-    private void ShowRoundIntro()
+    _roundIntroTween?.Kill();
+
+    double holdDuration = Math.Max(0.0, RoundIntroDuration - RoundIntroFadeInDuration - RoundIntroFadeOutDuration);
+
+    SetRoundIntroTextStyled(GetRoundIntroText());
+
+    _roundIntroLabel.Visible = true;
+    _roundIntroLabel.Modulate = new Color(1f, 1f, 1f, 0f);
+
+    _roundIntroAnchor.Position = _roundIntroBasePosition + new Vector2(0f, 12f);
+    _roundIntroAnchor.Scale = new Vector2(1.02f, 1.02f);
+
+    Tween tween = CreateTween();
+    _roundIntroTween = tween;
+
+    tween.SetParallel();
+
+    tween.TweenProperty(_roundIntroLabel, "modulate:a", 1f, RoundIntroFadeInDuration)
+        .SetEase(Tween.EaseType.Out)
+        .SetTrans(Tween.TransitionType.Cubic);
+
+    tween.TweenProperty(_roundIntroAnchor, "position:y", _roundIntroBasePosition.Y, 0.30)
+        .SetEase(Tween.EaseType.Out)
+        .SetTrans(Tween.TransitionType.Circ);
+
+    tween.TweenProperty(_roundIntroAnchor, "scale", Vector2.One, 0.30)
+        .SetEase(Tween.EaseType.Out)
+        .SetTrans(Tween.TransitionType.Circ);
+
+    if (_roundIntroBannerEffect != null)
     {
-        if (_roundIntroLabel == null)
+        tween.TweenMethod(
+                Callable.From<float>(value => _roundIntroBannerEffect.Rotation = value),
+                _roundIntroBannerEffect.Rotation,
+                1f,
+                0.75f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Spring);
+
+        tween.TweenMethod(
+                Callable.From<float>(value => _roundIntroBannerEffect.Spacing = value),
+                _roundIntroBannerEffect.Spacing,
+                0f,
+                0.75f)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Expo);
+    }
+
+    tween.Chain();
+    tween.TweenInterval(holdDuration);
+
+    tween.Chain();
+    tween.TweenProperty(_roundIntroLabel, "modulate:a", 0f, RoundIntroFadeOutDuration)
+        .SetEase(Tween.EaseType.In)
+        .SetTrans(Tween.TransitionType.Cubic);
+
+    tween.Parallel().TweenProperty(_roundIntroAnchor, "position:y", _roundIntroBasePosition.Y - 10f, RoundIntroFadeOutDuration)
+        .SetEase(Tween.EaseType.In)
+        .SetTrans(Tween.TransitionType.Circ);
+
+    tween.Chain();
+    tween.TweenCallback(Callable.From(() =>
+    {
+        if (_roundIntroLabel == null || _roundIntroAnchor == null)
         {
             return;
         }
 
-        _roundIntroTween?.Kill();
-
-        _roundIntroLabel.Visible = true;
-        _roundIntroLabel.Text = GetRoundIntroText().ToUpperInvariant();
-        _roundIntroLabel.Modulate = new Color(1f, 1f, 1f, 0f);
-        _roundIntroLabel.Position = _roundIntroBasePosition + new Vector2(0f, 18f);
-        _roundIntroLabel.Scale = new Vector2(1.04f, 1.04f);
-
-        Tween tween = CreateTween();
-        _roundIntroTween = tween;
-
-        tween.SetParallel();
-        tween.TweenProperty(_roundIntroLabel, "modulate:a", 1f, 0.20f)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Cubic);
-
-        tween.TweenProperty(_roundIntroLabel, "position:y", _roundIntroBasePosition.Y, 0.35f)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Circ);
-
-        tween.TweenProperty(_roundIntroLabel, "scale", Vector2.One, 0.35f)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Circ);
-
-        tween.Chain();
-        tween.TweenInterval(1.10);
-
-        tween.Chain();
-        tween.TweenProperty(_roundIntroLabel, "modulate:a", 0f, 0.50f)
-            .SetEase(Tween.EaseType.In)
-            .SetTrans(Tween.TransitionType.Cubic);
-
-        tween.Parallel().TweenProperty(_roundIntroLabel, "position:y", _roundIntroBasePosition.Y - 22f, 0.50f)
-            .SetEase(Tween.EaseType.In)
-            .SetTrans(Tween.TransitionType.Circ);
-
-        tween.Chain();
-        tween.TweenCallback(Callable.From(() =>
-        {
-            if (_roundIntroLabel == null || !GodotObject.IsInstanceValid(_roundIntroLabel))
-            {
-                return;
-            }
-
-            _roundIntroLabel.Visible = false;
-            _roundIntroLabel.Position = _roundIntroBasePosition;
-            _roundIntroLabel.Scale = Vector2.One;
-        }));
-    }
+        _roundIntroLabel.Visible = false;
+        _roundIntroLabel.Modulate = Colors.White;
+        _roundIntroAnchor.Position = _roundIntroBasePosition;
+        _roundIntroAnchor.Scale = Vector2.One;
+    }));
+}
 
     private void PrimeFinalRoundElementAnimation()
     {
@@ -2730,6 +2811,118 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         {
             child.QueueFree();
         }
+    }
+
+    private static readonly StringName RtNormalFont = "normal_font";
+    private static readonly StringName RtBoldFont = "bold_font";
+    private static readonly StringName RtItalicsFont = "italics_font";
+
+    private static readonly StringName RtNormalFontSize = "normal_font_size";
+    private static readonly StringName RtBoldFontSize = "bold_font_size";
+    private static readonly StringName RtBoldItalicsFontSize = "bold_italics_font_size";
+    private static readonly StringName RtItalicsFontSize = "italics_font_size";
+    private static readonly StringName RtMonoFontSize = "mono_font_size";
+
+    private static readonly StringName RtDefaultColor = "default_color";
+    private static readonly StringName RtOutlineColor = "font_outline_color";
+    private static readonly StringName RtShadowColor = "font_shadow_color";
+    
+    private void SetRoundIntroTextStyled(string text)
+    {
+        if (_roundIntroLabel == null)
+        {
+            return;
+        }
+
+        string upper = text.ToUpperInvariant();
+
+        Font font = _roundIntroLabel.GetThemeFont(RtNormalFont, "RichTextLabel");
+        int fontSize = _roundIntroLabel.GetThemeFontSize(RtNormalFontSize, "RichTextLabel");
+
+        if (_roundIntroBannerEffect != null && _roundIntroLabel.CustomEffects.Contains(_roundIntroBannerEffect))
+        {
+            _roundIntroLabel.CustomEffects.Remove(_roundIntroBannerEffect);
+        }
+
+        _roundIntroBannerEffect = new RichTextAncientBanner
+        {
+            CenterCharacter = GetTextCenterGlyphIndex(upper, font, fontSize),
+            Rotation = 0.05f,
+            Spacing = 650f
+        };
+
+        _roundIntroLabel.InstallEffect(_roundIntroBannerEffect);
+        _roundIntroLabel.BbcodeEnabled = true;
+        _roundIntroLabel.SetTextAutoSize($"[ancient_banner]{upper}[/ancient_banner]");
+    } 
+    
+    private static float GetTextCenterGlyphIndex(string text, Font font, int fontSize)
+    {
+        using TextParagraph paragraph = new();
+        paragraph.AddString(text, font, fontSize);
+
+        TextServer textServer = TextServerManager.GetPrimaryInterface();
+        Godot.Collections.Array<Godot.Collections.Dictionary> glyphs = textServer.ShapedTextGetGlyphs(paragraph.GetLineRid(0));
+
+        float totalWidth = 0f;
+        foreach (Godot.Collections.Dictionary glyph in glyphs)
+        {
+            float advance = glyph["advance"].AsSingle();
+            totalWidth += advance;
+        }
+
+        float traversedWidth = 0f;
+        int glyphIndex = 0;
+
+        foreach (Godot.Collections.Dictionary glyph in glyphs)
+        {
+            float advance = glyph["advance"].AsSingle();
+            traversedWidth += advance;
+
+            if (traversedWidth > totalWidth * 0.5f)
+            {
+                return glyphIndex + (totalWidth * 0.5f - (traversedWidth - advance)) / advance;
+            }
+
+            glyphIndex++;
+        }
+
+        return 0f;
+    }
+    private void CopyRichTextStyle(MegaRichTextLabel from, MegaRichTextLabel to)
+    {
+        to.AddThemeFontOverride(RtNormalFont, from.GetThemeFont(RtNormalFont, "RichTextLabel"));
+        to.AddThemeFontOverride(RtBoldFont, from.GetThemeFont(RtBoldFont, "RichTextLabel"));
+        to.AddThemeFontOverride(RtItalicsFont, from.GetThemeFont(RtItalicsFont, "RichTextLabel"));
+
+        to.AddThemeFontSizeOverride(RtNormalFontSize, from.GetThemeFontSize(RtNormalFontSize, "RichTextLabel"));
+        to.AddThemeFontSizeOverride(RtBoldFontSize, from.GetThemeFontSize(RtBoldFontSize, "RichTextLabel"));
+        to.AddThemeFontSizeOverride(RtBoldItalicsFontSize, from.GetThemeFontSize(RtBoldItalicsFontSize, "RichTextLabel"));
+        to.AddThemeFontSizeOverride(RtItalicsFontSize, from.GetThemeFontSize(RtItalicsFontSize, "RichTextLabel"));
+        to.AddThemeFontSizeOverride(RtMonoFontSize, from.GetThemeFontSize(RtMonoFontSize, "RichTextLabel"));
+
+        to.AddThemeColorOverride(RtDefaultColor, from.GetThemeColor(RtDefaultColor, "RichTextLabel"));
+        to.AddThemeColorOverride(RtOutlineColor, from.GetThemeColor(RtOutlineColor, "RichTextLabel"));
+        to.AddThemeColorOverride(RtShadowColor, from.GetThemeColor(RtShadowColor, "RichTextLabel"));
+    }
+    
+    private void ApplyVanillaAncientBannerTitleStyle(AncientEventModel sampleAncient)
+    {
+        if (_roundIntroLabel == null)
+        {
+            return;
+        }
+
+        NAncientNameBanner? tempBanner = NAncientNameBanner.Create(sampleAncient);
+        if (tempBanner == null)
+        {
+            return;
+        }
+
+        MegaRichTextLabel vanillaTitle = tempBanner.GetNode<MegaRichTextLabel>("%Title");
+        CopyRichTextStyle(vanillaTitle, _roundIntroLabel);
+
+        tempBanner.Free();
     }
     
 }

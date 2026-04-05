@@ -1,4 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://drsungogij8an"]
+[gd_scene load_steps=5 format=3 uid="uid://drsungogij8an"]
+
+[ext_resource type="Script" path="res://addons/mega_text/MegaRichTextLabel.cs" id="1_megarich"]
+[ext_resource type="FontVariation" path="res://themes/kreon_regular_glyph_space_one.tres" id="2_regular"]
+[ext_resource type="FontVariation" path="res://themes/kreon_bold_glyph_space_one.tres" id="3_bold"]
+[ext_resource type="FontVariation" path="res://themes/bitter_medium_italic_glyph_space_one.tres" id="4_italic"]
 
 [node name="AncientBanSelectionLayout" type="Control"]
 z_index = -2
@@ -48,7 +53,7 @@ offset_right = -2.0
 offset_bottom = 4.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_top = 24
+theme_override_constants/margin_top = 28
 
 [node name="StageArea" type="Control" parent="StageMargin"]
 clip_contents = true
@@ -67,7 +72,30 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="RoundIntroOverlay" type="Control" parent="."]
-z_index = 50
+z_index = 20
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 92.0
+offset_bottom = 232.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="RoundIntroAnchor" type="Control" parent="RoundIntroOverlay"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -720.0
+offset_right = 720.0
+offset_bottom = 140.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="RoundIntroLabel" type="RichTextLabel" parent="RoundIntroOverlay/RoundIntroAnchor"]
+visible = false
+modulate = Color(1, 1, 1, 0)
+clip_contents = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -75,30 +103,29 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-
-[node name="RoundIntroLabel" type="Label" parent="RoundIntroOverlay"]
-visible = false
-modulate = Color(1, 1, 1, 0)
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -700.0
-offset_top = -120.0
-offset_right = 700.0
-offset_bottom = 120.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/default_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
-theme_override_font_sizes/font_size = 88
-text = "IT'S NOT OVER"
+theme_override_fonts/normal_font = ExtResource("2_regular")
+theme_override_fonts/bold_font = ExtResource("3_bold")
+theme_override_fonts/italics_font = ExtResource("4_italic")
+theme_override_font_sizes/normal_font_size = 88
+theme_override_font_sizes/bold_font_size = 88
+theme_override_font_sizes/bold_italics_font_size = 88
+theme_override_font_sizes/italics_font_size = 88
+theme_override_font_sizes/mono_font_size = 88
+bbcode_enabled = true
+fit_content = false
+scroll_active = false
 horizontal_alignment = 1
 vertical_alignment = 1
+text = "IT'S NOT OVER"
+script = ExtResource("1_megarich")
+AutoSizeEnabled = true
+MinFontSize = 42
+MaxFontSize = 88
+IsHorizontallyBound = true
+IsVerticallyBound = true
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 volume_db = -14.0
