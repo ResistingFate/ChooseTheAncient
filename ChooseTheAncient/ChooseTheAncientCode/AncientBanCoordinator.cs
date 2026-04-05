@@ -105,6 +105,11 @@ public static class AncientBanCoordinator
                 AncientEventModel firstAncient = pool[firstPlaceIndex];
                 AncientEventModel secondAncient = pool[secondPlaceIndex];
 
+                if (localScreen != null)
+                {
+                    await localScreen.PlayInitialVoteResolutionAsync(firstVotes, firstPlaceIndex);
+                }
+                
                 // Build finalists directly instead of filtering the whole pool
                 finalists = [firstAncient, secondAncient];
 

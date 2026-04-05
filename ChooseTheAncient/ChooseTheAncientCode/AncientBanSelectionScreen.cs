@@ -59,6 +59,15 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private const double VoteResolutionSpinDuration = 1.20;
     private const float VoteResolutionSettleDelayMin = 0.05f;
     private const float VoteResolutionSettleDelayMax = 0.30f;
+    // Slot visual timing:
+    // Increase CardOutlineFadeDuration for a slower outline fade when focus/emphasis changes.
+    private const double SlotVisualFadeDuration = 0.12;
+    private const double CardOutlineFadeDuration = 0.20;
+    // Second-round initial winner emphasis fade tuning:
+    // Raise the duration or change the transition/ease below for a slower, softer fade after focus moves away.
+    private const double InitialSecondRoundWinnerEmphasisFadeDuration = 0.58;
+    private const Tween.TransitionType InitialSecondRoundWinnerEmphasisFadeTransition = Tween.TransitionType.Quint;
+    private const Tween.EaseType InitialSecondRoundWinnerEmphasisFadeEase = Tween.EaseType.InOut;
     
     public enum VoteRoundType
     {
@@ -204,6 +213,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private PreviewWidgetRefs? _hoveredPreviewWidget;
     private Player? _currentlyHighlightedVotePlayer;
     private int? _finalChosenPoolIndex;
+    private int? _initialSecondRoundFocusPoolIndex;
+    private float _initialSecondRoundWinnerEmphasisAmount;
+    private Tween? _initialSecondRoundWinnerEmphasisFadeTween;
 
     private Control? _layoutRoot;
     private Control? _roundIntroAnchor;
@@ -277,6 +289,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _resolved = false;
         _hoveredSlot = null;
         _lastHoveredPoolIndex = null;
+        _initialSecondRoundFocusPoolIndex = null;
+        _initialSecondRoundWinnerEmphasisFadeTween?.Kill();
+        _initialSecondRoundWinnerEmphasisFadeTween = null;
+        _initialSecondRoundWinnerEmphasisAmount = 0f;
 
         await ApplyRoundAsync();
         return await _voteSubmitted.Task;
@@ -819,6 +835,8 @@ private void ShowRoundIntro()
             // Optional: start the second screen visually "on" that card too.
             _hoveredSlot = preferredFocusRefs;
             _lastHoveredPoolIndex = preferredFocusRefs.PoolIndex;
+            _initialSecondRoundFocusPoolIndex = preferredFocusRefs.PoolIndex;
+            SetInitialSecondRoundWinnerEmphasisAmount(1f);
         }
         
         RefreshLayout();
@@ -2170,6 +2188,65 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
     }
 
+    private void SetInitialSecondRoundWinnerEmphasisAmount(float amount)
+    {
+        amount = Mathf.Clamp(amount, 0f, 1f);
+
+        if (Mathf.IsEqualApprox(_initialSecondRoundWinnerEmphasisAmount, amount))
+        {
+            return;
+        }
+
+        _initialSecondRoundWinnerEmphasisAmount = amount;
+
+        if (_uiReady && _slots.Count > 0)
+        {
+            RefreshSlotVisuals(animate: false);
+        }
+    }
+
+    private void ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(int? nextPoolIndex)
+    {
+        if (_roundType != VoteRoundType.FinalRevealVote)
+        {
+            _initialSecondRoundFocusPoolIndex = null;
+            _initialSecondRoundWinnerEmphasisFadeTween?.Kill();
+            _initialSecondRoundWinnerEmphasisFadeTween = null;
+            SetInitialSecondRoundWinnerEmphasisAmount(0f);
+            return;
+        }
+
+        if (!_initialSecondRoundFocusPoolIndex.HasValue)
+        {
+            return;
+        }
+
+        if (nextPoolIndex == _initialSecondRoundFocusPoolIndex.Value)
+        {
+            return;
+        }
+
+        _initialSecondRoundFocusPoolIndex = null;
+
+        _initialSecondRoundWinnerEmphasisFadeTween?.Kill();
+        _initialSecondRoundWinnerEmphasisFadeTween = CreateTween();
+        _initialSecondRoundWinnerEmphasisFadeTween
+            .SetTrans(InitialSecondRoundWinnerEmphasisFadeTransition)
+            .SetEase(InitialSecondRoundWinnerEmphasisFadeEase);
+
+        float startAmount = _initialSecondRoundWinnerEmphasisAmount;
+        _initialSecondRoundWinnerEmphasisFadeTween.TweenMethod(
+            Callable.From<float>(SetInitialSecondRoundWinnerEmphasisAmount),
+            startAmount,
+            0f,
+            InitialSecondRoundWinnerEmphasisFadeDuration);
+        _initialSecondRoundWinnerEmphasisFadeTween.TweenCallback(Callable.From(() =>
+        {
+            _initialSecondRoundWinnerEmphasisFadeTween = null;
+        }));
+    }
+
+
     private void OnSlotHovered(int poolIndex)
     {
         if (_resolved)
@@ -2182,6 +2259,8 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         {
             return;
         }
+
+        ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(poolIndex);
 
         if (!ReferenceEquals(_hoveredSlot, refs))
         {
@@ -2224,6 +2303,8 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             return;
         }
 
+        ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(null);
+
         _hoveredSlot = null;
         _lastHoveredPoolIndex = null;
         RefreshSlotVisuals(animate: true);
@@ -2241,11 +2322,13 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             bool pendingSelected = !_resolved && _pendingPoolIndex == refs.PoolIndex;
             bool selected = _resolved && _selectedPoolIndex == refs.PoolIndex;
 
-            bool firstRoundWinnerOnSecondScreen =
+            float firstRoundWinnerOnSecondScreenAmount =
                 _roundType == VoteRoundType.FinalRevealVote &&
                 !string.IsNullOrEmpty(_suppressedPreviewAncientId) &&
                 refs.Ancient.Id.Entry == _suppressedPreviewAncientId &&
-                !_finalChosenPoolIndex.HasValue;
+                !_finalChosenPoolIndex.HasValue
+                    ? _initialSecondRoundWinnerEmphasisAmount
+                    : 0f;
 
             bool finalVoteWinner =
                 _finalChosenPoolIndex.HasValue &&
@@ -2267,14 +2350,14 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
                 : (pendingSelected ? 1f : hovered ? 0.95f : 0.78f);
 
             // Extra emphasis for the round-1 survivor on the second screen.
-            if (firstRoundWinnerOnSecondScreen)
+            if (firstRoundWinnerOnSecondScreenAmount > 0f)
             {
-                glowAlpha = MathF.Max(glowAlpha, 0.10f);
-                flashAlpha = MathF.Max(flashAlpha, 0.02f);
-                shadeAlpha = MathF.Min(shadeAlpha, 0.08f);
-                slotAlpha = MathF.Max(slotAlpha, 1f);
-                rimAlpha = MathF.Max(rimAlpha, 0.95f);
-                accentAlpha = MathF.Max(accentAlpha, 1f);
+                glowAlpha = Mathf.Lerp(glowAlpha, MathF.Max(glowAlpha, 0.10f), firstRoundWinnerOnSecondScreenAmount);
+                flashAlpha = Mathf.Lerp(flashAlpha, MathF.Max(flashAlpha, 0.02f), firstRoundWinnerOnSecondScreenAmount);
+                shadeAlpha = Mathf.Lerp(shadeAlpha, MathF.Min(shadeAlpha, 0.08f), firstRoundWinnerOnSecondScreenAmount);
+                slotAlpha = Mathf.Lerp(slotAlpha, MathF.Max(slotAlpha, 1f), firstRoundWinnerOnSecondScreenAmount);
+                rimAlpha = Mathf.Lerp(rimAlpha, MathF.Max(rimAlpha, 0.95f), firstRoundWinnerOnSecondScreenAmount);
+                accentAlpha = Mathf.Lerp(accentAlpha, MathF.Max(accentAlpha, 1f), firstRoundWinnerOnSecondScreenAmount);
             }
 
             // Stronger emphasis for the true final winner.
@@ -2295,29 +2378,28 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             Color rimColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, rimAlpha);
             Color accentColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, accentAlpha);
 
-            Color cardOutlineColor =
+            float cardOutlineAlpha =
                 finalVoteWinner
-                    ? new Color(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, 1f)
-                    : firstRoundWinnerOnSecondScreen
-                        ? new Color(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, 0.72f)
-                        : hovered
-                            ? new Color(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, 0f)
-                            : new Color(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, 0f);
+                    ? 1f
+                    : 0.72f * firstRoundWinnerOnSecondScreenAmount;
+
+            Color cardOutlineColor =
+                new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, cardOutlineAlpha);
 
             if (animate)
             {
                 Tween tween = CreateTween();
                 tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
-                tween.TweenProperty(refs.GlowPolygon, "color", glowColor, 0.12f);
-                tween.Parallel().TweenProperty(refs.HoverFlashPolygon, "color", flashColor, 0.12f);
-                tween.Parallel().TweenProperty(refs.CardShade, "color", shadeColor, 0.12f);
-                tween.Parallel().TweenProperty(refs.ScenePolygon, "modulate", slotModulate, 0.12f);
-                tween.Parallel().TweenProperty(refs.CardRoot, "modulate", slotModulate, 0.12f);
-                tween.Parallel().TweenProperty(refs.PreviewAnchor, "modulate", slotModulate, 0.12f);
-                tween.Parallel().TweenProperty(refs.LeftRim, "color", rimColor, 0.12f);
-                tween.Parallel().TweenProperty(refs.RightRim, "color", rimColor, 0.12f);
-                tween.Parallel().TweenProperty(refs.TopAccent, "color", accentColor, 0.12f);
-                tween.Parallel().TweenProperty(refs.CardOutline, "modulate", cardOutlineColor, 0.12f);
+                tween.TweenProperty(refs.GlowPolygon, "color", glowColor, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.HoverFlashPolygon, "color", flashColor, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.CardShade, "color", shadeColor, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.ScenePolygon, "modulate", slotModulate, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.CardRoot, "modulate", slotModulate, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.PreviewAnchor, "modulate", slotModulate, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.LeftRim, "color", rimColor, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.RightRim, "color", rimColor, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.TopAccent, "color", accentColor, SlotVisualFadeDuration);
+                tween.Parallel().TweenProperty(refs.CardOutline, "modulate", cardOutlineColor, CardOutlineFadeDuration);
             }
             else
             {
@@ -2554,21 +2636,16 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
     }
 
-
-    public async Task PlayFinalVoteResolutionAsync(IReadOnlyList<int> finalVotesByPlayerSlotOrder, int chosenPoolIndex)
+    private async Task PlayVoteResolutionHighlightAsync(
+        IReadOnlyList<int> votesByPlayerSlotOrder,
+        int chosenPoolIndex)
     {
-        if (!GodotObject.IsInstanceValid(this) || !IsInsideTree() || _roundType != VoteRoundType.FinalRevealVote)
-        {
-            return;
-        }
-
-        _finalChosenPoolIndex = chosenPoolIndex;
         RefreshVoteDisplays(animate: false, highlightLocalPlayer: false);
 
         List<(Player player, int poolIndex)> recordedVotes = new();
-        for (int i = 0; i < Math.Min(_orderedPlayers.Count, finalVotesByPlayerSlotOrder.Count); i++)
+        for (int i = 0; i < Math.Min(_orderedPlayers.Count, votesByPlayerSlotOrder.Count); i++)
         {
-            int poolIndex = finalVotesByPlayerSlotOrder[i];
+            int poolIndex = votesByPlayerSlotOrder[i];
             if (poolIndex >= 0 && poolIndex < _pool.Count)
             {
                 recordedVotes.Add((_orderedPlayers[i], poolIndex));
@@ -2595,7 +2672,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
             if (sortedPlayers.Count > 0 && chosenPlayers.Count > 0)
             {
-                int seed = BuildVoteResolutionSeed(finalVotesByPlayerSlotOrder, chosenPoolIndex);
+                int seed = BuildVoteResolutionSeed(votesByPlayerSlotOrder, chosenPoolIndex);
                 int ticks = 12 + PositiveMod(seed, 6);
                 float settleDelay = Mathf.Lerp(
                     VoteResolutionSettleDelayMin,
@@ -2628,6 +2705,51 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
 
         HighlightVotePlayer(null);
+    }
+
+    public async Task PlayFinalVoteResolutionAsync(IReadOnlyList<int> finalVotesByPlayerSlotOrder, int chosenPoolIndex)
+    {
+        if (!GodotObject.IsInstanceValid(this) || !IsInsideTree() || _roundType != VoteRoundType.FinalRevealVote)
+        {
+            return;
+        }
+
+        _finalChosenPoolIndex = chosenPoolIndex;
+
+        await PlayVoteResolutionHighlightAsync(finalVotesByPlayerSlotOrder, chosenPoolIndex);
+
+        _selectedPoolIndex = chosenPoolIndex;
+        RefreshButtonTexts();
+        RefreshSlotVisuals(animate: true);
+
+        SlotRefs? chosenSlot = FindSlot(chosenPoolIndex);
+        if (chosenSlot?.VoteContainer != null && GodotObject.IsInstanceValid(chosenSlot.VoteContainer))
+        {
+            chosenSlot.VoteContainer.BouncePlayers();
+        }
+
+        try
+        {
+            SfxCmd.Play("event:/sfx/ui/map/map_select");
+        }
+        catch
+        {
+        }
+
+        await Cmd.Wait(0.45f, ignoreCombatEnd: true);
+    } 
+    
+    public async Task PlayInitialVoteResolutionAsync(
+        IReadOnlyList<int> firstVotesByPlayerSlotOrder,
+        int chosenPoolIndex)
+    {
+        if (!GodotObject.IsInstanceValid(this) || !IsInsideTree() || _roundType != VoteRoundType.InitialKeepVote)
+        {
+            return;
+        }
+
+        await PlayVoteResolutionHighlightAsync(firstVotesByPlayerSlotOrder, chosenPoolIndex);
+
         _selectedPoolIndex = chosenPoolIndex;
         RefreshButtonTexts();
         RefreshSlotVisuals(animate: true);
