@@ -24,8 +24,12 @@ public static class AncientBanCoordinator
 
         try
         {
-            ChooseTheAncientConfig.RefreshFromModConfig(); // Needs refreshed in case modconfig value was changed
-            int ancientCount =  ChooseTheAncientConfig.AncientCount;
+            // Handle Host's AncientCount if the client
+            List<Player> orderedPlayers = runState.Players
+                .OrderBy(runState.GetPlayerSlotIndex)
+                .ToList();
+            int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
+
             ActModel nextAct = runState.Acts[nextActIndex];
             List<AncientEventModel> pool = AncientBanHelpers.BuildCandidatePool(nextAct, runState);
             String ancientpool = String.Join(",",pool.Select(ancient => ancient.Id.Entry));
@@ -47,10 +51,6 @@ public static class AncientBanCoordinator
                 await runManager.EnterNextAct();
                 return;
             }
-
-            List<Player> orderedPlayers = runState.Players
-                .OrderBy(runState.GetPlayerSlotIndex)
-                .ToList();
 
             // Copied code to get localPlayer from Megacrit
             Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
@@ -360,5 +360,65 @@ public static class AncientBanCoordinator
             .Select(kvp => kvp.Key)
             .OrderBy(index => index)
             .ToList();
+    }
+    
+    private static Player GetHostPlayer(IReadOnlyList<Player> orderedPlayers)
+    {
+        switch (RunManager.Instance.NetService.Type)
+        {
+            case NetGameType.Singleplayer:
+            case NetGameType.Replay:
+            case NetGameType.Host:
+                return LocalContext.GetMe(orderedPlayers) ?? orderedPlayers[0];
+
+            case NetGameType.Client:
+                if (RunManager.Instance.NetService is INetClientGameService clientService &&
+                    clientService.NetClient != null)
+                {
+                    ulong hostNetId = clientService.NetClient.HostNetId;
+                    Player? hostPlayer = orderedPlayers.FirstOrDefault(p => p.NetId == hostNetId);
+                    if (hostPlayer != null)
+                        return hostPlayer;
+                }
+
+                break;
+        }
+
+        return orderedPlayers[0];
+    }
+
+    private static async Task<int> GetEffectiveAncientCountAsync(IReadOnlyList<Player> orderedPlayers)
+    {
+        ChooseTheAncientConfig.RefreshFromModConfig();
+
+        if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
+        {
+            return ChooseTheAncientConfig.AncientCount;
+        }
+
+        Player hostPlayer = GetHostPlayer(orderedPlayers);
+        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+
+        if (LocalContext.IsMe(hostPlayer))
+        {
+            int hostAncientCount = ChooseTheAncientConfig.AncientCount;
+
+            RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+                hostPlayer,
+                choiceId,
+                PlayerChoiceResult.FromIndex(hostAncientCount));
+
+            GD.Print($"[ChooseTheAncient] Broadcasting host AncientCount={hostAncientCount}");
+            return hostAncientCount;
+        }
+
+        int syncedCount = (await RunManager.Instance.PlayerChoiceSynchronizer
+                .WaitForRemoteChoice(hostPlayer, choiceId))
+            .AsIndex();
+
+        syncedCount = Math.Clamp(syncedCount, 2, 8);
+
+        GD.Print($"[ChooseTheAncient] Received host AncientCount={syncedCount}");
+        return syncedCount;
     }
 }
