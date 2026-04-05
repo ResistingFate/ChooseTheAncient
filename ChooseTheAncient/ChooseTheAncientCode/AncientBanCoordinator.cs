@@ -26,12 +26,12 @@ public static class AncientBanCoordinator
 
         try
         {
-            AncientBanCoordinator.AncientCount = 4;
+            AncientCount = 3;
             ActModel nextAct = runState.Acts[nextActIndex];
             List<AncientEventModel> pool = AncientBanHelpers.BuildCandidatePool(nextAct, runState);
             String ancientpool = String.Join(",",pool.Select(ancient => ancient.Id.Entry));
-            GD.Print($"[ChooseTheAncient] Avialable ancients to draw {AncientCount} from: {ancientpool}");
-            pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, 4);
+            GD.Print($"[ChooseTheAncient] Available ancients to draw {AncientCount} from: {ancientpool}");
+            pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, AncientCount);
 
             AncientBanHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
 

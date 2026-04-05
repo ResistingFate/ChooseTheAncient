@@ -13,6 +13,8 @@ using MegaCrit.Sts2.Core.Models.Events;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Models;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -89,8 +91,6 @@ public static class AncientBanHelpers
             .ToList();
     }
     
-    public static List<AncientEventModel> _SharedAncientsNotUsed { get; set; }
-
     public static List<AncientEventModel> LimitCandidatePoolForVote(
         RunState runState,
         int nextActIndex,
@@ -105,7 +105,7 @@ public static class AncientBanHelpers
             return pool;
         }
 
-        if (pool.Count > ancientCount)
+        if (pool.Count < ancientCount)
         {
             ancientCount = pool.Count;
         }
@@ -160,6 +160,25 @@ public static class AncientBanHelpers
     {
         return new Rng(runstate.Rng.Seed, $"choose_the_ancient_relic_options_{nextActIndex}_{ancient}_{player}");
     }
+    
+    public static uint ComputeVanillaEventSeed(RunState runState, Player player, EventModel eventModel)
+    {
+        /*
+         * Goal here is to copy the RNG method vanilla uses, so it'll be the same as when the ancient
+         * reveals the reward
+         */
+        ulong ownerContribution = eventModel.IsShared ? 0UL : player.NetId;
+
+        return unchecked((uint)(
+            runState.Rng.Seed
+            + ownerContribution
+            + (ulong)StringHelper.GetDeterministicHashCode(eventModel.Id.Entry)));
+    }
+
+    public static Rng CreatePreviewEventRng(RunState runState, Player player, EventModel eventModel)
+    {
+        return new Rng(ComputeVanillaEventSeed(runState, player, eventModel));
+    }
 
     public static Dictionary<string, AncientPreviewData> BuildPreviewDataByAncientId(
         Player player,
@@ -200,8 +219,10 @@ public static class AncientBanHelpers
                 // I want to experiment with the relics rewards for all players being a shared event being a shared
                 // pool. Shared pools should have the same RNG for each player, where as independent offerings
                 // should have Rng based on their player ID.
-                Rng previewRng = CreateAncientRelicOptionsRng(
-                    runState, nextActIndex, (GroupAncientOptionsPool ? 0UL : player.NetId), previewEvent.Id.Entry);
+                // TODO implement patches so ancient events can be shared
+                Rng previewRng = CreatePreviewEventRng(runState, player, previewEvent);
+                //Rng previewRng = CreateAncientRelicOptionsRng(
+                //    runState, nextActIndex, (GroupAncientOptionsPool ? 0UL : player.NetId), previewEvent.Id.Entry);
                 // We use are new rng to change how the ancients randomness work and don't change it back
                 EventRngBackingField.SetValue(previewEvent, previewRng);
 
