@@ -9,6 +9,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Commands;
+using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Events;
@@ -111,7 +112,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required TextureRect Icon { get; init; }
         public required Label NameLabel { get; init; }
         public required Label EpithetLabel { get; init; }
+        public required Control ChooseButtonWrap { get; init; }
         public required Button ChooseButton { get; init; }
+        public required TextureRect? ChooseButtonControllerIcon { get; init; }
         public required Control VoteIconsAnchor { get; init; }
         public required Control PreviewAnchor { get; init; }
         public required Control ReactionAnchor { get; init; }
@@ -220,6 +223,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     public NetScreenType ScreenType => NetScreenType.Rewards;
     public bool UseSharedBackstop => true;
+    
+    public bool ShowControllerHotkeys { get; set; } = false;
     public Control? DefaultFocusedControl { get; private set; }
 
     public AncientBanSelectionScreen()
@@ -352,6 +357,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _stageArea.MouseFilter = MouseFilterEnum.Ignore;
         _slotsCanvas.MouseFilter = MouseFilterEnum.Ignore;
         _stageArea.Resized += RefreshLayout;
+        ConnectControllerPromptSignals();
+        UpdateVoteButtonControllerIcons();
 
         _uiReady = true;
         _readyCompletion.TrySetResult(true);
@@ -722,14 +729,14 @@ private void ShowRoundIntro()
             {
                 preferredFocusRefs = refs;
             }
-            DefaultFocusedControl ??= refs.ChooseButton;
+            DefaultFocusedControl ??= refs.ChooseButtonWrap;
             LoadAncientScene(refs);
             PopulatePreview(refs);
         }
 
         if (preferredFocusRefs != null && _roundType == VoteRoundType.FinalRevealVote)
         {
-            DefaultFocusedControl = preferredFocusRefs.ChooseButton;
+            DefaultFocusedControl = preferredFocusRefs.ChooseButtonWrap;
 
             // Optional: start the second screen visually "on" that card too.
             _hoveredSlot = preferredFocusRefs;
@@ -741,8 +748,9 @@ private void ShowRoundIntro()
         RefreshLayout();
         RefreshSlotVisuals(animate: false);
         RefreshButtonTexts();
-        RefreshVoteDisplays(animate: false);
         ConfigureControllerNavigation();
+        UpdateVoteButtonControllerIcons();
+        RefreshVoteDisplays(animate: false);
         GrabInitialFocus();
     }
 
@@ -805,9 +813,9 @@ private void ShowRoundIntro()
 
         chooseButtonOutline.Texture = outlineTexture;
         chooseButtonOutline.PatchMarginLeft = 0;
-        chooseButtonOutline.PatchMarginTop = 0;
+        chooseButtonOutline.PatchMarginTop = 18;
         chooseButtonOutline.PatchMarginRight = 0;
-        chooseButtonOutline.PatchMarginBottom = 0;
+        chooseButtonOutline.PatchMarginBottom = 18;
         chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
 
         chooseButton.AddThemeStyleboxOverride("normal", normal);
@@ -922,14 +930,21 @@ private void ShowRoundIntro()
         TextureRect icon = cardRoot.GetNode<TextureRect>("Padding/VBox/Header/Icon");
         Label nameLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/NameLabel");
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
+        Control chooseButtonWrap = cardRoot.GetNode<Control>("Padding/VBox/ChooseButtonWrap");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButtonWrap/ChooseButton");
         NinePatchRect chooseButtonOutline = cardRoot.GetNode<NinePatchRect>("Padding/VBox/ChooseButtonWrap/ChooseButtonOutline");
+        TextureRect? chooseButtonControllerIcon = chooseButtonWrap.GetNodeOrNull<TextureRect>("ControllerIcon");
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
         Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
         
         ApplyVoteButtonLook(chooseButton, chooseButtonOutline, true);
         ApplyCardOutlineLook(cardOutline);
+
+        chooseButtonWrap.FocusMode = FocusModeEnum.All;
+        chooseButtonWrap.MouseFilter = MouseFilterEnum.Ignore;
+        chooseButton.FocusMode = FocusModeEnum.None;
+        chooseButton.MouseFilter = MouseFilterEnum.Stop;
         
         NMultiplayerVoteContainer? voteContainer = null;
         if (_orderedPlayers.Count > 1)
@@ -968,6 +983,8 @@ private void ShowRoundIntro()
 
         chooseButton.MouseEntered += () => OnSlotHovered(poolIndex);
         chooseButton.MouseExited += () => OnSlotUnhovered(poolIndex);
+        chooseButtonWrap.FocusEntered += () => OnSlotHovered(poolIndex);
+        chooseButtonWrap.FocusExited += () => OnSlotUnhovered(poolIndex);
         chooseButton.FocusEntered += () => OnSlotHovered(poolIndex);
         chooseButton.FocusExited += () => OnSlotUnhovered(poolIndex);
         cardRoot.MouseEntered += () => OnSlotHovered(poolIndex);
@@ -995,7 +1012,9 @@ private void ShowRoundIntro()
             Icon = icon,
             NameLabel = nameLabel,
             EpithetLabel = epithetLabel,
+            ChooseButtonWrap = chooseButtonWrap,
             ChooseButton = chooseButton,
+            ChooseButtonControllerIcon = chooseButtonControllerIcon,
             ChooseButtonOutline = chooseButtonOutline,
             VoteIconsAnchor = voteIconsAnchor,
             PreviewAnchor = previewAnchor,
@@ -1011,7 +1030,7 @@ private void ShowRoundIntro()
         bool show =
             !_resolved &&
             !refs.ChooseButton.Disabled &&
-            (ReferenceEquals(_hoveredSlot, refs) || SlotHasFocusedControl(refs));
+            ReferenceEquals(_hoveredSlot, refs);
 
         refs.ChooseButtonOutline.Modulate = new Color(1f, 1f, 1f, show ? 1f : 0f);
     }
@@ -1158,122 +1177,6 @@ private void ShowRoundIntro()
         }
 
         GD.Print($"[ChooseTheAncient] Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, reaction={_reactionAncientId ?? "<none>"}");
-    }
-
-    private void ConfigureControllerNavigation()
-    {
-        if (_slots.Count == 0)
-        {
-            return;
-        }
-
-        for (int i = 0; i < _slots.Count; i++)
-        {
-            SlotRefs refs = _slots[i];
-            Button chooseButton = refs.ChooseButton;
-            chooseButton.FocusMode = FocusModeEnum.All;
-
-            SlotRefs leftSlot = _slots[PositiveMod(i - 1, _slots.Count)];
-            SlotRefs rightSlot = _slots[PositiveMod(i + 1, _slots.Count)];
-
-            chooseButton.FocusNeighborLeft = leftSlot.ChooseButton.GetPath();
-            chooseButton.FocusNeighborRight = rightSlot.ChooseButton.GetPath();
-            chooseButton.FocusNeighborBottom = chooseButton.GetPath();
-
-            List<PreviewWidgetRefs> previews = GetVisiblePreviewWidgets(refs);
-            if (previews.Count == 0)
-            {
-                chooseButton.FocusNeighborTop = chooseButton.GetPath();
-                continue;
-            }
-
-            PreviewWidgetRefs bottomPreview = previews[^1];
-            chooseButton.FocusNeighborTop = bottomPreview.Wrapper.GetPath();
-
-            for (int previewIndex = 0; previewIndex < previews.Count; previewIndex++)
-            {
-                PreviewWidgetRefs widget = previews[previewIndex];
-                Control focusControl = widget.Wrapper;
-                focusControl.FocusMode = FocusModeEnum.All;
-                focusControl.FocusNeighborBottom = previewIndex == previews.Count - 1
-                    ? chooseButton.GetPath()
-                    : previews[previewIndex + 1].Wrapper.GetPath();
-                focusControl.FocusNeighborTop = previewIndex > 0
-                    ? previews[previewIndex - 1].Wrapper.GetPath()
-                    : chooseButton.GetPath();
-
-                Control leftTarget = GetAdjacentPreviewFocusTarget(i, previewIndex, direction: -1, fallbackControl: focusControl);
-                Control rightTarget = GetAdjacentPreviewFocusTarget(i, previewIndex, direction: 1, fallbackControl: focusControl);
-                focusControl.FocusNeighborLeft = leftTarget.GetPath();
-                focusControl.FocusNeighborRight = rightTarget.GetPath();
-            }
-        }
-    }
-
-    private List<PreviewWidgetRefs> GetVisiblePreviewWidgets(SlotRefs refs)
-    {
-        if (!refs.PreviewAnchor.Visible)
-        {
-            return new List<PreviewWidgetRefs>();
-        }
-
-        return refs.PreviewWidgets
-            .Where(widget => widget.Wrapper.Visible && GodotObject.IsInstanceValid(widget.Wrapper))
-            .ToList();
-    }
-
-    private Control GetAdjacentPreviewFocusTarget(int slotIndex, int previewIndex, int direction, Control fallbackControl)
-    {
-        if (_slots.Count == 0)
-        {
-            return fallbackControl;
-        }
-
-        int targetSlotIndex = PositiveMod(slotIndex + direction, _slots.Count);
-        SlotRefs targetSlot = _slots[targetSlotIndex];
-        List<PreviewWidgetRefs> targetPreviews = GetVisiblePreviewWidgets(targetSlot);
-        if (targetPreviews.Count == 0)
-        {
-            return targetSlot.ChooseButton;
-        }
-
-        int clampedIndex = Math.Clamp(previewIndex, 0, targetPreviews.Count - 1);
-        return targetPreviews[clampedIndex].Wrapper;
-    }
-
-    private bool SlotHasFocusedControl(SlotRefs refs)
-    {
-        if (refs.ChooseButton.HasFocus())
-        {
-            return true;
-        }
-
-        return refs.PreviewWidgets.Any(widget =>
-            GodotObject.IsInstanceValid(widget.Wrapper) &&
-            widget.Wrapper.Visible &&
-            widget.Wrapper.HasFocus());
-    }
-
-    private bool IsSlotInteractivelyActive(SlotRefs refs)
-    {
-        Viewport viewport = GetViewport();
-        if (viewport == null)
-        {
-            return SlotHasFocusedControl(refs);
-        }
-
-        Vector2 mousePosition = viewport.GetMousePosition();
-        if (refs.CardRoot.GetGlobalRect().HasPoint(mousePosition)
-            || refs.ChooseButton.GetGlobalRect().HasPoint(mousePosition)
-            || SlotHasFocusedControl(refs))
-        {
-            return true;
-        }
-
-        return refs.PreviewWidgets.Any(widget =>
-            GodotObject.IsInstanceValid(widget.Wrapper)
-            && widget.Wrapper.Visible
-            && widget.Wrapper.GetGlobalRect().HasPoint(mousePosition));
     }
 
     private void TryShowReactionBubble(SlotRefs refs, bool animate)
@@ -1590,9 +1493,9 @@ private void ShowRoundIntro()
         _hoveredPreviewWidget = widget;
         _hoveredSlot = refs;
         _lastHoveredPoolIndex = refs.PoolIndex;
+        ApplyPreviewHoverVisuals(widget, hovered: true);
         RefreshSlotVisuals(animate: true);
         RefreshAllVoteButtonOutlines();
-        ApplyPreviewHoverVisuals(widget, hovered: true);
 
         try
         {
@@ -2230,7 +2133,14 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             return;
         }
 
-        if (IsSlotInteractivelyActive(refs))
+        Vector2 mousePosition = GetViewport().GetMousePosition();
+        bool stillHovering = refs.CardRoot.GetGlobalRect().HasPoint(mousePosition)
+            || refs.ChooseButton.GetGlobalRect().HasPoint(mousePosition)
+            || refs.ChooseButtonWrap.HasFocus()
+            || refs.ChooseButton.HasFocus()
+            || refs.PreviewWidgets.Any(widget => GodotObject.IsInstanceValid(widget.Wrapper) && widget.Wrapper.HasFocus());
+
+        if (stillHovering)
         {
             return;
         }
@@ -2346,6 +2256,185 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
             ApplySceneTransform(refs, hovered, animate);
         }
+    }
+
+
+    private void ConnectControllerPromptSignals()
+    {
+        if (NControllerManager.Instance != null)
+        {
+            Callable updatePrompts = Callable.From(UpdateVoteButtonControllerIcons);
+            if (!NControllerManager.Instance.IsConnected(NControllerManager.SignalName.MouseDetected, updatePrompts))
+            {
+                NControllerManager.Instance.Connect(NControllerManager.SignalName.MouseDetected, updatePrompts);
+            }
+
+            if (!NControllerManager.Instance.IsConnected(NControllerManager.SignalName.ControllerDetected, updatePrompts))
+            {
+                NControllerManager.Instance.Connect(NControllerManager.SignalName.ControllerDetected, updatePrompts);
+            }
+        }
+
+        if (NInputManager.Instance != null)
+        {
+            Callable updatePrompts = Callable.From(UpdateVoteButtonControllerIcons);
+            if (!NInputManager.Instance.IsConnected(NInputManager.SignalName.InputRebound, updatePrompts))
+            {
+                NInputManager.Instance.Connect(NInputManager.SignalName.InputRebound, updatePrompts);
+            }
+        }
+    }
+
+    private void DisconnectControllerPromptSignals()
+    {
+        Callable updatePrompts = Callable.From(UpdateVoteButtonControllerIcons);
+
+        if (NControllerManager.Instance != null)
+        {
+            if (NControllerManager.Instance.IsConnected(NControllerManager.SignalName.MouseDetected, updatePrompts))
+            {
+                NControllerManager.Instance.Disconnect(NControllerManager.SignalName.MouseDetected, updatePrompts);
+            }
+
+            if (NControllerManager.Instance.IsConnected(NControllerManager.SignalName.ControllerDetected, updatePrompts))
+            {
+                NControllerManager.Instance.Disconnect(NControllerManager.SignalName.ControllerDetected, updatePrompts);
+            }
+        }
+
+        if (NInputManager.Instance != null && NInputManager.Instance.IsConnected(NInputManager.SignalName.InputRebound, updatePrompts))
+        {
+            NInputManager.Instance.Disconnect(NInputManager.SignalName.InputRebound, updatePrompts);
+        }
+    }
+
+    private void UpdateVoteButtonControllerIcons()
+    {
+        bool showControllerPrompts = NControllerManager.Instance != null && NControllerManager.Instance.IsUsingController;
+        Texture2D? selectIcon = NInputManager.Instance?.GetHotkeyIcon(MegaInput.select);
+
+        foreach (SlotRefs refs in _slots)
+        {
+            if (refs.ChooseButtonControllerIcon == null || !GodotObject.IsInstanceValid(refs.ChooseButtonControllerIcon))
+            {
+                continue;
+            }
+
+            refs.ChooseButtonControllerIcon.Visible = showControllerPrompts && !refs.ChooseButton.Disabled;
+            if (selectIcon != null && ShowControllerHotkeys)
+            {
+                refs.ChooseButtonControllerIcon.Texture = selectIcon;
+            }
+        }
+    }
+
+    private List<PreviewWidgetRefs> GetNavigablePreviewWidgets(SlotRefs refs)
+    {
+        if (!refs.PreviewAnchor.Visible)
+        {
+            return new List<PreviewWidgetRefs>();
+        }
+
+        return refs.PreviewWidgets
+            .Where(widget => GodotObject.IsInstanceValid(widget.Wrapper) && widget.Wrapper.Visible)
+            .ToList();
+    }
+
+    private SlotRefs GetWrappedSlot(int slotIndex, int direction)
+    {
+        if (_slots.Count == 0)
+        {
+            throw new InvalidOperationException("Tried to navigate controller focus with no slots.");
+        }
+
+        int wrappedIndex = (slotIndex + direction) % _slots.Count;
+        if (wrappedIndex < 0)
+        {
+            wrappedIndex += _slots.Count;
+        }
+
+        return _slots[wrappedIndex];
+    }
+
+    private Control GetPreviewTargetForAdjacentSlot(int slotIndex, int previewIndex, int direction)
+    {
+        SlotRefs adjacentSlot = GetWrappedSlot(slotIndex, direction);
+        List<PreviewWidgetRefs> adjacentPreviews = GetNavigablePreviewWidgets(adjacentSlot);
+        if (adjacentPreviews.Count == 0)
+        {
+            return adjacentSlot.ChooseButtonWrap;
+        }
+
+        int clampedPreviewIndex = Math.Clamp(previewIndex, 0, adjacentPreviews.Count - 1);
+        return adjacentPreviews[clampedPreviewIndex].Wrapper;
+    }
+
+    private void ConfigureControllerNavigation()
+    {
+        if (_slots.Count == 0)
+        {
+            return;
+        }
+
+        for (int slotIndex = 0; slotIndex < _slots.Count; slotIndex++)
+        {
+            SlotRefs refs = _slots[slotIndex];
+            refs.ChooseButtonWrap.FocusMode = refs.ChooseButton.Disabled ? FocusModeEnum.None : FocusModeEnum.All;
+
+            Control leftTarget = GetWrappedSlot(slotIndex, -1).ChooseButtonWrap;
+            Control rightTarget = GetWrappedSlot(slotIndex, 1).ChooseButtonWrap;
+
+            refs.ChooseButtonWrap.FocusNeighborLeft = leftTarget.GetPath();
+            refs.ChooseButtonWrap.FocusNeighborRight = rightTarget.GetPath();
+            refs.ChooseButtonWrap.FocusNeighborBottom = refs.ChooseButtonWrap.GetPath();
+
+            List<PreviewWidgetRefs> previews = GetNavigablePreviewWidgets(refs);
+            if (previews.Count > 0)
+            {
+                refs.ChooseButtonWrap.FocusNeighborTop = previews[0].Wrapper.GetPath();
+            }
+            else
+            {
+                refs.ChooseButtonWrap.FocusNeighborTop = refs.ChooseButtonWrap.GetPath();
+            }
+
+            foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
+            {
+                widget.Wrapper.FocusMode = FocusModeEnum.None;
+                widget.Wrapper.FocusNeighborLeft = widget.Wrapper.GetPath();
+                widget.Wrapper.FocusNeighborRight = widget.Wrapper.GetPath();
+                widget.Wrapper.FocusNeighborTop = refs.ChooseButtonWrap.GetPath();
+                widget.Wrapper.FocusNeighborBottom = refs.ChooseButtonWrap.GetPath();
+            }
+
+            for (int previewIndex = 0; previewIndex < previews.Count; previewIndex++)
+            {
+                PreviewWidgetRefs widget = previews[previewIndex];
+                widget.Wrapper.FocusMode = FocusModeEnum.All;
+                widget.Wrapper.FocusNeighborTop = (previewIndex == 0
+                    ? refs.ChooseButtonWrap.GetPath()
+                    : previews[previewIndex - 1].Wrapper.GetPath());
+                widget.Wrapper.FocusNeighborBottom = (previewIndex == previews.Count - 1
+                    ? refs.ChooseButtonWrap.GetPath()
+                    : previews[previewIndex + 1].Wrapper.GetPath());
+                widget.Wrapper.FocusNeighborLeft = GetPreviewTargetForAdjacentSlot(slotIndex, previewIndex, -1).GetPath();
+                widget.Wrapper.FocusNeighborRight = GetPreviewTargetForAdjacentSlot(slotIndex, previewIndex, 1).GetPath();
+            }
+        }
+    }
+
+    private SlotRefs? FindFocusedVoteSlot(Control? focusedControl)
+    {
+        if (focusedControl == null)
+        {
+            return null;
+        }
+
+        return _slots.FirstOrDefault(refs =>
+            ReferenceEquals(refs.ChooseButtonWrap, focusedControl)
+            || ReferenceEquals(refs.ChooseButton, focusedControl)
+            || refs.ChooseButtonWrap.IsAncestorOf(focusedControl)
+            || refs.ChooseButton.IsAncestorOf(focusedControl));
     }
 
     public void RecordVote(Player player, int poolIndex)
@@ -2670,6 +2759,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             
             UpdateVoteButtonOutline(refs);
         }
+
+        ConfigureControllerNavigation();
+        UpdateVoteButtonControllerIcons();
     }
 
     private void GrabInitialFocus()
@@ -2747,7 +2839,19 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             return;
         }
 
-        if (@event.IsActionPressed("ui_cancel"))
+        if (@event.IsActionPressed(MegaInput.select) && !@event.IsEcho())
+        {
+            Control? focusedControl = GetViewport().GuiGetFocusOwner();
+            SlotRefs? focusedSlot = FindFocusedVoteSlot(focusedControl);
+            if (focusedSlot != null && !focusedSlot.ChooseButton.Disabled)
+            {
+                Select(focusedSlot.PoolIndex);
+                AcceptEvent();
+                return;
+            }
+        }
+
+        if (@event.IsActionPressed(MegaInput.cancel))
         {
             AcceptEvent();
         }
@@ -2756,6 +2860,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
     public override void _ExitTree()
     {
         _roundIntroTween?.Kill();
+        DisconnectControllerPromptSignals();
         if (!_voteSubmitted.Task.IsCompleted)
         {
             _voteSubmitted.TrySetCanceled();
