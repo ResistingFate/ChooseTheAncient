@@ -219,7 +219,9 @@ public static class AncientBanHelpers
                 // I want to experiment with the relics rewards for all players being a shared event being a shared
                 // pool. Shared pools should have the same RNG for each player, where as independent offerings
                 // should have Rng based on their player ID.
-                // TODO implement patches so ancient events can be shared
+                /*
+                 * TODO implement patches so ancient events can be shared
+                 */
                 Rng previewRng = CreatePreviewEventRng(runState, player, previewEvent);
                 //Rng previewRng = CreateAncientRelicOptionsRng(
                 //    runState, nextActIndex, (GroupAncientOptionsPool ? 0UL : player.NetId), previewEvent.Id.Entry);
@@ -310,4 +312,6 @@ public static class AncientBanHelpers
     {
         GD.Print($"[ChooseTheAncient] {context}: {DescribeAncients(ancients)}");
     }
+    
+    
 }

@@ -1163,9 +1163,10 @@ private void ShowRoundIntro()
 
         Control bubble = BuildReactionBubble(refs.Ancient);
         bubble.ZIndex = 6;
-        refs.PreviewAnchor.AddChild(bubble);
+
+        refs.ReactionAnchor.AddChild(bubble);
         refs.ReactionBubble = bubble;
-        refs.ReactionAnchor.Visible = false;
+        refs.ReactionAnchor.Visible = true;
 
         try
         {
@@ -1176,8 +1177,7 @@ private void ShowRoundIntro()
         }
 
         bubble.Modulate = new Color(1f, 1f, 1f, 0f);
-        GD.Print($"[ChooseTheAncient] Showing custom reaction bubble for {refs.Ancient.Id.Entry}: How about now?");
-    }
+    } 
 
 
     private Control BuildReactionBubble(AncientEventModel ancient)
@@ -1665,6 +1665,14 @@ private void ShowRoundIntro()
             _ => BuildFallbackShapes(area, cardWidth, cardHeight, _slots.Count)
         };
 
+        if (_roundType == VoteRoundType.FinalRevealVote && _slots.Count == 2)
+        {
+            for (int i = 0; i < shapes.Length; i++)
+            {
+                shapes[i] = CenterCardOnSlot(shapes[i], area);
+            }
+        }
+
         for (int i = 0; i < _slots.Count; i++)
         {
             SlotRefs refs = _slots[i];
@@ -1714,27 +1722,31 @@ private void ShowRoundIntro()
         float gap = 8f;
         float startY = GetPreviewListStartY(refs, anchorSize);
 
-        GD.Print($"[ChooseTheAncient] Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWidgets.Count}, startY={startY}");
+        float centerOffsetX = GetFinalRoundCenterOffsetX(refs);
 
         for (int i = 0; i < refs.PreviewWidgets.Count; i++)
         {
             PreviewWidgetRefs widget = refs.PreviewWidgets[i];
             Control wrapper = widget.Wrapper;
+
             wrapper.LayoutMode = 1;
             wrapper.AnchorLeft = 0f;
             wrapper.AnchorTop = 0f;
             wrapper.AnchorRight = 0f;
             wrapper.AnchorBottom = 0f;
-            wrapper.Position = new Vector2(0f, startY + (i * (displayHeight + gap)));
+
+            wrapper.Position = new Vector2(
+                centerOffsetX,
+                startY + (i * (displayHeight + gap)));
+
             wrapper.Size = new Vector2(displayWidth / scaleX, displayHeight / scaleY);
             wrapper.Scale = new Vector2(scaleX, scaleY);
             wrapper.PivotOffset = Vector2.Zero;
+
             widget.BasePosition = wrapper.Position;
             widget.BaseScale = wrapper.Scale;
         }
     }
-
-
 
     private void LayoutReaction(SlotRefs refs)
     {
@@ -1743,24 +1755,24 @@ private void ShowRoundIntro()
             return;
         }
 
-        Vector2 anchorSize = refs.PreviewAnchor.Size;
+        Vector2 anchorSize = refs.ReactionAnchor.Size;
         if (anchorSize.X <= 1f || anchorSize.Y <= 1f)
         {
-            anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 24f), 280f);
+            anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 36f), 148f);
         }
 
-        float startY = GetPreviewListStartY(refs, anchorSize);
-        float bubbleY = MathF.Max(0f, startY - ReactionBubbleHeight - ReactionBubbleGap);
+        float bubbleWidth = anchorSize.X;
+        float bubbleHeight = ReactionBubbleHeight;
+        float bubbleY = MathF.Max(0f, (anchorSize.Y - bubbleHeight) * 0.5f);
+        float bubbleX = GetFinalRoundCenterOffsetX(refs);
 
         refs.ReactionBubble.LayoutMode = 1;
         refs.ReactionBubble.AnchorLeft = 0f;
         refs.ReactionBubble.AnchorTop = 0f;
-        refs.ReactionBubble.AnchorRight = 1f;
+        refs.ReactionBubble.AnchorRight = 0f;
         refs.ReactionBubble.AnchorBottom = 0f;
-        refs.ReactionBubble.OffsetLeft = 0f;
-        refs.ReactionBubble.OffsetTop = bubbleY;
-        refs.ReactionBubble.OffsetRight = 0f;
-        refs.ReactionBubble.OffsetBottom = bubbleY + ReactionBubbleHeight;
+        refs.ReactionBubble.Position = new Vector2(bubbleX, bubbleY);
+        refs.ReactionBubble.Size = new Vector2(bubbleWidth, bubbleHeight);
     }
 
     private static PortalShape[] BuildThreePortalShapes(Vector2 area, float cardWidth, float cardHeight)
@@ -2820,6 +2832,8 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             child.QueueFree();
         }
     }
+    
+    // Code to handle glyph animation for scene banner for both rounds
 
     private static readonly StringName RtNormalFont = "normal_font";
     private static readonly StringName RtBoldFont = "bold_font";
@@ -2902,5 +2916,44 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
 
         return 0f;
+    }
+    
+    // Helpers to resize elements to fit any screen resolution
+    
+    private float GetSlotVisualCenterX(SlotRefs refs)
+    {
+        return (refs.Shape.TopLeft.X
+                + refs.Shape.TopRight.X
+                + refs.Shape.BottomLeft.X
+                + refs.Shape.BottomRight.X) * 0.25f;
+    }
+
+    private float GetCardCenterX(SlotRefs refs)
+    {
+        return refs.CardRoot.Position.X + (refs.CardRoot.Size.X * 0.5f);
+    }
+
+    private float GetFinalRoundCenterOffsetX(SlotRefs refs)
+    {
+        return GetSlotVisualCenterX(refs) - GetCardCenterX(refs);
+    }
+    
+    private static float GetSlotVisualCenterX(PortalShape shape)
+    {
+        return (shape.TopLeft.X + shape.TopRight.X + shape.BottomRight.X + shape.BottomLeft.X) * 0.25f;
+    }
+
+    private static PortalShape CenterCardOnSlot(PortalShape shape, Vector2 area, float edgeInset = 18f)
+    {
+        float targetX = GetSlotVisualCenterX(shape) - (shape.CardRect.Size.X * 0.5f);
+        float maxX = MathF.Max(edgeInset, area.X - shape.CardRect.Size.X - edgeInset);
+        targetX = Math.Clamp(targetX, edgeInset, maxX);
+
+        return shape with
+        {
+            CardRect = new Rect2(
+                new Vector2(targetX, shape.CardRect.Position.Y),
+                shape.CardRect.Size)
+        };
     }
 }
