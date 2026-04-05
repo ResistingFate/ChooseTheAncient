@@ -123,6 +123,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         public required Label EpithetLabel { get; init; }
         public required Control ChooseButtonWrap { get; init; }
         public required Button ChooseButton { get; init; }
+        public required Control CardClickTarget { get; init; }
+        public required Control SlotClickTarget { get; init; }
         public required TextureRect? ChooseButtonControllerIcon { get; init; }
         public required Control VoteIconsAnchor { get; init; }
         public required Control PreviewAnchor { get; init; }
@@ -234,14 +236,16 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private AudioStreamPlayer? _clickSfx;
     private bool _lastShowOnlyButtonOutline;
     private bool _lastShowControllerHotkeys;
+    private ChooseTheAncientConfig.VoteClickTargetMode _lastVoteClickTarget;
 
     public NetScreenType ScreenType => NetScreenType.Rewards;
     public bool UseSharedBackstop => true;
-    
+
     // ModConfig variables
     public bool ShowControllerHotkeys { get; set; } = ChooseTheAncientConfig.ShowControllerHotkeys;
     public bool ShowOnlyButtonOutline { get; set; } = ChooseTheAncientConfig.ShowOnlyButtonOutline;
-    
+    private ChooseTheAncientConfig.VoteClickTargetMode VoteClickTarget { get; set; } = ChooseTheAncientConfig.VoteClickTarget;
+
     public Control? DefaultFocusedControl { get; private set; }
 
     public AncientBanSelectionScreen()
@@ -317,18 +321,18 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     public void InitiateConfigValues()
     {
-        
         _lastShowControllerHotkeys = ShowControllerHotkeys;
         _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
+        _lastVoteClickTarget = VoteClickTarget;
     }
-    
+
     public void RefreshModConfigValues()
     {
-        
-    ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
-    ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
+        ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
+        ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
+        VoteClickTarget = ChooseTheAncientConfig.VoteClickTarget;
     }
-    
+
     public override void _Process(double delta)
     {
         if (!_uiReady || !Visible)
@@ -338,7 +342,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         RefreshModConfigValues();
 
         if (_lastShowControllerHotkeys == ShowControllerHotkeys &&
-            _lastShowOnlyButtonOutline == ShowOnlyButtonOutline)
+            _lastShowOnlyButtonOutline == ShowOnlyButtonOutline &&
+            _lastVoteClickTarget == VoteClickTarget)
         {
             return;
         }
@@ -347,15 +352,17 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         _lastShowControllerHotkeys = ShowControllerHotkeys;
         _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
+        _lastVoteClickTarget = VoteClickTarget;
     }
-    
+
     private void SyncConfigFromSavedSettings()
     {
         ChooseTheAncientConfig.RefreshFromModConfig();
         ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
         ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
+        VoteClickTarget = ChooseTheAncientConfig.VoteClickTarget;
     }
-    
+
     private void RebuildForLiveConfigRefresh()
     {
         BuildUi();
@@ -869,7 +876,80 @@ private void ShowRoundIntro()
 
         outline.AddThemeStyleboxOverride("panel", sb);
     }
-    
+
+    private static void SetMouseFilterRecursive(
+        Control root,
+        MouseFilterEnum mouseFilter,
+        Func<Control, bool>? shouldSkip = null)
+    {
+        if (shouldSkip?.Invoke(root) != true)
+        {
+            root.MouseFilter = mouseFilter;
+        }
+
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is Control childControl)
+            {
+                SetMouseFilterRecursive(childControl, mouseFilter, shouldSkip);
+            }
+        }
+    }
+
+    private Control CreateVoteClickTarget(string name, int poolIndex, bool isSlotTarget)
+    {
+        Control clickTarget = new()
+        {
+            Name = name,
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+
+        SetFullRect(clickTarget);
+        clickTarget.GuiInput += @event => OnVoteClickTargetGuiInput(poolIndex, isSlotTarget, @event);
+        clickTarget.MouseEntered += () => OnSlotHovered(poolIndex);
+        clickTarget.MouseExited += () => OnSlotUnhovered(poolIndex);
+        return clickTarget;
+    }
+
+    private void OnVoteClickTargetGuiInput(int poolIndex, bool isSlotTarget, InputEvent @event)
+    {
+        if (_resolved)
+        {
+            return;
+        }
+
+        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+        {
+            return;
+        }
+
+        if (isSlotTarget)
+        {
+            if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
+            {
+                return;
+            }
+        }
+        else if (VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.ButtonOnly)
+        {
+            return;
+        }
+
+        Select(poolIndex);
+        AcceptEvent();
+    }
+
+    private void ApplyVoteClickTargetMode(SlotRefs refs)
+    {
+        refs.CardClickTarget.MouseFilter = VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.ButtonOnly
+            ? MouseFilterEnum.Pass
+            : MouseFilterEnum.Stop;
+        refs.SlotClickTarget.MouseFilter = VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot
+            ? MouseFilterEnum.Stop
+            : MouseFilterEnum.Ignore;
+    }
+
     private static void ApplyVoteButtonLook(
         Button chooseButton,
         NinePatchRect chooseButtonOutline, bool bodyVisible)
@@ -1014,6 +1094,15 @@ private void ShowRoundIntro()
         };
         slotRoot.AddChild(rightRim);
 
+        Control slotClickTarget = CreateVoteClickTarget("SlotClickTarget", poolIndex, isSlotTarget: true);
+        slotClickTarget.ZIndex = 1;
+        slotClickTarget.LayoutMode = 0;
+        slotClickTarget.AnchorLeft = 0f;
+        slotClickTarget.AnchorTop = 0f;
+        slotClickTarget.AnchorRight = 0f;
+        slotClickTarget.AnchorBottom = 0f;
+        slotRoot.AddChild(slotClickTarget);
+
         Control cardRoot = cardScene.Instantiate<Control>();
         cardRoot.Name = $"AncientChoice_{ancient.Id.Entry}";
         cardRoot.ClipContents = false;
@@ -1033,15 +1122,23 @@ private void ShowRoundIntro()
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
         Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
-        
-        ApplyVoteButtonLook(chooseButton, chooseButtonOutline, bodyVisible:!ShowOnlyButtonOutline);
+
+        Control cardClickTarget = CreateVoteClickTarget("CardClickTarget", poolIndex, isSlotTarget: false);
+        cardClickTarget.ZIndex = 0;
+        cardRoot.AddChild(cardClickTarget);
+        cardRoot.MoveChild(cardClickTarget, 3);
+
+        SetMouseFilterRecursive(cardRoot, MouseFilterEnum.Ignore, control =>
+            ReferenceEquals(control, chooseButton) || ReferenceEquals(control, cardClickTarget));
+
+        ApplyVoteButtonLook(chooseButton, chooseButtonOutline, bodyVisible: !ShowOnlyButtonOutline);
         ApplyCardOutlineLook(cardOutline);
 
         chooseButtonWrap.FocusMode = FocusModeEnum.All;
         chooseButtonWrap.MouseFilter = MouseFilterEnum.Ignore;
         chooseButton.FocusMode = FocusModeEnum.None;
         chooseButton.MouseFilter = MouseFilterEnum.Stop;
-        
+
         NMultiplayerVoteContainer? voteContainer = null;
         if (_orderedPlayers.Count > 1)
         {
@@ -1083,13 +1180,11 @@ private void ShowRoundIntro()
         chooseButtonWrap.FocusExited += () => OnSlotUnhovered(poolIndex);
         chooseButton.FocusEntered += () => OnSlotHovered(poolIndex);
         chooseButton.FocusExited += () => OnSlotUnhovered(poolIndex);
-        cardRoot.MouseEntered += () => OnSlotHovered(poolIndex);
-        cardRoot.MouseExited += () => OnSlotUnhovered(poolIndex);
 
         int capturedIndex = poolIndex;
         chooseButton.Pressed += () => Select(capturedIndex);
 
-        return new SlotRefs
+        SlotRefs refs = new()
         {
             PoolIndex = poolIndex,
             Ancient = ancient,
@@ -1110,6 +1205,8 @@ private void ShowRoundIntro()
             EpithetLabel = epithetLabel,
             ChooseButtonWrap = chooseButtonWrap,
             ChooseButton = chooseButton,
+            CardClickTarget = cardClickTarget,
+            SlotClickTarget = slotClickTarget,
             ChooseButtonControllerIcon = chooseButtonControllerIcon,
             ChooseButtonOutline = chooseButtonOutline,
             VoteIconsAnchor = voteIconsAnchor,
@@ -1119,6 +1216,9 @@ private void ShowRoundIntro()
             VoteContainer = voteContainer,
             Shape = default,
         };
+
+        ApplyVoteClickTargetMode(refs);
+        return refs;
     }
 
 
@@ -1809,6 +1909,8 @@ private void ShowRoundIntro()
             refs.CardRoot.Position = refs.CardBasePosition;
             refs.CardRoot.Size = shape.CardRect.Size;
             refs.CardRoot.PivotOffset = refs.CardRoot.Size * 0.5f;
+            refs.SlotClickTarget.Position = shape.PortalRect.Position;
+            refs.SlotClickTarget.Size = shape.PortalRect.Size;
 
             ApplyPortalGeometry(shape, refs);
             ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);

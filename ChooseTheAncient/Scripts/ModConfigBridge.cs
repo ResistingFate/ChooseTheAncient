@@ -223,6 +223,25 @@ internal static class ModConfigBridge
                 ChooseTheAncientConfig.ApplyShowOnlyButtonOutlineHotkeys(v);
             }));
         }));
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Key", "voteClickTarget");
+            Set(cfg, "Label", "Vote click area");
+            Set(cfg, "Type", EnumVal("Slider"));
+            Set(cfg, "DefaultValue", (object)0.0f);
+            Set(cfg, "Min", 0.0f);
+            Set(cfg, "Max", 2.0f);
+            Set(cfg, "Step", 1.0f);
+            Set(cfg, "Format", "F0");
+
+            Set(cfg, "Description", "0 = button only, 1 = whole card, 2 = whole ancient slot.");
+
+            Set(cfg, "OnChanged", new Action<object>(v =>
+            {
+                ChooseTheAncientConfig.ApplyVoteClickTarget(v);
+            }));
+        }));
         
         var result = Array.CreateInstance(_entryType!, list.Count);
         for (int i = 0; i < list.Count; i++)
