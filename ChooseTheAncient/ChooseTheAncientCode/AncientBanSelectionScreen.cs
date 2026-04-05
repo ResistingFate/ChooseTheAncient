@@ -83,79 +83,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         Vector2 Position,
         Vector2 Scale);
 
-    private readonly record struct LayoutMetrics(
-        Vector2 StageSize,
-        float StageScale,
-        float CardScale,
-        float CardBottomInset,
-        float CardWidth,
-        float CardHeight,
-        float CardInnerInsetX,
-        float CardInnerInsetTop,
-        float CardInnerInsetBottom,
-        float CardPanelTopInset,
-        float CardShadowOffsetX,
-        float CardShadowOffsetY,
-        float CardTailLeft,
-        float CardTailWidth,
-        float CardTailHeightAbove,
-        float CardTailHeightBelow,
-        float TopAccentInsetX,
-        float TopAccentTop,
-        float TopAccentHeight,
-        float HeaderGap,
-        float HeaderTextGap,
-        float VBoxSeparation,
-        float HeaderIconSize,
-        int NameFontSize,
-        int EpithetFontSize,
-        float ButtonHeight,
-        int ButtonFontSize,
-        int ButtonOutlineSize,
-        float ButtonOutlineInset,
-        int ButtonOutlinePatchMarginY,
-        float CardOutlineInset,
-        int CardOutlineBorderWidth,
-        int CardOutlineCornerRadius,
-        float VoteIconsWidth,
-        float VoteIconsHeight,
-        float VoteIconsRightInset,
-        float VoteIconsBottomInset,
-        float VoteIconSize,
-        float VoteIconOverlap,
-        float PreviewSideInset,
-        float PreviewDisplayHeight,
-        float PreviewGap,
-        float ReactionBubbleHeight,
-        float ReactionBubbleGap,
-        float ReactionLineHeight,
-        float ReactionIconSize,
-        float ReactionTailWidth,
-        float ReactionTailRowSeparation,
-        float ReactionTextMarginLeft,
-        float ReactionTextMarginTop,
-        float ReactionTextMarginRight,
-        float ReactionTextMarginBottom,
-        int ReactionSpeakerFontSize,
-        int ReactionLineFontSize,
-        float ReactionTextShadowOffsetX,
-        float ReactionTextShadowOffsetY,
-        float DialogueShadowOffsetX,
-        float DialogueShadowOffsetY,
-        float PortalRimThickness,
-        float RoundIntroFloatOffset,
-        float ReactionEntranceOffset,
-        float PreviewEntranceOffset,
-        float TopScrimHeight,
-        int StageTopMargin,
-        float RoundIntroOverlayTop,
-        float RoundIntroOverlayHeight,
-        float RoundIntroAnchorHalfWidth,
-        float RoundIntroAnchorHeight,
-        int RoundIntroMinFontSize,
-        int RoundIntroMaxFontSize,
-        float RoundIntroEffectSpacing);
-
     private readonly record struct PortalShape(
         Rect2 PortalRect,
         Rect2 CardRect,
@@ -286,15 +213,10 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private const double RoundIntroFadeInDuration = 0.20;
     private const double RoundIntroFadeOutDuration = 0.45;
-    private const float RoundIntroSpacingTuning = 2f;
     private Control? _stageArea;
     private Control? _slotsCanvas;
-    private MarginContainer? _stageMargin;
-    private ColorRect? _topScrim;
-    private Control? _roundIntroOverlay;
     private AudioStreamPlayer? _hoverSfx;
     private AudioStreamPlayer? _clickSfx;
-    private LayoutMetrics? _layoutMetrics;
 
     public NetScreenType ScreenType => NetScreenType.Rewards;
     public bool UseSharedBackstop => true;
@@ -362,9 +284,6 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         SetFullRect(_layoutRoot);
         AddChild(_layoutRoot);
 
-        _topScrim = _layoutRoot.GetNodeOrNull<ColorRect>("TopScrim");
-        _stageMargin = _layoutRoot.GetNodeOrNull<MarginContainer>("StageMargin");
-        _roundIntroOverlay = _layoutRoot.GetNodeOrNull<Control>("RoundIntroOverlay");
         _roundIntroAnchor = _layoutRoot.GetNode<Control>("RoundIntroOverlay/RoundIntroAnchor");
         _roundIntroBasePosition = _roundIntroAnchor.Position;
 
@@ -483,52 +402,45 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     } 
 
     private async Task AnimateOutSlotsAsync()
-{
-    /* old slots slide slightly upward/outward and fade out. */
-    if (_slots.Count == 0)
     {
-        return;
-    }
-
-    float stageScale = _layoutMetrics?.StageScale ?? 1f;
-    float horizontalBase = 120f * stageScale;
-    float verticalOffset = -32f * stageScale;
-
-    Tween tween = CreateTween();
-    tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
-
-    for (int i = 0; i < _slots.Count; i++)
-    {
-        SlotRefs refs = _slots[i];
-        float horizontalOffset = (i - ((_slots.Count - 1) * 0.5f)) * horizontalBase;
-
-        tween.Parallel().TweenProperty(refs.SlotRoot, "position", new Vector2(horizontalOffset, verticalOffset), 0.16f);
-        tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 0f, 0.16f);
-    }
-
-    await ToSignal(tween, Tween.SignalName.Finished);
-}
-
-    private void PrimeSlotsForTransitionIn()
-{
-    /* → places the new slot roots off to the sides and invisible so they are ready to tween in after they've been moved out*/
-    float stageScale = _layoutMetrics?.StageScale ?? 1f;
-    float twoCardOffset = 200f * stageScale;
-    float threeCardOffset = 180f * stageScale;
-
-    for (int i = 0; i < _slots.Count; i++)
-    {
-        SlotRefs refs = _slots[i];
-        float horizontalOffset = (i == 0) ? -twoCardOffset : twoCardOffset;
-        if (_slots.Count == 3)
+        /* old slots slide slightly upward/outward and fade out. */
+        if (_slots.Count == 0)
         {
-            horizontalOffset = (i - 1) * threeCardOffset;
+            return;
         }
 
-        refs.SlotRoot.Position = new Vector2(horizontalOffset, 0f);
-        refs.SlotRoot.Modulate = new Color(1f, 1f, 1f, 0f);
+        Tween tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            SlotRefs refs = _slots[i];
+            float horizontalOffset = (i - ((_slots.Count - 1) * 0.5f)) * 120f;
+            float verticalOffset = -32f;
+
+            tween.Parallel().TweenProperty(refs.SlotRoot, "position", new Vector2(horizontalOffset, verticalOffset), 0.16f);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 0f, 0.16f);
+        }
+
+        await ToSignal(tween, Tween.SignalName.Finished);
     }
-}
+
+    private void PrimeSlotsForTransitionIn()
+    {
+        /* → places the new slot roots off to the sides and invisible so they are ready to tween in after they've been moved out*/
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            SlotRefs refs = _slots[i];
+            float horizontalOffset = (i == 0) ? -200f : 200f;
+            if (_slots.Count == 3)
+            {
+                horizontalOffset = (i - 1) * 180f;
+            }
+
+            refs.SlotRoot.Position = new Vector2(horizontalOffset, 0f);
+            refs.SlotRoot.Modulate = new Color(1f, 1f, 1f, 0f);
+        }
+    }
 
     private async Task AnimateInSlotsAsync()
     {
@@ -578,14 +490,13 @@ private void ShowRoundIntro()
     _roundIntroTween?.Kill();
 
     double holdDuration = Math.Max(0.0, RoundIntroDuration - RoundIntroFadeInDuration - RoundIntroFadeOutDuration);
-    float introFloatOffset = _layoutMetrics?.RoundIntroFloatOffset ?? 12f;
 
     SetRoundIntroTextStyled(GetRoundIntroText());
 
     _roundIntroLabel.Visible = true;
     _roundIntroLabel.Modulate = new Color(1f, 1f, 1f, 0f);
 
-    _roundIntroAnchor.Position = _roundIntroBasePosition + new Vector2(0f, introFloatOffset);
+    _roundIntroAnchor.Position = _roundIntroBasePosition + new Vector2(0f, 12f);
     _roundIntroAnchor.Scale = new Vector2(1.02f, 1.02f);
 
     Tween tween = CreateTween();
@@ -619,9 +530,9 @@ private void ShowRoundIntro()
                 Callable.From<float>(value => _roundIntroBannerEffect.Spacing = value),
                 _roundIntroBannerEffect.Spacing,
                 0f,
-                0.92f)
+                0.75f)
             .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Circ);
+            .SetTrans(Tween.TransitionType.Expo);
     }
 
     tween.Chain();
@@ -632,7 +543,7 @@ private void ShowRoundIntro()
         .SetEase(Tween.EaseType.In)
         .SetTrans(Tween.TransitionType.Cubic);
 
-    tween.Parallel().TweenProperty(_roundIntroAnchor, "position:y", _roundIntroBasePosition.Y - (introFloatOffset * 0.85f), RoundIntroFadeOutDuration)
+    tween.Parallel().TweenProperty(_roundIntroAnchor, "position:y", _roundIntroBasePosition.Y - 10f, RoundIntroFadeOutDuration)
         .SetEase(Tween.EaseType.In)
         .SetTrans(Tween.TransitionType.Circ);
 
@@ -652,137 +563,129 @@ private void ShowRoundIntro()
 }
 
     private void PrimeFinalRoundElementAnimation()
-{
-    /* Readies the ancient preview elements to animation by setting alpha to 0, and putting down. */
-    if (_roundType != VoteRoundType.FinalRevealVote)
     {
-        return;
-    }
-
-    float reactionEntranceOffset = _layoutMetrics?.ReactionEntranceOffset ?? ReactionEntranceOffset;
-    float previewEntranceOffset = _layoutMetrics?.PreviewEntranceOffset ?? PreviewEntranceOffset;
-    float childOffset = MathF.Max(6f, reactionEntranceOffset * 0.2f);
-
-    foreach (SlotRefs refs in _slots)
-    {
-        if (refs.ReactionBubble != null)
+        /* Readies the ancient preview elements to animation by setting alpha to 0, and putting down. */
+        if (_roundType != VoteRoundType.FinalRevealVote)
         {
-            refs.ReactionBubble.Modulate = new Color(1f, 1f, 1f, 0f);
-            refs.ReactionBubble.Position += new Vector2(0f, reactionEntranceOffset);
-            refs.ReactionBubble.Scale *= new Vector2(0.975f, 0.975f);
-
-            Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
-            if (icon != null)
-            {
-                icon.Modulate = new Color(1f, 1f, 1f, 0f);
-                icon.Position += new Vector2(0f, childOffset);
-            }
-
-            Control? textNode = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
-            if (textNode != null)
-            {
-                textNode.Modulate = new Color(1f, 1f, 1f, 0f);
-                textNode.Position += new Vector2(0f, childOffset);
-            }
+            return;
         }
 
-        if (refs.PreviewAnchor.Visible)
+        foreach (SlotRefs refs in _slots)
         {
-            foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
+            if (refs.ReactionBubble != null)
             {
-                widget.Wrapper.Modulate = new Color(1f, 1f, 1f, 0f);
-                widget.Wrapper.Position += new Vector2(0f, previewEntranceOffset);
-                widget.Wrapper.Scale *= new Vector2(0.982f, 0.982f);
+                refs.ReactionBubble.Modulate = new Color(1f, 1f, 1f, 0f);
+                refs.ReactionBubble.Position += new Vector2(0f, ReactionEntranceOffset);
+                refs.ReactionBubble.Scale *= new Vector2(0.975f, 0.975f);
+
+                Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
+                if (icon != null)
+                {
+                    icon.Modulate = new Color(1f, 1f, 1f, 0f);
+                    icon.Position += new Vector2(0f, 8f);
+                }
+
+                Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
+                if (text != null)
+                {
+                    text.Modulate = new Color(1f, 1f, 1f, 0f);
+                    text.Position += new Vector2(0f, 8f);
+                }
+            }
+
+            if (refs.PreviewAnchor.Visible)
+            {
+                foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
+                {
+                    widget.Wrapper.Modulate = new Color(1f, 1f, 1f, 0f);
+                    widget.Wrapper.Position += new Vector2(0f, PreviewEntranceOffset);
+                    widget.Wrapper.Scale *= new Vector2(0.982f, 0.982f);
+                }
             }
         }
     }
-}
 
     private void StartFinalRoundElementAnimation()
-{
-    /* animation the ancient preview animation */   
-    if (_roundType != VoteRoundType.FinalRevealVote)
     {
-        return;
-    }
-
-    float reactionEntranceOffset = _layoutMetrics?.ReactionEntranceOffset ?? ReactionEntranceOffset;
-    float previewEntranceOffset = _layoutMetrics?.PreviewEntranceOffset ?? PreviewEntranceOffset;
-    float reactionChildLift = MathF.Max(6f, reactionEntranceOffset * 0.2f);
-
-    double delay = 0.0;
-
-    foreach (SlotRefs refs in _slots)
-    {
-        if (refs.ReactionBubble != null)
+        /* animation the ancient preview animation */   
+        if (_roundType != VoteRoundType.FinalRevealVote)
         {
-            Control bubble = refs.ReactionBubble;
-            Tween bubbleTween = CreateTween();
-            bubbleTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-            bubbleTween.TweenInterval(delay);
-            bubbleTween.TweenProperty(bubble, "modulate:a", 1f, ReactionEntranceDuration);
-            bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, -reactionEntranceOffset), ReactionEntranceDuration);
-            bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.975f, 0.975f), ReactionEntranceDuration);
-
-            Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
-            if (icon != null)
-            {
-                Tween iconTween = CreateTween();
-                iconTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                iconTween.TweenInterval(delay + 0.18);
-                iconTween.TweenProperty(icon, "modulate:a", 1f, 0.36f);
-                iconTween.Parallel().TweenProperty(icon, "position", icon.Position + new Vector2(0f, -reactionChildLift), 0.36f);
-            }
-
-            Control? textNode = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
-            if (textNode != null)
-            {
-                Tween textTween = CreateTween();
-                textTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                textTween.TweenInterval(delay + 0.10);
-                textTween.TweenProperty(textNode, "modulate:a", 1f, ReactionTextDuration);
-                textTween.Parallel().TweenProperty(textNode, "position", textNode.Position + new Vector2(0f, -reactionChildLift), ReactionTextDuration);
-            }
-
-            StartReactionWave(bubble);
-            delay += FinalRoundStagger;
+            return;
         }
 
-        if (refs.PreviewAnchor.Visible)
+        double delay = 0.0;
+
+        foreach (SlotRefs refs in _slots)
         {
-            foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
+            if (refs.ReactionBubble != null)
             {
-                Tween tween = CreateTween();
-                tween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                tween.TweenInterval(delay);
-                tween.TweenProperty(widget.Wrapper, "modulate:a", 1f, PreviewEntranceDuration);
-                tween.Parallel().TweenProperty(widget.Wrapper, "position", widget.Wrapper.Position + new Vector2(0f, -previewEntranceOffset), PreviewEntranceDuration);
-                tween.Parallel().TweenProperty(widget.Wrapper, "scale", widget.Wrapper.Scale / new Vector2(0.982f, 0.982f), PreviewEntranceDuration);
+                Control bubble = refs.ReactionBubble;
+                Tween bubbleTween = CreateTween();
+                bubbleTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                bubbleTween.TweenInterval(delay);
+                bubbleTween.TweenProperty(bubble, "modulate:a", 1f, ReactionEntranceDuration);
+                bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, -ReactionEntranceOffset), ReactionEntranceDuration);
+                bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.975f, 0.975f), ReactionEntranceDuration);
+
+                Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
+                if (icon != null)
+                {
+                    Tween iconTween = CreateTween();
+                    iconTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                    iconTween.TweenInterval(delay + 0.18);
+                    iconTween.TweenProperty(icon, "modulate:a", 1f, 0.36f);
+                    iconTween.Parallel().TweenProperty(icon, "position", icon.Position + new Vector2(0f, -8f), 0.36f);
+                }
+
+                Control? text = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
+                if (text != null)
+                {
+                    Tween textTween = CreateTween();
+                    textTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                    textTween.TweenInterval(delay + 0.10);
+                    textTween.TweenProperty(text, "modulate:a", 1f, ReactionTextDuration);
+                    textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(0f, -8f), ReactionTextDuration);
+                }
+
+                StartReactionWave(bubble);
                 delay += FinalRoundStagger;
             }
+
+            if (refs.PreviewAnchor.Visible)
+            {
+                foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
+                {
+                    Tween tween = CreateTween();
+                    tween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                    tween.TweenInterval(delay);
+                    tween.TweenProperty(widget.Wrapper, "modulate:a", 1f, PreviewEntranceDuration);
+                    tween.Parallel().TweenProperty(widget.Wrapper, "position", widget.Wrapper.Position + new Vector2(0f, -PreviewEntranceOffset), PreviewEntranceDuration);
+                    tween.Parallel().TweenProperty(widget.Wrapper, "scale", widget.Wrapper.Scale / new Vector2(0.982f, 0.982f), PreviewEntranceDuration);
+                    delay += FinalRoundStagger;
+                }
+            }
         }
     }
-}
 
-    private float GetPreviewListStartY(SlotRefs refs, Vector2 anchorSize, float displayHeight, float gap)
-{
-    if (refs.PreviewWidgets.Count == 0)
+    private float GetPreviewListStartY(SlotRefs refs, Vector2 anchorSize)
     {
-        return 0f;
+        if (refs.PreviewWidgets.Count == 0)
+        {
+            return 0f;
+        }
+
+        float displayHeight = 70f;
+        float gap = 8f;
+        float totalHeight = (refs.PreviewWidgets.Count * displayHeight) + (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap);
+
+        float reserveTop = 0f;
+        if (refs.ReactionBubble != null)
+        {
+            reserveTop = ReactionBubbleHeight + ReactionBubbleGap;
+        }
+
+        return MathF.Max(reserveTop, anchorSize.Y - totalHeight);
     }
-
-    float totalHeight = (refs.PreviewWidgets.Count * displayHeight) + (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap);
-
-    // When a reaction bubble is present, the preview anchor already starts directly below it.
-    // Top-align the previews there so spare height is used below the preview list instead of
-    // turning into a large gap between the dialogue bubble and the first preview row.
-    if (refs.ReactionBubble != null)
-    {
-        return 0f;
-    }
-
-    return MathF.Max(0f, anchorSize.Y - totalHeight);
-}
 
     private void BuildUi()
     {
@@ -839,6 +742,7 @@ private void ShowRoundIntro()
         RefreshSlotVisuals(animate: false);
         RefreshButtonTexts();
         RefreshVoteDisplays(animate: false);
+        ConfigureControllerNavigation();
         GrabInitialFocus();
     }
 
@@ -901,16 +805,16 @@ private void ShowRoundIntro()
 
         chooseButtonOutline.Texture = outlineTexture;
         chooseButtonOutline.PatchMarginLeft = 0;
-        chooseButtonOutline.PatchMarginTop = 18;
+        chooseButtonOutline.PatchMarginTop = 0;
         chooseButtonOutline.PatchMarginRight = 0;
-        chooseButtonOutline.PatchMarginBottom = 18;
+        chooseButtonOutline.PatchMarginBottom = 0;
         chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
 
         chooseButton.AddThemeStyleboxOverride("normal", normal);
-        chooseButton.AddThemeStyleboxOverride("hover", hover);
-        chooseButton.AddThemeStyleboxOverride("pressed", pressed);
-        chooseButton.AddThemeStyleboxOverride("focus", hover);
-        chooseButton.AddThemeStyleboxOverride("disabled", disabled);
+        chooseButton.AddThemeStyleboxOverride("hover", normal);
+        chooseButton.AddThemeStyleboxOverride("pressed", normal);
+        chooseButton.AddThemeStyleboxOverride("focus", normal);
+        chooseButton.AddThemeStyleboxOverride("disabled", normal);
 
         chooseButton.CustomMinimumSize = new Vector2(0f, 72f);
         chooseButton.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -1107,7 +1011,7 @@ private void ShowRoundIntro()
         bool show =
             !_resolved &&
             !refs.ChooseButton.Disabled &&
-            ReferenceEquals(_hoveredSlot, refs);
+            (ReferenceEquals(_hoveredSlot, refs) || SlotHasFocusedControl(refs));
 
         refs.ChooseButtonOutline.Modulate = new Color(1f, 1f, 1f, show ? 1f : 0f);
     }
@@ -1159,7 +1063,7 @@ private void ShowRoundIntro()
             {
                 Name = $"PreviewWrapper_{i}",
                 MouseFilter = MouseFilterEnum.Stop,
-                FocusMode = FocusModeEnum.None,
+                FocusMode = FocusModeEnum.All,
                 ClipContents = false,
                 ZIndex = 3,
                 CustomMinimumSize = new Vector2(0f, 76f),
@@ -1184,6 +1088,8 @@ private void ShowRoundIntro()
             int previewIndex = i;
             previewWrapper.MouseEntered += () => OnPreviewHovered(refs, previewIndex);
             previewWrapper.MouseExited += () => OnPreviewUnhovered(refs, previewIndex);
+            previewWrapper.FocusEntered += () => OnPreviewHovered(refs, previewIndex);
+            previewWrapper.FocusExited += () => OnPreviewUnhovered(refs, previewIndex);
             NinePatchRect? previewOutline = previewButton.GetNodeOrNull<NinePatchRect>("Outline");
             if (previewOutline != null)
             {
@@ -1254,17 +1160,131 @@ private void ShowRoundIntro()
         GD.Print($"[ChooseTheAncient] Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, reaction={_reactionAncientId ?? "<none>"}");
     }
 
+    private void ConfigureControllerNavigation()
+    {
+        if (_slots.Count == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            SlotRefs refs = _slots[i];
+            Button chooseButton = refs.ChooseButton;
+            chooseButton.FocusMode = FocusModeEnum.All;
+
+            SlotRefs leftSlot = _slots[PositiveMod(i - 1, _slots.Count)];
+            SlotRefs rightSlot = _slots[PositiveMod(i + 1, _slots.Count)];
+
+            chooseButton.FocusNeighborLeft = leftSlot.ChooseButton.GetPath();
+            chooseButton.FocusNeighborRight = rightSlot.ChooseButton.GetPath();
+            chooseButton.FocusNeighborBottom = chooseButton.GetPath();
+
+            List<PreviewWidgetRefs> previews = GetVisiblePreviewWidgets(refs);
+            if (previews.Count == 0)
+            {
+                chooseButton.FocusNeighborTop = chooseButton.GetPath();
+                continue;
+            }
+
+            PreviewWidgetRefs bottomPreview = previews[^1];
+            chooseButton.FocusNeighborTop = bottomPreview.Wrapper.GetPath();
+
+            for (int previewIndex = 0; previewIndex < previews.Count; previewIndex++)
+            {
+                PreviewWidgetRefs widget = previews[previewIndex];
+                Control focusControl = widget.Wrapper;
+                focusControl.FocusMode = FocusModeEnum.All;
+                focusControl.FocusNeighborBottom = previewIndex == previews.Count - 1
+                    ? chooseButton.GetPath()
+                    : previews[previewIndex + 1].Wrapper.GetPath();
+                focusControl.FocusNeighborTop = previewIndex > 0
+                    ? previews[previewIndex - 1].Wrapper.GetPath()
+                    : chooseButton.GetPath();
+
+                Control leftTarget = GetAdjacentPreviewFocusTarget(i, previewIndex, direction: -1, fallbackControl: focusControl);
+                Control rightTarget = GetAdjacentPreviewFocusTarget(i, previewIndex, direction: 1, fallbackControl: focusControl);
+                focusControl.FocusNeighborLeft = leftTarget.GetPath();
+                focusControl.FocusNeighborRight = rightTarget.GetPath();
+            }
+        }
+    }
+
+    private List<PreviewWidgetRefs> GetVisiblePreviewWidgets(SlotRefs refs)
+    {
+        if (!refs.PreviewAnchor.Visible)
+        {
+            return new List<PreviewWidgetRefs>();
+        }
+
+        return refs.PreviewWidgets
+            .Where(widget => widget.Wrapper.Visible && GodotObject.IsInstanceValid(widget.Wrapper))
+            .ToList();
+    }
+
+    private Control GetAdjacentPreviewFocusTarget(int slotIndex, int previewIndex, int direction, Control fallbackControl)
+    {
+        if (_slots.Count == 0)
+        {
+            return fallbackControl;
+        }
+
+        int targetSlotIndex = PositiveMod(slotIndex + direction, _slots.Count);
+        SlotRefs targetSlot = _slots[targetSlotIndex];
+        List<PreviewWidgetRefs> targetPreviews = GetVisiblePreviewWidgets(targetSlot);
+        if (targetPreviews.Count == 0)
+        {
+            return targetSlot.ChooseButton;
+        }
+
+        int clampedIndex = Math.Clamp(previewIndex, 0, targetPreviews.Count - 1);
+        return targetPreviews[clampedIndex].Wrapper;
+    }
+
+    private bool SlotHasFocusedControl(SlotRefs refs)
+    {
+        if (refs.ChooseButton.HasFocus())
+        {
+            return true;
+        }
+
+        return refs.PreviewWidgets.Any(widget =>
+            GodotObject.IsInstanceValid(widget.Wrapper) &&
+            widget.Wrapper.Visible &&
+            widget.Wrapper.HasFocus());
+    }
+
+    private bool IsSlotInteractivelyActive(SlotRefs refs)
+    {
+        Viewport viewport = GetViewport();
+        if (viewport == null)
+        {
+            return SlotHasFocusedControl(refs);
+        }
+
+        Vector2 mousePosition = viewport.GetMousePosition();
+        if (refs.CardRoot.GetGlobalRect().HasPoint(mousePosition)
+            || refs.ChooseButton.GetGlobalRect().HasPoint(mousePosition)
+            || SlotHasFocusedControl(refs))
+        {
+            return true;
+        }
+
+        return refs.PreviewWidgets.Any(widget =>
+            GodotObject.IsInstanceValid(widget.Wrapper)
+            && widget.Wrapper.Visible
+            && widget.Wrapper.GetGlobalRect().HasPoint(mousePosition));
+    }
+
     private void TryShowReactionBubble(SlotRefs refs, bool animate)
     {
         refs.ReactionBubble = null;
 
         Control bubble = BuildReactionBubble(refs.Ancient);
         bubble.ZIndex = 6;
-
-        refs.ReactionAnchor.AddChild(bubble);
+        refs.PreviewAnchor.AddChild(bubble);
         refs.ReactionBubble = bubble;
-        refs.ReactionAnchor.Visible = true;
-        ApplyReactionBubbleMetrics(bubble, GetCurrentLayoutMetricsOrFallback());
+        refs.ReactionAnchor.Visible = false;
 
         try
         {
@@ -1275,278 +1295,277 @@ private void ShowRoundIntro()
         }
 
         bubble.Modulate = new Color(1f, 1f, 1f, 0f);
-    } 
+        GD.Print($"[ChooseTheAncient] Showing custom reaction bubble for {refs.Ancient.Id.Entry}: How about now?");
+    }
 
 
     private Control BuildReactionBubble(AncientEventModel ancient)
-{
-    LayoutMetrics metrics = GetCurrentLayoutMetricsOrFallback();
-
-    Texture2D bubbleTexture = GD.Load<Texture2D>(DialogueBubbleTexturePath)
-        ?? throw new InvalidOperationException($"Could not load {DialogueBubbleTexturePath}");
-    Texture2D tailTexture = GD.Load<Texture2D>(DialogueTailTexturePath)
-        ?? throw new InvalidOperationException($"Could not load {DialogueTailTexturePath}");
-    Font regularFont = GD.Load<Font>(DialogueRegularFontPath)
-        ?? throw new InvalidOperationException($"Could not load {DialogueRegularFontPath}");
-    Font boldFont = GD.Load<Font>(DialogueBoldFontPath)
-        ?? throw new InvalidOperationException($"Could not load {DialogueBoldFontPath}");
-    Font italicFont = GD.Load<Font>(DialogueItalicFontPath)
-        ?? throw new InvalidOperationException($"Could not load {DialogueItalicFontPath}");
-
-    Control root = new()
     {
-        Name = $"ReactionBubble_{ancient.Id.Entry}",
-        MouseFilter = MouseFilterEnum.Ignore,
-        FocusMode = FocusModeEnum.None,
-        CustomMinimumSize = new Vector2(0f, metrics.ReactionBubbleHeight),
-    };
-    root.LayoutMode = 1;
-    root.AnchorLeft = 0f;
-    root.AnchorTop = 0f;
-    root.AnchorRight = 1f;
-    root.AnchorBottom = 0f;
-    root.OffsetLeft = 0f;
-    root.OffsetTop = 0f;
-    root.OffsetRight = 0f;
-    root.OffsetBottom = metrics.ReactionBubbleHeight;
+        Texture2D bubbleTexture = GD.Load<Texture2D>(DialogueBubbleTexturePath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueBubbleTexturePath}");
+        Texture2D tailTexture = GD.Load<Texture2D>(DialogueTailTexturePath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueTailTexturePath}");
+        Font regularFont = GD.Load<Font>(DialogueRegularFontPath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueRegularFontPath}");
+        Font boldFont = GD.Load<Font>(DialogueBoldFontPath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueBoldFontPath}");
+        Font italicFont = GD.Load<Font>(DialogueItalicFontPath)
+            ?? throw new InvalidOperationException($"Could not load {DialogueItalicFontPath}");
 
-    HBoxContainer line = new()
-    {
-        Name = "LineRoot",
-        MouseFilter = MouseFilterEnum.Ignore,
-        FocusMode = FocusModeEnum.None,
-        CustomMinimumSize = new Vector2(0f, metrics.ReactionLineHeight),
-    };
-    line.LayoutMode = 1;
-    line.AnchorLeft = 0f;
-    line.AnchorTop = 0f;
-    line.AnchorRight = 1f;
-    line.AnchorBottom = 0f;
-    line.OffsetLeft = 0f;
-    line.OffsetTop = 0f;
-    line.OffsetRight = 0f;
-    line.OffsetBottom = metrics.ReactionLineHeight;
-    root.AddChild(line);
+        Control root = new()
+        {
+            Name = $"ReactionBubble_{ancient.Id.Entry}",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(0f, ReactionBubbleHeight),
+        };
+        root.LayoutMode = 1;
+        root.AnchorLeft = 0f;
+        root.AnchorTop = 0f;
+        root.AnchorRight = 1f;
+        root.AnchorBottom = 0f;
+        root.OffsetLeft = 0f;
+        root.OffsetTop = 0f;
+        root.OffsetRight = 0f;
+        root.OffsetBottom = ReactionBubbleHeight;
 
-    Control iconRoot = new()
-    {
-        Name = "AncientIcon",
-        CustomMinimumSize = new Vector2(metrics.ReactionIconSize, metrics.ReactionIconSize),
-        MouseFilter = MouseFilterEnum.Ignore,
-        FocusMode = FocusModeEnum.None,
-    };
-    line.AddChild(iconRoot);
+        HBoxContainer line = new()
+        {
+            Name = "LineRoot",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(0f, 68f),
+        };
+        line.LayoutMode = 1;
+        line.AnchorLeft = 0f;
+        line.AnchorTop = 0f;
+        line.AnchorRight = 1f;
+        line.AnchorBottom = 0f;
+        line.OffsetLeft = 0f;
+        line.OffsetTop = 0f;
+        line.OffsetRight = 0f;
+        line.OffsetBottom = 68f;
+        root.AddChild(line);
 
-    Texture2D? reactionIconTexture = ancient.RunHistoryIcon ?? ancient.MapIcon;
-    Texture2D? reactionOutlineTexture = ancient.RunHistoryIconOutline ?? ancient.MapIcon;
+        Control iconRoot = new()
+        {
+            Name = "AncientIcon",
+            CustomMinimumSize = new Vector2(56f, 56f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+        line.AddChild(iconRoot);
 
-    TextureRect icon = new()
-    {
-        Name = "Icon",
-        Texture = reactionIconTexture,
-        Modulate = Colors.White,
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        MouseFilter = MouseFilterEnum.Ignore,
-    };
-    icon.LayoutMode = 1;
-    icon.AnchorLeft = 0f;
-    icon.AnchorTop = 0f;
-    icon.AnchorRight = 1f;
-    icon.AnchorBottom = 1f;
-    iconRoot.AddChild(icon);
+        Texture2D? reactionIconTexture = ancient.RunHistoryIcon ?? ancient.MapIcon;
+        Texture2D? reactionOutlineTexture = ancient.RunHistoryIconOutline ?? ancient.MapIcon;
 
-    TextureRect outline = new()
-    {
-        Name = "Outline",
-        Texture = reactionOutlineTexture,
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        MouseFilter = MouseFilterEnum.Ignore,
-        Modulate = new Color(0f, 0f, 0f, 0.5f),
-        ShowBehindParent = true,
-    };
-    outline.LayoutMode = 1;
-    outline.AnchorLeft = 0f;
-    outline.AnchorTop = 0f;
-    outline.AnchorRight = 1f;
-    outline.AnchorBottom = 1f;
-    iconRoot.AddChild(outline);
+        TextureRect icon = new()
+        {
+            Name = "Icon",
+            Texture = reactionIconTexture,
+            Modulate = Colors.White,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        icon.LayoutMode = 1;
+        icon.AnchorLeft = 0f;
+        icon.AnchorTop = 0f;
+        icon.AnchorRight = 1f;
+        icon.AnchorBottom = 1f;
+        iconRoot.AddChild(icon);
 
-    MarginContainer dialogueContainer = new()
-    {
-        Name = "DialogueContainer",
-        CustomMinimumSize = new Vector2(0f, metrics.ReactionLineHeight),
-        MouseFilter = MouseFilterEnum.Ignore,
-        FocusMode = FocusModeEnum.None,
-    };
-    dialogueContainer.LayoutMode = 2;
-    dialogueContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-    line.AddChild(dialogueContainer);
+        TextureRect outline = new()
+        {
+            Name = "Outline",
+            Texture = reactionOutlineTexture,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+            Modulate = new Color(0f, 0f, 0f, 0.5f),
+            ShowBehindParent = true,
+        };
+        outline.LayoutMode = 1;
+        outline.AnchorLeft = 0f;
+        outline.AnchorTop = 0f;
+        outline.AnchorRight = 1f;
+        outline.AnchorBottom = 1f;
+        iconRoot.AddChild(outline);
 
-    HBoxContainer tailRow = new()
-    {
-        Name = "TailRow",
-        MouseFilter = MouseFilterEnum.Ignore,
-        FocusMode = FocusModeEnum.None,
-    };
-    tailRow.LayoutMode = 1;
-    tailRow.AnchorLeft = 0f;
-    tailRow.AnchorTop = 0f;
-    tailRow.AnchorRight = 1f;
-    tailRow.AnchorBottom = 1f;
-    tailRow.AddThemeConstantOverride("separation", RoundedInt(metrics.ReactionTailRowSeparation));
-    dialogueContainer.AddChild(tailRow);
+        MarginContainer dialogueContainer = new()
+        {
+            Name = "DialogueContainer",
+            CustomMinimumSize = new Vector2(0f, 68f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+        dialogueContainer.LayoutMode = 2;
+        dialogueContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        line.AddChild(dialogueContainer);
 
-    TextureRect tail = new()
-    {
-        Name = "DialogueTailLeft",
-        Texture = tailTexture,
-        CustomMinimumSize = new Vector2(metrics.ReactionTailWidth, 0f),
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        MouseFilter = MouseFilterEnum.Ignore,
-        SelfModulate = ancient.DialogueColor,
-    };
-    tailRow.AddChild(tail);
+        HBoxContainer tailRow = new()
+        {
+            Name = "TailRow",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+        tailRow.LayoutMode = 1;
+        tailRow.AnchorLeft = 0f;
+        tailRow.AnchorTop = 0f;
+        tailRow.AnchorRight = 1f;
+        tailRow.AnchorBottom = 1f;
+        tailRow.AddThemeConstantOverride("separation", -12);
+        dialogueContainer.AddChild(tailRow);
 
-    TextureRect tailShadow = new()
-    {
-        Name = "Shadow",
-        Texture = tailTexture,
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        MouseFilter = MouseFilterEnum.Ignore,
-        SelfModulate = new Color(0f, 0f, 0f, 0.25098f),
-        ShowBehindParent = true,
-    };
-    tailShadow.LayoutMode = 1;
-    tailShadow.AnchorLeft = 0f;
-    tailShadow.AnchorTop = 0f;
-    tailShadow.AnchorRight = 1f;
-    tailShadow.AnchorBottom = 1f;
-    tailShadow.OffsetLeft = metrics.DialogueShadowOffsetX;
-    tailShadow.OffsetTop = metrics.DialogueShadowOffsetY;
-    tailShadow.OffsetRight = metrics.DialogueShadowOffsetX;
-    tailShadow.OffsetBottom = metrics.DialogueShadowOffsetY;
-    tail.AddChild(tailShadow);
+        TextureRect tail = new()
+        {
+            Name = "DialogueTailLeft",
+            Texture = tailTexture,
+            CustomMinimumSize = new Vector2(28f, 0f),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+            SelfModulate = ancient.DialogueColor,
+        };
+        tailRow.AddChild(tail);
 
-    NinePatchRect bubble = new()
-    {
-        Name = "Bubble",
-        Texture = bubbleTexture,
-        RegionRect = new Rect2(0f, 0f, 116f, 85f),
-        PatchMarginLeft = 27,
-        PatchMarginTop = 28,
-        PatchMarginRight = 27,
-        PatchMarginBottom = 28,
-        AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Stretch,
-        AxisStretchVertical = NinePatchRect.AxisStretchMode.Stretch,
-        SelfModulate = ancient.DialogueColor,
-        MouseFilter = MouseFilterEnum.Ignore,
-    };
-    bubble.LayoutMode = 2;
-    bubble.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-    tailRow.AddChild(bubble);
+        TextureRect tailShadow = new()
+        {
+            Name = "Shadow",
+            Texture = tailTexture,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+            SelfModulate = new Color(0f, 0f, 0f, 0.25098f),
+            ShowBehindParent = true,
+        };
+        tailShadow.LayoutMode = 1;
+        tailShadow.AnchorLeft = 0f;
+        tailShadow.AnchorTop = 0f;
+        tailShadow.AnchorRight = 1f;
+        tailShadow.AnchorBottom = 1f;
+        tailShadow.OffsetLeft = 2f;
+        tailShadow.OffsetTop = 5f;
+        tailShadow.OffsetRight = 2f;
+        tailShadow.OffsetBottom = 5f;
+        tail.AddChild(tailShadow);
 
-    NinePatchRect bubbleShadow = new()
-    {
-        Name = "Shadow",
-        Texture = bubbleTexture,
-        RegionRect = new Rect2(0f, 0f, 116f, 85f),
-        PatchMarginLeft = 27,
-        PatchMarginTop = 28,
-        PatchMarginRight = 27,
-        PatchMarginBottom = 28,
-        AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Stretch,
-        AxisStretchVertical = NinePatchRect.AxisStretchMode.Stretch,
-        SelfModulate = new Color(0f, 0f, 0f, 0.25098f),
-        MouseFilter = MouseFilterEnum.Ignore,
-        ShowBehindParent = true,
-    };
-    bubbleShadow.LayoutMode = 1;
-    bubbleShadow.AnchorLeft = 0f;
-    bubbleShadow.AnchorTop = 0f;
-    bubbleShadow.AnchorRight = 1f;
-    bubbleShadow.AnchorBottom = 1f;
-    bubbleShadow.OffsetLeft = metrics.DialogueShadowOffsetX;
-    bubbleShadow.OffsetTop = metrics.DialogueShadowOffsetY;
-    bubbleShadow.OffsetRight = metrics.DialogueShadowOffsetX;
-    bubbleShadow.OffsetBottom = metrics.DialogueShadowOffsetY;
-    bubble.AddChild(bubbleShadow);
+        NinePatchRect bubble = new()
+        {
+            Name = "Bubble",
+            Texture = bubbleTexture,
+            RegionRect = new Rect2(0f, 0f, 116f, 85f),
+            PatchMarginLeft = 27,
+            PatchMarginTop = 28,
+            PatchMarginRight = 27,
+            PatchMarginBottom = 28,
+            AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Stretch,
+            AxisStretchVertical = NinePatchRect.AxisStretchMode.Stretch,
+            SelfModulate = ancient.DialogueColor,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        bubble.LayoutMode = 2;
+        bubble.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        tailRow.AddChild(bubble);
 
-    MarginContainer textContainer = new()
-    {
-        Name = "TextContainer",
-        MouseFilter = MouseFilterEnum.Ignore,
-        FocusMode = FocusModeEnum.None,
-    };
-    textContainer.LayoutMode = 1;
-    textContainer.AnchorLeft = 0f;
-    textContainer.AnchorTop = 0f;
-    textContainer.AnchorRight = 1f;
-    textContainer.AnchorBottom = 1f;
-    textContainer.AddThemeConstantOverride("margin_left", RoundedInt(metrics.ReactionTextMarginLeft));
-    textContainer.AddThemeConstantOverride("margin_top", RoundedInt(metrics.ReactionTextMarginTop));
-    textContainer.AddThemeConstantOverride("margin_right", RoundedInt(metrics.ReactionTextMarginRight));
-    textContainer.AddThemeConstantOverride("margin_bottom", RoundedInt(metrics.ReactionTextMarginBottom));
-    dialogueContainer.AddChild(textContainer);
+        NinePatchRect bubbleShadow = new()
+        {
+            Name = "Shadow",
+            Texture = bubbleTexture,
+            RegionRect = new Rect2(0f, 0f, 116f, 85f),
+            PatchMarginLeft = 27,
+            PatchMarginTop = 28,
+            PatchMarginRight = 27,
+            PatchMarginBottom = 28,
+            AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Stretch,
+            AxisStretchVertical = NinePatchRect.AxisStretchMode.Stretch,
+            SelfModulate = new Color(0f, 0f, 0f, 0.25098f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            ShowBehindParent = true,
+        };
+        bubbleShadow.LayoutMode = 1;
+        bubbleShadow.AnchorLeft = 0f;
+        bubbleShadow.AnchorTop = 0f;
+        bubbleShadow.AnchorRight = 1f;
+        bubbleShadow.AnchorBottom = 1f;
+        bubbleShadow.OffsetLeft = 2f;
+        bubbleShadow.OffsetTop = 5f;
+        bubbleShadow.OffsetRight = 2f;
+        bubbleShadow.OffsetBottom = 5f;
+        bubble.AddChild(bubbleShadow);
 
-    VBoxContainer textBox = new()
-    {
-        Name = "TextBox",
-        MouseFilter = MouseFilterEnum.Ignore,
-        FocusMode = FocusModeEnum.None,
-        SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-    };
-    textBox.LayoutMode = 2;
-    textBox.AddThemeConstantOverride("separation", 0);
-    textContainer.AddChild(textBox);
+        MarginContainer textContainer = new()
+        {
+            Name = "TextContainer",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+        textContainer.LayoutMode = 1;
+        textContainer.AnchorLeft = 0f;
+        textContainer.AnchorTop = 0f;
+        textContainer.AnchorRight = 1f;
+        textContainer.AnchorBottom = 1f;
+        textContainer.AddThemeConstantOverride("margin_left", 20);
+        textContainer.AddThemeConstantOverride("margin_top", 8);
+        textContainer.AddThemeConstantOverride("margin_right", 18);
+        textContainer.AddThemeConstantOverride("margin_bottom", 10);
+        dialogueContainer.AddChild(textContainer);
 
-    RichTextLabel speakerLabel = new()
-    {
-        Name = "SpeakerLabel",
-        BbcodeEnabled = true,
-        Text = $"[b]{ancient.Title.GetFormattedText()}[/b]",
-        FitContent = true,
-        ScrollActive = false,
-        MouseFilter = MouseFilterEnum.Ignore,
-    };
-    speakerLabel.AddThemeColorOverride("default_color", new Color(1f, 0.964706f, 0.886275f, 1f));
-    speakerLabel.AddThemeFontOverride("normal_font", regularFont);
-    speakerLabel.AddThemeFontOverride("bold_font", boldFont);
-    speakerLabel.AddThemeFontOverride("italics_font", italicFont);
-    speakerLabel.AddThemeFontSizeOverride("normal_font_size", metrics.ReactionSpeakerFontSize);
-    speakerLabel.AddThemeFontSizeOverride("bold_font_size", metrics.ReactionSpeakerFontSize);
-    speakerLabel.AddThemeFontSizeOverride("italics_font_size", metrics.ReactionSpeakerFontSize);
-    speakerLabel.AddThemeConstantOverride("line_separation", -2);
-    textBox.AddChild(speakerLabel);
+        VBoxContainer textBox = new()
+        {
+            Name = "TextBox",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        textBox.LayoutMode = 2;
+        textBox.AddThemeConstantOverride("separation", 0);
+        textContainer.AddChild(textBox);
 
-    RichTextLabel lineText = new()
-    {
-        Name = "LineText",
-        BbcodeEnabled = true,
-        Text = "[i]How about now?[/i]",
-        FitContent = true,
-        ScrollActive = false,
-        MouseFilter = MouseFilterEnum.Ignore,
-        SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-    };
-    lineText.AddThemeColorOverride("default_color", new Color(1f, 0.964706f, 0.886275f, 1f));
-    lineText.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.25098f));
-    lineText.AddThemeConstantOverride("shadow_offset_x", RoundedInt(metrics.ReactionTextShadowOffsetX));
-    lineText.AddThemeConstantOverride("shadow_offset_y", RoundedInt(metrics.ReactionTextShadowOffsetY));
-    lineText.AddThemeConstantOverride("line_separation", -2);
-    lineText.AddThemeFontOverride("normal_font", regularFont);
-    lineText.AddThemeFontOverride("bold_font", boldFont);
-    lineText.AddThemeFontOverride("italics_font", italicFont);
-    lineText.AddThemeFontSizeOverride("normal_font_size", metrics.ReactionLineFontSize);
-    lineText.AddThemeFontSizeOverride("bold_font_size", metrics.ReactionLineFontSize);
-    lineText.AddThemeFontSizeOverride("italics_font_size", metrics.ReactionLineFontSize);
-    textBox.AddChild(lineText);
+        RichTextLabel speakerLabel = new()
+        {
+            Name = "SpeakerLabel",
+            BbcodeEnabled = true,
+            Text = $"[b]{ancient.Title.GetFormattedText()}[/b]",
+            FitContent = true,
+            ScrollActive = false,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        speakerLabel.AddThemeColorOverride("default_color", new Color(1f, 0.964706f, 0.886275f, 1f));
+        speakerLabel.AddThemeFontOverride("normal_font", regularFont);
+        speakerLabel.AddThemeFontOverride("bold_font", boldFont);
+        speakerLabel.AddThemeFontOverride("italics_font", italicFont);
+        speakerLabel.AddThemeFontSizeOverride("normal_font_size", 14);
+        speakerLabel.AddThemeFontSizeOverride("bold_font_size", 14);
+        speakerLabel.AddThemeFontSizeOverride("italics_font_size", 14);
+        speakerLabel.AddThemeConstantOverride("line_separation", -2);
+        textBox.AddChild(speakerLabel);
 
-    return root;
-}
+        RichTextLabel lineText = new()
+        {
+            Name = "LineText",
+            BbcodeEnabled = true,
+            Text = "[i]How about now?[/i]",
+            FitContent = true,
+            ScrollActive = false,
+            MouseFilter = MouseFilterEnum.Ignore,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        lineText.AddThemeColorOverride("default_color", new Color(1f, 0.964706f, 0.886275f, 1f));
+        lineText.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.25098f));
+        lineText.AddThemeConstantOverride("shadow_offset_x", 3);
+        lineText.AddThemeConstantOverride("shadow_offset_y", 2);
+        lineText.AddThemeConstantOverride("line_separation", -2);
+        lineText.AddThemeFontOverride("normal_font", regularFont);
+        lineText.AddThemeFontOverride("bold_font", boldFont);
+        lineText.AddThemeFontOverride("italics_font", italicFont);
+        lineText.AddThemeFontSizeOverride("normal_font_size", 24);
+        lineText.AddThemeFontSizeOverride("bold_font_size", 24);
+        lineText.AddThemeFontSizeOverride("italics_font_size", 24);
+        textBox.AddChild(lineText);
+
+        return root;
+    }
 
 
     private void OnPreviewHovered(SlotRefs refs, int previewIndex)
@@ -1569,6 +1588,10 @@ private void ShowRoundIntro()
         }
 
         _hoveredPreviewWidget = widget;
+        _hoveredSlot = refs;
+        _lastHoveredPoolIndex = refs.PoolIndex;
+        RefreshSlotVisuals(animate: true);
+        RefreshAllVoteButtonOutlines();
         ApplyPreviewHoverVisuals(widget, hovered: true);
 
         try
@@ -1622,6 +1645,7 @@ private void ShowRoundIntro()
         _hoveredPreviewWidget = null;
         ApplyPreviewHoverVisuals(widget, hovered: false);
         NHoverTipSet.Remove(widget.Wrapper);
+        CallDeferred(nameof(ClearHoveredSlotIfInactive), refs.PoolIndex);
     }
 
     private void ApplyPreviewHoverVisuals(PreviewWidgetRefs widget, bool hovered)
@@ -1741,167 +1765,134 @@ private void ShowRoundIntro()
         }
     }
     private void RefreshLayout()
-{
-    if (_stageArea == null || _slots.Count == 0)
     {
-        return;
-    }
-
-    Vector2 area = _stageArea.Size;
-    if (area.X <= 1f || area.Y <= 1f)
-    {
-        return;
-    }
-
-    LayoutMetrics metrics = BuildLayoutMetrics(area);
-    _layoutMetrics = metrics;
-    ApplyResponsiveSceneChrome(metrics);
-
-    PortalShape[] shapes = _slots.Count switch
-    {
-        3 => BuildThreePortalShapes(area, metrics.CardWidth, metrics.CardHeight, metrics.CardBottomInset),
-        2 => BuildTwoPortalShapes(area, metrics.CardWidth, metrics.CardHeight, metrics.CardBottomInset),
-        _ => BuildFallbackShapes(area, metrics.CardWidth, metrics.CardHeight, _slots.Count, metrics.CardBottomInset)
-    };
-
-    if (_roundType == VoteRoundType.FinalRevealVote && _slots.Count == 2)
-    {
-        for (int i = 0; i < shapes.Length; i++)
+        if (_stageArea == null || _slots.Count == 0)
         {
-            shapes[i] = CenterCardOnSlot(shapes[i], area, metrics.CardInnerInsetX);
+            return;
+        }
+
+        Vector2 area = _stageArea.Size;
+        if (area.X <= 1f || area.Y <= 1f)
+        {
+            return;
+        }
+
+        float cardHeight = Math.Clamp(MathF.Round(area.Y * CardHeightRatio), 188f, 224f);
+        float cardWidth = _slots.Count == 2
+            ? Math.Clamp(area.X * 0.34f, 430f, 620f)
+            : Math.Clamp(area.X * 0.29f, 430f, 520f);
+
+        PortalShape[] shapes = _slots.Count switch
+        {
+            3 => BuildThreePortalShapes(area, cardWidth, cardHeight),
+            2 => BuildTwoPortalShapes(area, cardWidth, cardHeight),
+            _ => BuildFallbackShapes(area, cardWidth, cardHeight, _slots.Count)
+        };
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            SlotRefs refs = _slots[i];
+            PortalShape shape = shapes[Math.Min(i, shapes.Length - 1)];
+            refs.Shape = shape;
+            refs.BaseSize = area;
+            refs.CardBasePosition = shape.CardRect.Position;
+
+            refs.SlotRoot.Position = Vector2.Zero;
+            refs.SlotRoot.Size = area;
+            refs.SlotRoot.PivotOffset = area * 0.5f;
+            refs.SlotRoot.ZIndex = 2;
+
+            refs.SceneViewport.Size = new Vector2I(
+                Math.Max(1, (int)MathF.Ceiling(area.X)),
+                Math.Max(1, (int)MathF.Ceiling(area.Y)));
+
+            refs.CardRoot.Position = refs.CardBasePosition;
+            refs.CardRoot.Size = shape.CardRect.Size;
+            refs.CardRoot.PivotOffset = refs.CardRoot.Size * 0.5f;
+
+            ApplyPortalGeometry(shape, refs);
+            ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
+            LayoutVoteIcons(refs);
+            LayoutPreview(refs);
+            LayoutReaction(refs);
         }
     }
 
-    for (int i = 0; i < _slots.Count; i++)
-    {
-        SlotRefs refs = _slots[i];
-        PortalShape shape = shapes[Math.Min(i, shapes.Length - 1)];
-        refs.Shape = shape;
-        refs.BaseSize = area;
-        refs.CardBasePosition = shape.CardRect.Position;
-
-        refs.SlotRoot.Position = Vector2.Zero;
-        refs.SlotRoot.Size = area;
-        refs.SlotRoot.PivotOffset = area * 0.5f;
-        refs.SlotRoot.ZIndex = 2;
-
-        refs.SceneViewport.Size = new Vector2I(
-            Math.Max(1, (int)MathF.Ceiling(area.X)),
-            Math.Max(1, (int)MathF.Ceiling(area.Y)));
-
-        refs.CardRoot.Position = refs.CardBasePosition;
-        refs.CardRoot.Size = shape.CardRect.Size;
-        refs.CardRoot.PivotOffset = refs.CardRoot.Size * 0.5f;
-
-        ApplyCardResponsiveLayout(refs, metrics);
-        ApplyPortalGeometry(shape, refs);
-        ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
-        LayoutVoteIcons(refs);
-        LayoutPreview(refs);
-        LayoutReaction(refs);
-    }
-}
-
     private void LayoutPreview(SlotRefs refs)
-{
-    if (!refs.PreviewAnchor.Visible || refs.PreviewWidgets.Count == 0)
     {
-        return;
+        if (!refs.PreviewAnchor.Visible || refs.PreviewWidgets.Count == 0)
+        {
+            return;
+        }
+
+        Vector2 anchorSize = refs.PreviewAnchor.Size;
+        if (anchorSize.X <= 1f || anchorSize.Y <= 1f)
+        {
+            anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 24f), 280f);
+        }
+
+        float scaleX = _slots.Count == 2 ? 0.82f : 0.78f;
+        float scaleY = _slots.Count == 2 ? 0.72f : 0.68f;
+        float displayWidth = anchorSize.X;
+        float displayHeight = 70f;
+        float gap = 8f;
+        float startY = GetPreviewListStartY(refs, anchorSize);
+
+        GD.Print($"[ChooseTheAncient] Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWidgets.Count}, startY={startY}");
+
+        for (int i = 0; i < refs.PreviewWidgets.Count; i++)
+        {
+            PreviewWidgetRefs widget = refs.PreviewWidgets[i];
+            Control wrapper = widget.Wrapper;
+            wrapper.LayoutMode = 1;
+            wrapper.AnchorLeft = 0f;
+            wrapper.AnchorTop = 0f;
+            wrapper.AnchorRight = 0f;
+            wrapper.AnchorBottom = 0f;
+            wrapper.Position = new Vector2(0f, startY + (i * (displayHeight + gap)));
+            wrapper.Size = new Vector2(displayWidth / scaleX, displayHeight / scaleY);
+            wrapper.Scale = new Vector2(scaleX, scaleY);
+            wrapper.PivotOffset = Vector2.Zero;
+            widget.BasePosition = wrapper.Position;
+            widget.BaseScale = wrapper.Scale;
+        }
     }
 
-    LayoutMetrics metrics = GetCurrentLayoutMetricsOrFallback();
 
-    Vector2 anchorSize = refs.PreviewAnchor.Size;
-    if (anchorSize.X <= 1f || anchorSize.Y <= 1f)
-    {
-        anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - (metrics.PreviewSideInset * 2f)), metrics.PreviewDisplayHeight * refs.PreviewWidgets.Count);
-    }
-
-    float naturalScaleX = _slots.Count == 2
-        ? Math.Clamp(0.82f * metrics.CardScale, 0.72f, 0.9f)
-        : Math.Clamp(0.78f * metrics.CardScale, 0.68f, 0.84f);
-    float naturalScaleY = _slots.Count == 2
-        ? Math.Clamp(0.72f * metrics.CardScale, 0.62f, 0.82f)
-        : Math.Clamp(0.68f * metrics.CardScale, 0.58f, 0.78f);
-
-    float gap = metrics.PreviewGap;
-    float maxDisplayHeight = (anchorSize.Y - (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap)) / Math.Max(1, refs.PreviewWidgets.Count);
-    float displayHeight = MathF.Max(42f, MathF.Min(metrics.PreviewDisplayHeight, maxDisplayHeight));
-    float displayWidth = anchorSize.X;
-
-    float baseUnscaledHeight = MathF.Max(1f, metrics.PreviewDisplayHeight / MathF.Max(0.01f, naturalScaleY));
-    float baseUnscaledWidth = MathF.Max(1f, displayWidth / MathF.Max(0.01f, naturalScaleX));
-
-    float fittedScaleX = MathF.Min(naturalScaleX, anchorSize.X / baseUnscaledWidth);
-    float fittedScaleY = MathF.Min(naturalScaleY, displayHeight / baseUnscaledHeight);
-    float appliedScaleX = MathF.Max(0.62f, fittedScaleX);
-    float appliedScaleY = MathF.Max(0.58f, fittedScaleY);
-
-    float wrapperWidth = displayWidth / MathF.Max(0.01f, appliedScaleX);
-    float wrapperHeight = displayHeight / MathF.Max(0.01f, appliedScaleY);
-    float startY = GetPreviewListStartY(refs, anchorSize, displayHeight, gap);
-    float centerOffsetX = GetFinalRoundCenterOffsetX(refs);
-
-    for (int i = 0; i < refs.PreviewWidgets.Count; i++)
-    {
-        PreviewWidgetRefs widget = refs.PreviewWidgets[i];
-        Control wrapper = widget.Wrapper;
-
-        wrapper.LayoutMode = 1;
-        wrapper.AnchorLeft = 0f;
-        wrapper.AnchorTop = 0f;
-        wrapper.AnchorRight = 0f;
-        wrapper.AnchorBottom = 0f;
-
-        wrapper.Position = new Vector2(
-            centerOffsetX,
-            startY + (i * (displayHeight + gap)));
-
-        wrapper.Size = new Vector2(wrapperWidth, wrapperHeight);
-        wrapper.Scale = new Vector2(appliedScaleX, appliedScaleY);
-        wrapper.PivotOffset = Vector2.Zero;
-
-        widget.BasePosition = wrapper.Position;
-        widget.BaseScale = wrapper.Scale;
-    }
-}
 
     private void LayoutReaction(SlotRefs refs)
-{
-    if (refs.ReactionBubble == null)
     {
-        return;
+        if (refs.ReactionBubble == null)
+        {
+            return;
+        }
+
+        Vector2 anchorSize = refs.PreviewAnchor.Size;
+        if (anchorSize.X <= 1f || anchorSize.Y <= 1f)
+        {
+            anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 24f), 280f);
+        }
+
+        float startY = GetPreviewListStartY(refs, anchorSize);
+        float bubbleY = MathF.Max(0f, startY - ReactionBubbleHeight - ReactionBubbleGap);
+
+        refs.ReactionBubble.LayoutMode = 1;
+        refs.ReactionBubble.AnchorLeft = 0f;
+        refs.ReactionBubble.AnchorTop = 0f;
+        refs.ReactionBubble.AnchorRight = 1f;
+        refs.ReactionBubble.AnchorBottom = 0f;
+        refs.ReactionBubble.OffsetLeft = 0f;
+        refs.ReactionBubble.OffsetTop = bubbleY;
+        refs.ReactionBubble.OffsetRight = 0f;
+        refs.ReactionBubble.OffsetBottom = bubbleY + ReactionBubbleHeight;
     }
 
-    LayoutMetrics metrics = GetCurrentLayoutMetricsOrFallback();
-    ApplyReactionBubbleMetrics(refs.ReactionBubble, metrics);
-
-    Vector2 anchorSize = refs.ReactionAnchor.Size;
-    if (anchorSize.X <= 1f || anchorSize.Y <= 1f)
-    {
-        anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - (metrics.PreviewSideInset * 2f)), metrics.ReactionBubbleHeight);
-    }
-
-    float bubbleWidth = anchorSize.X;
-    float bubbleHeight = MathF.Min(anchorSize.Y, metrics.ReactionBubbleHeight);
-    float bubbleY = MathF.Max(0f, (anchorSize.Y - bubbleHeight) * 0.5f);
-    float bubbleX = GetFinalRoundCenterOffsetX(refs);
-
-    refs.ReactionBubble.LayoutMode = 1;
-    refs.ReactionBubble.AnchorLeft = 0f;
-    refs.ReactionBubble.AnchorTop = 0f;
-    refs.ReactionBubble.AnchorRight = 0f;
-    refs.ReactionBubble.AnchorBottom = 0f;
-    refs.ReactionBubble.Position = new Vector2(bubbleX, bubbleY);
-    refs.ReactionBubble.Size = new Vector2(bubbleWidth, bubbleHeight);
-}
-
-    private static PortalShape[] BuildThreePortalShapes(Vector2 area, float cardWidth, float cardHeight, float cardBottomInset)
+    private static PortalShape[] BuildThreePortalShapes(Vector2 area, float cardWidth, float cardHeight)
     {
         float h = area.Y;
         float outerPad = Math.Max(20f, (area.X - (cardWidth * 3f)) / 4f);
         float cardGap = outerPad;
-        float cardY = h - cardHeight - cardBottomInset;
+        float cardY = h - cardHeight - CardBottomInset;
 
         Rect2 leftCard = new(new Vector2(outerPad, cardY), new Vector2(cardWidth, cardHeight));
         Rect2 centerCard = new(new Vector2(outerPad + cardWidth + cardGap, cardY), new Vector2(cardWidth, cardHeight));
@@ -1948,12 +1939,12 @@ private void ShowRoundIntro()
         };
     }
 
-    private static PortalShape[] BuildTwoPortalShapes(Vector2 area, float cardWidth, float cardHeight, float cardBottomInset)
+    private static PortalShape[] BuildTwoPortalShapes(Vector2 area, float cardWidth, float cardHeight)
     {
         float h = area.Y;
         float outerPad = Math.Max(42f, (area.X - (cardWidth * 2f)) / 3f);
         float cardGap = outerPad;
-        float cardY = h - cardHeight - cardBottomInset;
+        float cardY = h - cardHeight - CardBottomInset;
 
         Rect2 leftCard = new(new Vector2(outerPad, cardY), new Vector2(cardWidth, cardHeight));
         Rect2 rightCard = new(new Vector2(outerPad + cardWidth + cardGap, cardY), new Vector2(cardWidth, cardHeight));
@@ -1984,13 +1975,13 @@ private void ShowRoundIntro()
         };
     }
 
-private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, float cardHeight, int count, float cardBottomInset)
+private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, float cardHeight, int count)
 {
     if (count <= 0)
         return [];
 
     if (count == 3)
-        return BuildThreePortalShapes(area, cardWidth, cardHeight, cardBottomInset);
+        return BuildThreePortalShapes(area, cardWidth, cardHeight);
 
     float h = area.Y;
 
@@ -2001,7 +1992,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
     // If the requested card width doesn't fit, shrink it gracefully.
     float maxCardWidthThatFits = (area.X - (outerPad * (count + 1f))) / count;
     float actualCardWidth = MathF.Min(cardWidth, maxCardWidthThatFits);
-    float cardY = h - cardHeight - cardBottomInset;
+    float cardY = h - cardHeight - CardBottomInset;
 
     Rect2[] cards = new Rect2[count];
     for (int i = 0; i < count; i++)
@@ -2066,413 +2057,26 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
     return shapes;
 }
 
-
-    private LayoutMetrics BuildLayoutMetrics(Vector2 area)
-    {
-        float stageScale = Math.Clamp(MathF.Min(area.X / 1600f, area.Y / 900f), 0.72f, 1.20f);
-
-        float maxCardHeight = 224f * MathF.Max(1f, stageScale);
-        float maxCardWidth = (_slots.Count == 2 ? 620f : 520f) * MathF.Max(1f, stageScale);
-        float cardHeight = Math.Clamp(MathF.Round(area.Y * CardHeightRatio), 188f, maxCardHeight);
-        float requestedCardWidth = _slots.Count == 2
-            ? Math.Clamp(area.X * 0.34f, 320f, maxCardWidth)
-            : Math.Clamp(area.X * 0.29f, 300f, maxCardWidth);
-        float minOuterPad = _slots.Count == 2 ? 42f : 20f;
-        float maxCardWidthThatFits = MathF.Max(1f, (area.X - (minOuterPad * (_slots.Count + 1f))) / Math.Max(1, _slots.Count));
-        float cardWidth = MathF.Min(requestedCardWidth, maxCardWidthThatFits);
-
-        float cardScale = Math.Clamp(cardHeight / 224f, 0.84f, 1.18f);
-
-        return new LayoutMetrics(
-            StageSize: area,
-            StageScale: stageScale,
-            CardScale: cardScale,
-            CardBottomInset: Rounded(Math.Clamp(CardBottomInset * stageScale, 12f, 28f)),
-            CardWidth: cardWidth,
-            CardHeight: cardHeight,
-            CardInnerInsetX: Rounded(Math.Clamp(20f * cardScale, 14f, 28f)),
-            CardInnerInsetTop: Rounded(Math.Clamp(22f * cardScale, 16f, 30f)),
-            CardInnerInsetBottom: Rounded(Math.Clamp(8f * cardScale, 6f, 14f)),
-            CardPanelTopInset: Rounded(Math.Clamp(8f * cardScale, 5f, 12f)),
-            CardShadowOffsetX: Rounded(Math.Clamp(2f * cardScale, 1f, 4f)),
-            CardShadowOffsetY: Rounded(Math.Clamp(5f * cardScale, 3f, 7f)),
-            CardTailLeft: Rounded(Math.Clamp(28f * cardScale, 18f, 38f)),
-            CardTailWidth: Rounded(Math.Clamp(28f * cardScale, 20f, 38f)),
-            CardTailHeightAbove: Rounded(Math.Clamp(18f * cardScale, 12f, 24f)),
-            CardTailHeightBelow: Rounded(Math.Clamp(26f * cardScale, 18f, 34f)),
-            TopAccentInsetX: Rounded(Math.Clamp(22f * cardScale, 14f, 28f)),
-            TopAccentTop: Rounded(Math.Clamp(18f * cardScale, 12f, 24f)),
-            TopAccentHeight: Rounded(Math.Clamp(4f * cardScale, 3f, 6f)),
-            HeaderGap: Rounded(Math.Clamp(14f * cardScale, 10f, 18f)),
-            HeaderTextGap: Rounded(Math.Clamp(2f * cardScale, 1f, 4f)),
-            VBoxSeparation: Rounded(Math.Clamp(14f * cardScale, 10f, 18f)),
-            HeaderIconSize: Rounded(Math.Clamp(cardHeight * 0.25f, 44f, 64f)),
-            NameFontSize: RoundedInt(Math.Clamp(cardWidth * 0.049f, 18f, 26f)),
-            EpithetFontSize: RoundedInt(Math.Clamp(cardWidth * 0.034f, 13f, 17f)),
-            ButtonHeight: Rounded(Math.Clamp(cardHeight * 0.32f, 58f, 84f)),
-            ButtonFontSize: RoundedInt(Math.Clamp(cardHeight * 0.108f, 20f, 28f)),
-            ButtonOutlineSize: RoundedInt(Math.Clamp(6f * cardScale, 4f, 7f)),
-            ButtonOutlineInset: Rounded(Math.Clamp(8f * cardScale, 5f, 10f)),
-            ButtonOutlinePatchMarginY: RoundedInt(Math.Clamp(18f * cardScale, 12f, 20f)),
-            CardOutlineInset: Rounded(Math.Clamp(6f * cardScale, 4f, 8f)),
-            CardOutlineBorderWidth: RoundedInt(Math.Clamp(4f * cardScale, 3f, 6f)),
-            CardOutlineCornerRadius: RoundedInt(Math.Clamp(12f * cardScale, 8f, 16f)),
-            VoteIconsWidth: Rounded(Math.Clamp(cardWidth * 0.24f, 92f, 132f)),
-            VoteIconsHeight: Rounded(Math.Clamp(cardHeight * 0.18f, 32f, 48f)),
-            VoteIconsRightInset: Rounded(Math.Clamp(16f * cardScale, 10f, 22f)),
-            VoteIconsBottomInset: Rounded(Math.Clamp(48f * cardScale, 34f, 60f)),
-            VoteIconSize: Rounded(Math.Clamp(VoteIconSize * cardScale, 22f, 34f)),
-            VoteIconOverlap: Rounded(Math.Clamp(VoteIconOverlap * cardScale, 8f, 12f)),
-            PreviewSideInset: Rounded(Math.Clamp(cardWidth * 0.02f, 0f, 18f)),
-            PreviewDisplayHeight: Rounded(Math.Clamp(70f * cardScale, 58f, 82f)),
-            PreviewGap: Rounded(Math.Clamp(8f * cardScale, 6f, 12f)),
-            ReactionBubbleHeight: Rounded(Math.Clamp(ReactionBubbleHeight * cardScale, 80f, 116f)),
-            ReactionBubbleGap: Rounded(Math.Clamp(ReactionBubbleGap * cardScale, 8f, 14f)),
-            ReactionLineHeight: Rounded(Math.Clamp(68f * cardScale, 56f, 84f)),
-            ReactionIconSize: Rounded(Math.Clamp(56f * cardScale, 44f, 64f)),
-            ReactionTailWidth: Rounded(Math.Clamp(28f * cardScale, 22f, 36f)),
-            ReactionTailRowSeparation: -Rounded(Math.Clamp(12f * cardScale, 8f, 16f)),
-            ReactionTextMarginLeft: Rounded(Math.Clamp(20f * cardScale, 14f, 24f)),
-            ReactionTextMarginTop: Rounded(Math.Clamp(8f * cardScale, 6f, 12f)),
-            ReactionTextMarginRight: Rounded(Math.Clamp(18f * cardScale, 12f, 22f)),
-            ReactionTextMarginBottom: Rounded(Math.Clamp(10f * cardScale, 8f, 14f)),
-            ReactionSpeakerFontSize: RoundedInt(Math.Clamp(14f * cardScale, 12f, 18f)),
-            ReactionLineFontSize: RoundedInt(Math.Clamp(24f * cardScale, 18f, 30f)),
-            ReactionTextShadowOffsetX: Rounded(Math.Clamp(3f * cardScale, 2f, 4f)),
-            ReactionTextShadowOffsetY: Rounded(Math.Clamp(2f * cardScale, 1f, 3f)),
-            DialogueShadowOffsetX: Rounded(Math.Clamp(2f * cardScale, 1f, 3f)),
-            DialogueShadowOffsetY: Rounded(Math.Clamp(5f * cardScale, 3f, 6f)),
-            PortalRimThickness: Rounded(Math.Clamp(PortalRimThickness * stageScale, 4f, 9f)),
-            RoundIntroFloatOffset: Rounded(Math.Clamp(12f * stageScale, 8f, 18f)),
-            ReactionEntranceOffset: Rounded(Math.Clamp(ReactionEntranceOffset * stageScale, 28f, 56f)),
-            PreviewEntranceOffset: Rounded(Math.Clamp(PreviewEntranceOffset * stageScale, 30f, 60f)),
-            TopScrimHeight: Rounded(Math.Clamp(area.Y * 0.22f, 160f, 280f)),
-            StageTopMargin: RoundedInt(Math.Clamp(28f * stageScale, 16f, 40f)),
-            RoundIntroOverlayTop: Rounded(Math.Clamp(92f * stageScale, 60f, 124f)),
-            RoundIntroOverlayHeight: Rounded(Math.Clamp(140f * stageScale, 112f, 180f)),
-            RoundIntroAnchorHalfWidth: Rounded(Math.Clamp(area.X * 0.465f, 460f, 1040f)),
-            RoundIntroAnchorHeight: Rounded(Math.Clamp(140f * stageScale, 112f, 180f)),
-            RoundIntroMinFontSize: RoundedInt(Math.Clamp(42f * stageScale, 30f, 56f)),
-            RoundIntroMaxFontSize: RoundedInt(Math.Clamp(88f * stageScale, 64f, 108f)),
-            RoundIntroEffectSpacing: Rounded(Math.Clamp(stageScale * 10.5f, 8.5f, 14.0f)));
-    }
-
-    private LayoutMetrics GetCurrentLayoutMetricsOrFallback()
-    {
-        if (_layoutMetrics.HasValue)
-        {
-            return _layoutMetrics.Value;
-        }
-
-        Vector2 fallbackSize = _stageArea?.Size ?? (_layoutRoot?.Size ?? GetViewportRect().Size);
-        if (fallbackSize.X <= 1f || fallbackSize.Y <= 1f)
-        {
-            fallbackSize = new Vector2(1600f, 900f);
-        }
-
-        return BuildLayoutMetrics(fallbackSize);
-    }
-
-    private void ApplyResponsiveSceneChrome(LayoutMetrics metrics)
-    {
-        if (_topScrim != null)
-        {
-            _topScrim.LayoutMode = 1;
-            _topScrim.AnchorLeft = 0f;
-            _topScrim.AnchorTop = 0f;
-            _topScrim.AnchorRight = 1f;
-            _topScrim.AnchorBottom = 0f;
-            _topScrim.OffsetLeft = 0f;
-            _topScrim.OffsetTop = 0f;
-            _topScrim.OffsetRight = 0f;
-            _topScrim.OffsetBottom = metrics.TopScrimHeight;
-        }
-
-        if (_stageMargin != null)
-        {
-            _stageMargin.AddThemeConstantOverride("margin_top", metrics.StageTopMargin);
-        }
-
-        if (_roundIntroOverlay != null)
-        {
-            _roundIntroOverlay.LayoutMode = 1;
-            _roundIntroOverlay.AnchorLeft = 0f;
-            _roundIntroOverlay.AnchorTop = 0f;
-            _roundIntroOverlay.AnchorRight = 1f;
-            _roundIntroOverlay.AnchorBottom = 0f;
-            _roundIntroOverlay.OffsetLeft = 0f;
-            _roundIntroOverlay.OffsetTop = metrics.RoundIntroOverlayTop;
-            _roundIntroOverlay.OffsetRight = 0f;
-            _roundIntroOverlay.OffsetBottom = metrics.RoundIntroOverlayTop + metrics.RoundIntroOverlayHeight;
-        }
-
-        if (_roundIntroAnchor != null)
-        {
-            _roundIntroAnchor.LayoutMode = 1;
-            _roundIntroAnchor.AnchorLeft = 0.5f;
-            _roundIntroAnchor.AnchorTop = 0f;
-            _roundIntroAnchor.AnchorRight = 0.5f;
-            _roundIntroAnchor.AnchorBottom = 0f;
-            _roundIntroAnchor.OffsetLeft = -metrics.RoundIntroAnchorHalfWidth;
-            _roundIntroAnchor.OffsetTop = 0f;
-            _roundIntroAnchor.OffsetRight = metrics.RoundIntroAnchorHalfWidth;
-            _roundIntroAnchor.OffsetBottom = metrics.RoundIntroAnchorHeight;
-            _roundIntroBasePosition = _roundIntroAnchor.Position;
-        }
-
-        if (_roundIntroLabel != null)
-        {
-            _roundIntroLabel.MinFontSize = metrics.RoundIntroMinFontSize;
-            _roundIntroLabel.MaxFontSize = metrics.RoundIntroMaxFontSize;
-            _roundIntroLabel.AddThemeFontSizeOverride(RtNormalFontSize, metrics.RoundIntroMaxFontSize);
-            _roundIntroLabel.AddThemeFontSizeOverride(RtBoldFontSize, metrics.RoundIntroMaxFontSize);
-            _roundIntroLabel.AddThemeFontSizeOverride(RtBoldItalicsFontSize, metrics.RoundIntroMaxFontSize);
-            _roundIntroLabel.AddThemeFontSizeOverride(RtItalicsFontSize, metrics.RoundIntroMaxFontSize);
-            _roundIntroLabel.AddThemeFontSizeOverride(RtMonoFontSize, metrics.RoundIntroMaxFontSize);
-
-            if (_hasLoadedRound)
-            {
-                SetRoundIntroTextStyled(GetRoundIntroText());
-            }
-        }
-    }
-
-    private void ApplyCardResponsiveLayout(SlotRefs refs, LayoutMetrics metrics)
-    {
-        NinePatchRect panel = refs.CardRoot.GetNode<NinePatchRect>("Panel");
-        NinePatchRect panelShadow = panel.GetNode<NinePatchRect>("Shadow");
-        TextureRect tailAccent = panel.GetNode<TextureRect>("TailAccent");
-        TextureRect tailShadow = tailAccent.GetNode<TextureRect>("TailShadow");
-        MarginContainer padding = refs.CardRoot.GetNode<MarginContainer>("Padding");
-        VBoxContainer vbox = refs.CardRoot.GetNode<VBoxContainer>("Padding/VBox");
-        HBoxContainer header = refs.CardRoot.GetNode<HBoxContainer>("Padding/VBox/Header");
-        VBoxContainer textBox = refs.CardRoot.GetNode<VBoxContainer>("Padding/VBox/Header/TextBox");
-        Control chooseButtonWrap = refs.CardRoot.GetNode<Control>("Padding/VBox/ChooseButtonWrap");
-
-        panel.OffsetTop = metrics.CardPanelTopInset;
-        panelShadow.OffsetLeft = metrics.CardShadowOffsetX;
-        panelShadow.OffsetTop = metrics.CardShadowOffsetY;
-        panelShadow.OffsetRight = metrics.CardShadowOffsetX;
-        panelShadow.OffsetBottom = metrics.CardShadowOffsetY;
-
-        tailAccent.OffsetLeft = metrics.CardTailLeft;
-        tailAccent.OffsetTop = -metrics.CardTailHeightAbove;
-        tailAccent.OffsetRight = metrics.CardTailLeft + metrics.CardTailWidth;
-        tailAccent.OffsetBottom = metrics.CardTailHeightBelow;
-        tailShadow.OffsetLeft = metrics.CardShadowOffsetX;
-        tailShadow.OffsetTop = MathF.Max(1f, metrics.CardShadowOffsetY - 1f);
-        tailShadow.OffsetRight = metrics.CardShadowOffsetX;
-        tailShadow.OffsetBottom = MathF.Max(1f, metrics.CardShadowOffsetY - 1f);
-
-        refs.TopAccent.OffsetLeft = metrics.TopAccentInsetX;
-        refs.TopAccent.OffsetTop = metrics.TopAccentTop;
-        refs.TopAccent.OffsetRight = -metrics.TopAccentInsetX;
-        refs.TopAccent.OffsetBottom = metrics.TopAccentTop + metrics.TopAccentHeight;
-
-        padding.OffsetLeft = metrics.CardInnerInsetX;
-        padding.OffsetTop = metrics.CardInnerInsetTop;
-        padding.OffsetRight = -metrics.CardInnerInsetX;
-        padding.OffsetBottom = -metrics.CardInnerInsetBottom;
-        vbox.AddThemeConstantOverride("separation", RoundedInt(metrics.VBoxSeparation));
-        header.AddThemeConstantOverride("separation", RoundedInt(metrics.HeaderGap));
-        textBox.AddThemeConstantOverride("separation", RoundedInt(metrics.HeaderTextGap));
-
-        refs.Icon.CustomMinimumSize = new Vector2(metrics.HeaderIconSize, metrics.HeaderIconSize);
-        refs.NameLabel.AddThemeFontSizeOverride("font_size", metrics.NameFontSize);
-        refs.EpithetLabel.AddThemeFontSizeOverride("font_size", metrics.EpithetFontSize);
-
-        chooseButtonWrap.CustomMinimumSize = new Vector2(0f, metrics.ButtonHeight);
-        refs.ChooseButton.CustomMinimumSize = new Vector2(0f, metrics.ButtonHeight);
-        refs.ChooseButton.AddThemeFontSizeOverride("font_size", metrics.ButtonFontSize);
-        refs.ChooseButton.AddThemeConstantOverride("outline_size", metrics.ButtonOutlineSize);
-
-        refs.ChooseButtonOutline.OffsetLeft = -metrics.ButtonOutlineInset;
-        refs.ChooseButtonOutline.OffsetTop = -metrics.ButtonOutlineInset;
-        refs.ChooseButtonOutline.OffsetRight = metrics.ButtonOutlineInset;
-        refs.ChooseButtonOutline.OffsetBottom = metrics.ButtonOutlineInset;
-        refs.ChooseButtonOutline.PatchMarginLeft = 0;
-        refs.ChooseButtonOutline.PatchMarginTop = metrics.ButtonOutlinePatchMarginY;
-        refs.ChooseButtonOutline.PatchMarginRight = 0;
-        refs.ChooseButtonOutline.PatchMarginBottom = metrics.ButtonOutlinePatchMarginY;
-
-        refs.CardOutline.OffsetLeft = -metrics.CardOutlineInset;
-        refs.CardOutline.OffsetTop = -metrics.CardOutlineInset;
-        refs.CardOutline.OffsetRight = metrics.CardOutlineInset;
-        refs.CardOutline.OffsetBottom = metrics.CardOutlineInset;
-
-        if (refs.CardOutline.GetThemeStylebox("panel") is StyleBoxFlat outlineStyle)
-        {
-            outlineStyle.BorderWidthLeft = metrics.CardOutlineBorderWidth;
-            outlineStyle.BorderWidthTop = metrics.CardOutlineBorderWidth;
-            outlineStyle.BorderWidthRight = metrics.CardOutlineBorderWidth;
-            outlineStyle.BorderWidthBottom = metrics.CardOutlineBorderWidth;
-            outlineStyle.CornerRadiusTopLeft = metrics.CardOutlineCornerRadius;
-            outlineStyle.CornerRadiusTopRight = metrics.CardOutlineCornerRadius;
-            outlineStyle.CornerRadiusBottomLeft = metrics.CardOutlineCornerRadius;
-            outlineStyle.CornerRadiusBottomRight = metrics.CardOutlineCornerRadius;
-        }
-
-        ApplyOverlayAnchorRects(refs, metrics);
-    }
-
-    private void ApplyOverlayAnchorRects(SlotRefs refs, LayoutMetrics metrics)
-    {
-        float cardWidth = Math.Max(1f, refs.CardRoot.Size.X);
-        float overlayInset = metrics.PreviewSideInset;
-        float overlayWidth = Math.Max(1f, cardWidth - (overlayInset * 2f));
-        float availableAboveCard = MathF.Max(metrics.PreviewGap, refs.CardRoot.Position.Y - metrics.CardInnerInsetTop);
-
-        int previewCount = refs.PreviewWidgets.Count;
-        float desiredPreviewHeight = previewCount > 0
-            ? (previewCount * metrics.PreviewDisplayHeight) + (Math.Max(0, previewCount - 1) * metrics.PreviewGap)
-            : 0f;
-        float desiredBubbleHeight = refs.ReactionBubble != null ? metrics.ReactionBubbleHeight : 0f;
-        float desiredGap = refs.ReactionBubble != null && previewCount > 0 ? metrics.ReactionBubbleGap : 0f;
-        float totalDesired = desiredPreviewHeight + desiredBubbleHeight + desiredGap;
-        float fitRatio = totalDesired > 0f
-            ? MathF.Min(1f, availableAboveCard / totalDesired)
-            : 1f;
-
-        float bubbleHeight = refs.ReactionBubble != null
-            ? MathF.Min(metrics.ReactionBubbleHeight, desiredBubbleHeight * fitRatio)
-            : 0f;
-
-        if (refs.ReactionBubble != null && previewCount == 0)
-        {
-            bubbleHeight = MathF.Min(metrics.ReactionBubbleHeight, availableAboveCard);
-        }
-
-        float previewHeight = previewCount > 0
-            ? MathF.Max(0f, MathF.Min(availableAboveCard - bubbleHeight - desiredGap, desiredPreviewHeight * fitRatio))
-            : 0f;
-        float gap = refs.ReactionBubble != null && previewCount > 0 ? desiredGap : 0f;
-        float clusterHeight = bubbleHeight + gap + previewHeight;
-        float clusterTop = -clusterHeight;
-
-        refs.ReactionAnchor.LayoutMode = 1;
-        refs.ReactionAnchor.AnchorLeft = 0f;
-        refs.ReactionAnchor.AnchorTop = 0f;
-        refs.ReactionAnchor.AnchorRight = 0f;
-        refs.ReactionAnchor.AnchorBottom = 0f;
-        refs.ReactionAnchor.Position = new Vector2(overlayInset, clusterTop);
-        refs.ReactionAnchor.Size = new Vector2(overlayWidth, Math.Max(1f, bubbleHeight));
-        refs.ReactionAnchor.CustomMinimumSize = refs.ReactionAnchor.Size;
-
-        refs.PreviewAnchor.LayoutMode = 1;
-        refs.PreviewAnchor.AnchorLeft = 0f;
-        refs.PreviewAnchor.AnchorTop = 0f;
-        refs.PreviewAnchor.AnchorRight = 0f;
-        refs.PreviewAnchor.AnchorBottom = 0f;
-        refs.PreviewAnchor.Position = new Vector2(overlayInset, clusterTop + bubbleHeight + gap);
-        refs.PreviewAnchor.Size = new Vector2(overlayWidth, Math.Max(1f, previewHeight));
-        refs.PreviewAnchor.CustomMinimumSize = refs.PreviewAnchor.Size;
-    }
-
-    private void ApplyReactionBubbleMetrics(Control bubble, LayoutMetrics metrics)
-    {
-        bubble.CustomMinimumSize = new Vector2(0f, metrics.ReactionBubbleHeight);
-        bubble.OffsetBottom = metrics.ReactionBubbleHeight;
-
-        if (bubble.GetNodeOrNull<HBoxContainer>("LineRoot") is HBoxContainer lineRoot)
-        {
-            lineRoot.CustomMinimumSize = new Vector2(0f, metrics.ReactionLineHeight);
-            lineRoot.OffsetBottom = metrics.ReactionLineHeight;
-        }
-
-        if (bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon") is Control iconRoot)
-        {
-            iconRoot.CustomMinimumSize = new Vector2(metrics.ReactionIconSize, metrics.ReactionIconSize);
-        }
-
-        if (bubble.GetNodeOrNull<MarginContainer>("LineRoot/DialogueContainer") is MarginContainer dialogueContainer)
-        {
-            dialogueContainer.CustomMinimumSize = new Vector2(0f, metrics.ReactionLineHeight);
-        }
-
-        if (bubble.GetNodeOrNull<HBoxContainer>("LineRoot/DialogueContainer/TailRow") is HBoxContainer tailRow)
-        {
-            tailRow.AddThemeConstantOverride("separation", RoundedInt(metrics.ReactionTailRowSeparation));
-        }
-
-        if (bubble.GetNodeOrNull<TextureRect>("LineRoot/DialogueContainer/TailRow/DialogueTailLeft") is TextureRect tail)
-        {
-            tail.CustomMinimumSize = new Vector2(metrics.ReactionTailWidth, 0f);
-
-            if (tail.GetNodeOrNull<TextureRect>("Shadow") is TextureRect tailShadow)
-            {
-                tailShadow.OffsetLeft = metrics.DialogueShadowOffsetX;
-                tailShadow.OffsetTop = metrics.DialogueShadowOffsetY;
-                tailShadow.OffsetRight = metrics.DialogueShadowOffsetX;
-                tailShadow.OffsetBottom = metrics.DialogueShadowOffsetY;
-            }
-        }
-
-        if (bubble.GetNodeOrNull<NinePatchRect>("LineRoot/DialogueContainer/TailRow/Bubble") is NinePatchRect bubblePatch
-            && bubblePatch.GetNodeOrNull<NinePatchRect>("Shadow") is NinePatchRect bubbleShadow)
-        {
-            bubbleShadow.OffsetLeft = metrics.DialogueShadowOffsetX;
-            bubbleShadow.OffsetTop = metrics.DialogueShadowOffsetY;
-            bubbleShadow.OffsetRight = metrics.DialogueShadowOffsetX;
-            bubbleShadow.OffsetBottom = metrics.DialogueShadowOffsetY;
-        }
-
-        if (bubble.GetNodeOrNull<MarginContainer>("LineRoot/DialogueContainer/TextContainer") is MarginContainer textContainer)
-        {
-            textContainer.AddThemeConstantOverride("margin_left", RoundedInt(metrics.ReactionTextMarginLeft));
-            textContainer.AddThemeConstantOverride("margin_top", RoundedInt(metrics.ReactionTextMarginTop));
-            textContainer.AddThemeConstantOverride("margin_right", RoundedInt(metrics.ReactionTextMarginRight));
-            textContainer.AddThemeConstantOverride("margin_bottom", RoundedInt(metrics.ReactionTextMarginBottom));
-        }
-
-        if (bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/SpeakerLabel") is RichTextLabel speakerLabel)
-        {
-            speakerLabel.AddThemeFontSizeOverride("normal_font_size", metrics.ReactionSpeakerFontSize);
-            speakerLabel.AddThemeFontSizeOverride("bold_font_size", metrics.ReactionSpeakerFontSize);
-            speakerLabel.AddThemeFontSizeOverride("italics_font_size", metrics.ReactionSpeakerFontSize);
-        }
-
-        if (bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText") is RichTextLabel lineText)
-        {
-            lineText.AddThemeConstantOverride("shadow_offset_x", RoundedInt(metrics.ReactionTextShadowOffsetX));
-            lineText.AddThemeConstantOverride("shadow_offset_y", RoundedInt(metrics.ReactionTextShadowOffsetY));
-            lineText.AddThemeFontSizeOverride("normal_font_size", metrics.ReactionLineFontSize);
-            lineText.AddThemeFontSizeOverride("bold_font_size", metrics.ReactionLineFontSize);
-            lineText.AddThemeFontSizeOverride("italics_font_size", metrics.ReactionLineFontSize);
-        }
-    }
-
-    private static int RoundedInt(float value)
-    {
-        return (int)MathF.Round(value);
-    }
-
-    private static float Rounded(float value)
-    {
-        return MathF.Round(value);
-    }
-
     private void ApplyPortalGeometry(PortalShape shape, SlotRefs refs)
-{
-    Vector2[] polygon = new[]
     {
-        shape.TopLeft,
-        shape.TopRight,
-        shape.BottomRight,
-        shape.BottomLeft,
-    };
+        Vector2[] polygon = new[]
+        {
+            shape.TopLeft,
+            shape.TopRight,
+            shape.BottomRight,
+            shape.BottomLeft,
+        };
 
-    float rimThickness = _layoutMetrics?.PortalRimThickness ?? PortalRimThickness;
+        refs.ScenePolygon.Polygon = polygon;
+        refs.ScenePolygon.Set("uv", polygon);
+        refs.GlowPolygon.Polygon = polygon;
+        refs.HoverFlashPolygon.Polygon = polygon;
 
-    refs.ScenePolygon.Polygon = polygon;
-    refs.ScenePolygon.Set("uv", polygon);
-    refs.GlowPolygon.Polygon = polygon;
-    refs.HoverFlashPolygon.Polygon = polygon;
-
-    refs.LeftRim.Polygon = BuildLineQuad(shape.TopLeft, shape.BottomLeft, rimThickness);
-    refs.RightRim.Polygon = BuildLineQuad(shape.TopRight, shape.BottomRight, rimThickness);
-    refs.LeftRim.ZIndex = 0;
-    refs.RightRim.ZIndex = 0;
-}
+        refs.LeftRim.Polygon = BuildLineQuad(shape.TopLeft, shape.BottomLeft, PortalRimThickness);
+        refs.RightRim.Polygon = BuildLineQuad(shape.TopRight, shape.BottomRight, PortalRimThickness);
+        refs.LeftRim.ZIndex = 0;
+        refs.RightRim.ZIndex = 0;
+    }
 
     private AncientSceneConfig GetSceneConfig(string ancientId)
     {
@@ -2514,7 +2118,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         float appliedScale = cfg.Scale * (hovered ? HoverSceneScaleMultiplier : 1f);
 
         Vector2 slotAnchorPx = new(
-            GetSlotVisualCenterX(refs),
+            (refs.Shape.TopLeft.X + refs.Shape.TopRight.X + refs.Shape.BottomLeft.X + refs.Shape.BottomRight.X) * 0.25f,
             0f);
 
         Vector2 sourceAnchorPx = new(
@@ -2626,12 +2230,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             return;
         }
 
-        Vector2 mousePosition = GetViewport().GetMousePosition();
-        bool stillHovering = refs.CardRoot.GetGlobalRect().HasPoint(mousePosition)
-            || refs.ChooseButton.GetGlobalRect().HasPoint(mousePosition)
-            || refs.ChooseButton.HasFocus();
-
-        if (stillHovering)
+        if (IsSlotInteractivelyActive(refs))
         {
             return;
         }
@@ -2993,58 +2592,56 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
     }
 
     private void LayoutVoteIcons(SlotRefs refs)
-{
-    if (refs.VoteIconsAnchor == null || !GodotObject.IsInstanceValid(refs.VoteIconsAnchor))
     {
-        return;
+        if (refs.VoteIconsAnchor == null || !GodotObject.IsInstanceValid(refs.VoteIconsAnchor))
+        {
+            return;
+        }
+
+        if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
+        {
+            return;
+        }
+
+        refs.VoteIconsAnchor.LayoutMode = 1;
+        refs.VoteIconsAnchor.AnchorLeft = 1f;
+        refs.VoteIconsAnchor.AnchorTop = 1f;
+        refs.VoteIconsAnchor.AnchorRight = 1f;
+        refs.VoteIconsAnchor.AnchorBottom = 1f;
+        refs.VoteIconsAnchor.OffsetLeft = -112f;
+        refs.VoteIconsAnchor.OffsetTop = -88f;
+        refs.VoteIconsAnchor.OffsetRight = -16f;
+        refs.VoteIconsAnchor.OffsetBottom = -48f;
+
+        List<Control> icons = refs.VoteContainer.GetChildren()
+            .OfType<Control>()
+            .OrderBy(node => node.GetIndex())
+            .ToList();
+
+        if (icons.Count == 0)
+        {
+            return;
+        }
+
+        float spacing = VoteIconSize - VoteIconOverlap;
+        float totalWidth = VoteIconSize + ((icons.Count - 1) * spacing);
+        float startX = MathF.Max(0f, refs.VoteIconsAnchor.Size.X - totalWidth);
+        float y = MathF.Max(0f, (refs.VoteIconsAnchor.Size.Y - VoteIconSize) * 0.5f);
+
+        for (int i = 0; i < icons.Count; i++)
+        {
+            Control icon = icons[i];
+            icon.LayoutMode = 1;
+            icon.AnchorLeft = 0f;
+            icon.AnchorTop = 0f;
+            icon.AnchorRight = 0f;
+            icon.AnchorBottom = 0f;
+            icon.Position = new Vector2(startX + (i * spacing), y);
+            icon.Size = new Vector2(VoteIconSize, VoteIconSize);
+            icon.ZIndex = 12;
+            icon.MouseFilter = MouseFilterEnum.Ignore;
+        }
     }
-
-    if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
-    {
-        return;
-    }
-
-    LayoutMetrics metrics = GetCurrentLayoutMetricsOrFallback();
-
-    refs.VoteIconsAnchor.LayoutMode = 1;
-    refs.VoteIconsAnchor.AnchorLeft = 1f;
-    refs.VoteIconsAnchor.AnchorTop = 1f;
-    refs.VoteIconsAnchor.AnchorRight = 1f;
-    refs.VoteIconsAnchor.AnchorBottom = 1f;
-    refs.VoteIconsAnchor.OffsetLeft = -(metrics.VoteIconsRightInset + metrics.VoteIconsWidth);
-    refs.VoteIconsAnchor.OffsetTop = -(metrics.VoteIconsBottomInset + metrics.VoteIconsHeight);
-    refs.VoteIconsAnchor.OffsetRight = -metrics.VoteIconsRightInset;
-    refs.VoteIconsAnchor.OffsetBottom = -metrics.VoteIconsBottomInset;
-
-    List<Control> icons = refs.VoteContainer.GetChildren()
-        .OfType<Control>()
-        .OrderBy(node => node.GetIndex())
-        .ToList();
-
-    if (icons.Count == 0)
-    {
-        return;
-    }
-
-    float spacing = metrics.VoteIconSize - metrics.VoteIconOverlap;
-    float totalWidth = metrics.VoteIconSize + ((icons.Count - 1) * spacing);
-    float startX = MathF.Max(0f, refs.VoteIconsAnchor.Size.X - totalWidth);
-    float y = MathF.Max(0f, (refs.VoteIconsAnchor.Size.Y - metrics.VoteIconSize) * 0.5f);
-
-    for (int i = 0; i < icons.Count; i++)
-    {
-        Control icon = icons[i];
-        icon.LayoutMode = 1;
-        icon.AnchorLeft = 0f;
-        icon.AnchorTop = 0f;
-        icon.AnchorRight = 0f;
-        icon.AnchorBottom = 0f;
-        icon.Position = new Vector2(startX + (i * spacing), y);
-        icon.Size = new Vector2(metrics.VoteIconSize, metrics.VoteIconSize);
-        icon.ZIndex = 12;
-        icon.MouseFilter = MouseFilterEnum.Ignore;
-    }
-}
 
     private void RefreshButtonTexts()
     {
@@ -3342,8 +2939,6 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             child.QueueFree();
         }
     }
-    
-    // Code to handle glyph animation for scene banner for both rounds
 
     private static readonly StringName RtNormalFont = "normal_font";
     private static readonly StringName RtBoldFont = "bold_font";
@@ -3360,110 +2955,39 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
     private static readonly StringName RtShadowColor = "font_shadow_color";
     
     private void SetRoundIntroTextStyled(string text)
-{
-    if (_roundIntroLabel == null)
     {
-        return;
-    }
-
-    string upper = text.ToUpperInvariant();
-
-    Font font = _roundIntroLabel.GetThemeFont(RtNormalFont, "RichTextLabel");
-    int fontSize = _roundIntroLabel.GetThemeFontSize(RtNormalFontSize, "RichTextLabel");
-    float effectSpacing = GetRoundIntroInitialEffectSpacing(upper, font, fontSize);
-
-    _roundIntroLabel.BbcodeEnabled = true;
-    _roundIntroLabel.Call("InstallEffectsIfNeeded");
-
-    Godot.Collections.Array effects = _roundIntroLabel.CustomEffects;
-
-    if (_roundIntroBannerEffect != null && effects.Contains(_roundIntroBannerEffect))
-    {
-        effects.Remove(_roundIntroBannerEffect);
-    }
-
-    _roundIntroBannerEffect = new RichTextAncientBanner
-    {
-        CenterCharacter = GetTextCenterGlyphIndex(upper, font, fontSize),
-        Rotation = 0.03f,
-        Spacing = effectSpacing
-    };
-
-    effects.Add(_roundIntroBannerEffect);
-    _roundIntroLabel.CustomEffects = effects;
-
-    _roundIntroLabel.SetTextAutoSize($"[ancient_banner]{upper}[/ancient_banner]");
-} 
-
-    private float GetRoundIntroInitialEffectSpacing(string text, Font font, int fontSize)
-    {
-        float baseSpacing = (_layoutMetrics?.RoundIntroEffectSpacing
-            ?? (_roundIntroAnchor != null ? Math.Clamp(_roundIntroAnchor.Size.X * 0.0075f, 8.5f, 14.0f) : 10.5f))
-            * RoundIntroSpacingTuning;
-
-        int visibleGlyphCount = text.Count(c => !char.IsWhiteSpace(c));
-        int totalCharacterCount = Math.Max(1, text.Length);
-        if (visibleGlyphCount <= 0)
+        if (_roundIntroLabel == null)
         {
-            return baseSpacing;
+            return;
         }
 
-        float desiredSpacing = visibleGlyphCount switch
+        string upper = text.ToUpperInvariant();
+
+        Font font = _roundIntroLabel.GetThemeFont(RtNormalFont, "RichTextLabel");
+        int fontSize = _roundIntroLabel.GetThemeFontSize(RtNormalFontSize, "RichTextLabel");
+
+        _roundIntroLabel.BbcodeEnabled = true;
+        _roundIntroLabel.Call("InstallEffectsIfNeeded");
+
+        Godot.Collections.Array effects = _roundIntroLabel.CustomEffects;
+
+        if (_roundIntroBannerEffect != null && effects.Contains(_roundIntroBannerEffect))
         {
-            <= 10 => 24f,
-            <= 14 => 20f,
-            <= 18 => 16f,
-            <= 22 => 13f,
-            _ => 11f
+            effects.Remove(_roundIntroBannerEffect);
+        }
+
+        _roundIntroBannerEffect = new RichTextAncientBanner
+        {
+            CenterCharacter = GetTextCenterGlyphIndex(upper, font, fontSize),
+            Rotation = 0.05f,
+            Spacing = 650f
         };
 
-        float maxSafeSpacing = desiredSpacing;
-        if (_roundIntroAnchor != null && _roundIntroAnchor.Size.X > 1f)
-        {
-            float anchorWidth = _roundIntroAnchor.Size.X;
-            float textWidth = GetTextAdvanceWidth(text, font, fontSize);
+        effects.Add(_roundIntroBannerEffect);
+        _roundIntroLabel.CustomEffects = effects;
 
-            if (textWidth > 1f)
-            {
-                float availableExtraWidth = Math.Max(0f, (anchorWidth * 0.96f) - textWidth);
-                float spacingBudget = totalCharacterCount > 1
-                    ? availableExtraWidth / (totalCharacterCount - 1)
-                    : availableExtraWidth;
-
-                maxSafeSpacing = Math.Max(0f, spacingBudget);
-            }
-        }
-
-        float minimumNoticeableSpacing = Math.Min(
-            maxSafeSpacing,
-            Math.Clamp(baseSpacing * 1.05f, 9.0f, 13.0f));
-
-        float startingSpacing = Math.Min(desiredSpacing, maxSafeSpacing);
-        if (maxSafeSpacing > minimumNoticeableSpacing)
-        {
-            startingSpacing = Math.Max(startingSpacing, minimumNoticeableSpacing);
-        }
-
-        return Math.Clamp(startingSpacing * RoundIntroSpacingTuning, 0f, 24f);
-    }
-
-    private static float GetTextAdvanceWidth(string text, Font font, int fontSize)
-    {
-        using TextParagraph paragraph = new();
-        paragraph.AddString(text, font, fontSize);
-
-        TextServer textServer = TextServerManager.Singleton.GetPrimaryInterface();
-        Godot.Collections.Array<Godot.Collections.Dictionary> glyphs =
-            textServer.ShapedTextGetGlyphs(paragraph.GetLineRid(0));
-
-        float totalWidth = 0f;
-        foreach (Godot.Collections.Dictionary glyph in glyphs)
-        {
-            totalWidth += glyph.GetValueOrDefault("advance").AsSingle();
-        }
-
-        return totalWidth;
-    }
+        _roundIntroLabel.SetTextAutoSize($"[ancient_banner]{upper}[/ancient_banner]");
+    } 
 
     private static float GetTextCenterGlyphIndex(string text, Font font, int fontSize)
     {
@@ -3497,44 +3021,5 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
 
         return 0f;
-    }
-    
-    // Helpers to resize elements to fit any screen resolution
-    
-    private float GetSlotVisualCenterX(SlotRefs refs)
-    {
-        return (refs.Shape.TopLeft.X
-                + refs.Shape.TopRight.X
-                + refs.Shape.BottomLeft.X
-                + refs.Shape.BottomRight.X) * 0.25f;
-    }
-
-    private float GetCardCenterX(SlotRefs refs)
-    {
-        return refs.CardRoot.Position.X + (refs.CardRoot.Size.X * 0.5f);
-    }
-
-    private float GetFinalRoundCenterOffsetX(SlotRefs refs)
-    {
-        return GetSlotVisualCenterX(refs) - GetCardCenterX(refs);
-    }
-    
-    private static float GetSlotVisualCenterX(PortalShape shape)
-    {
-        return (shape.TopLeft.X + shape.TopRight.X + shape.BottomRight.X + shape.BottomLeft.X) * 0.25f;
-    }
-
-    private static PortalShape CenterCardOnSlot(PortalShape shape, Vector2 area, float edgeInset = 18f)
-    {
-        float targetX = GetSlotVisualCenterX(shape) - (shape.CardRect.Size.X * 0.5f);
-        float maxX = MathF.Max(edgeInset, area.X - shape.CardRect.Size.X - edgeInset);
-        targetX = Math.Clamp(targetX, edgeInset, maxX);
-
-        return shape with
-        {
-            CardRect = new Rect2(
-                new Vector2(targetX, shape.CardRect.Position.Y),
-                shape.CardRect.Size)
-        };
     }
 }
