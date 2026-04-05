@@ -1,3 +1,5 @@
+using ChooseTheAncient.ChooseTheAncientCode;
+using ChooseTheAncient.Scripts;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
@@ -14,9 +16,9 @@ public partial class MainFile : Node
 
     public static void Initialize()
     {
+        ModConfigBridge.DeferredRegister();
+        ChooseTheAncientConfig.RefreshFromModConfig();
         Harmony harmony = new(ModId);
-
         harmony.PatchAll();
-        GD.Print($"[{ModId}] Patches applied.");
     }
 }

@@ -220,11 +220,16 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     private Control? _slotsCanvas;
     private AudioStreamPlayer? _hoverSfx;
     private AudioStreamPlayer? _clickSfx;
+    private bool _lastShowOnlyButtonOutline;
+    private bool _lastShowControllerHotkeys;
 
     public NetScreenType ScreenType => NetScreenType.Rewards;
     public bool UseSharedBackstop => true;
     
-    public bool ShowControllerHotkeys { get; set; } = false;
+    // ModConfig variables
+    public bool ShowControllerHotkeys { get; set; } = ChooseTheAncientConfig.ShowControllerHotkeys;
+    public bool ShowOnlyButtonOutline { get; set; } = ChooseTheAncientConfig.ShowOnlyButtonOutline;
+    
     public Control? DefaultFocusedControl { get; private set; }
 
     public AncientBanSelectionScreen()
@@ -276,9 +281,79 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         await ApplyRoundAsync();
         return await _voteSubmitted.Task;
     }
+    
+    private static readonly List<AncientBanSelectionScreen> _openScreens = new();
 
+    public static void RefreshModConfigHotkeys()
+    {
+        for (int i = _openScreens.Count - 1; i >= 0; i--)
+        {
+            AncientBanSelectionScreen screen = _openScreens[i];
+            if (!GodotObject.IsInstanceValid(screen))
+            {
+                _openScreens.RemoveAt(i);
+                continue;
+            }
+
+            screen.RefreshModConfigValues();
+        }
+    }
+
+    public void InitiateConfigValues()
+    {
+        
+        _lastShowControllerHotkeys = ShowControllerHotkeys;
+        _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
+    }
+    
+    public void RefreshModConfigValues()
+    {
+        
+    ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
+    ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
+    }
+    
+    public override void _Process(double delta)
+    {
+        if (!_uiReady || !Visible)
+            return;
+
+        ChooseTheAncientConfig.RefreshFromModConfig();
+        RefreshModConfigValues();
+
+        if (_lastShowControllerHotkeys == ShowControllerHotkeys &&
+            _lastShowOnlyButtonOutline == ShowOnlyButtonOutline)
+        {
+            return;
+        }
+
+        RebuildForLiveConfigRefresh();
+
+        _lastShowControllerHotkeys = ShowControllerHotkeys;
+        _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
+    }
+    
+    private void SyncConfigFromSavedSettings()
+    {
+        ChooseTheAncientConfig.RefreshFromModConfig();
+        ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
+        ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
+    }
+    
+    private void RebuildForLiveConfigRefresh()
+    {
+        BuildUi();
+        ApplySecondVotePresentation(animate: false);
+        RefreshLayout();
+        RefreshSlotVisuals(animate: false);
+        RefreshButtonTexts();
+        RefreshVoteDisplays(animate: false);
+        GrabInitialFocus();
+    }
+    
     public override void _Ready()
     {
+        SyncConfigFromSavedSettings();
         PackedScene? layoutScene = GD.Load<PackedScene>(LayoutScenePath);
         if (layoutScene == null)
         {
@@ -359,6 +434,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _stageArea.Resized += RefreshLayout;
         ConnectControllerPromptSignals();
         UpdateVoteButtonControllerIcons();
+        
+        InitiateConfigValues();
+        RefreshModConfigValues();
 
         _uiReady = true;
         _readyCompletion.TrySetResult(true);
@@ -377,8 +455,8 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         }
 
         // Copy the Font style from Ancient Banner
-        AncientEventModel? sampleAncient = _slots.Count > 0 ? _slots[0].Ancient : null;
-
+        //AncientEventModel? sampleAncient = _slots.Count > 0 ? _slots[0].Ancient : null;
+        SyncConfigFromSavedSettings();
         
         if (!_hasLoadedRound)
         {
@@ -776,7 +854,7 @@ private void ShowRoundIntro()
     
     private static void ApplyVoteButtonLook(
         Button chooseButton,
-        NinePatchRect chooseButtonOutline, bool bodyVisible = true)
+        NinePatchRect chooseButtonOutline, bool bodyVisible)
     {
         Texture2D buttonTexture = GD.Load<Texture2D>(VoteButtonTexturePath)
             ?? throw new InvalidOperationException($"Could not load {VoteButtonTexturePath}");
@@ -938,7 +1016,7 @@ private void ShowRoundIntro()
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
         Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
         
-        ApplyVoteButtonLook(chooseButton, chooseButtonOutline, true);
+        ApplyVoteButtonLook(chooseButton, chooseButtonOutline, bodyVisible:!ShowOnlyButtonOutline);
         ApplyCardOutlineLook(cardOutline);
 
         chooseButtonWrap.FocusMode = FocusModeEnum.All;
@@ -1024,7 +1102,8 @@ private void ShowRoundIntro()
             Shape = default,
         };
     }
-    
+
+
     private void UpdateVoteButtonOutline(SlotRefs refs)
     {
         bool show =
@@ -2856,9 +2935,16 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             AcceptEvent();
         }
     }
-
+    
+    public override void _EnterTree()
+    {
+        base._EnterTree();
+        _openScreens.Add(this);
+    }
+    
     public override void _ExitTree()
     {
+        _openScreens.Remove(this);
         _roundIntroTween?.Kill();
         DisconnectControllerPromptSignals();
         if (!_voteSubmitted.Task.IsCompleted)
