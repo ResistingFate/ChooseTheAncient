@@ -341,18 +341,18 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         ChooseTheAncientConfig.RefreshFromModConfig();
         RefreshModConfigValues();
 
-        if (_lastShowControllerHotkeys == ShowControllerHotkeys &&
-            _lastShowOnlyButtonOutline == ShowOnlyButtonOutline &&
-            _lastVoteClickTarget == VoteClickTarget)
+        if (_lastShowControllerHotkeys != ShowControllerHotkeys ||
+            _lastShowOnlyButtonOutline != ShowOnlyButtonOutline ||
+            _lastVoteClickTarget != VoteClickTarget)
         {
-            return;
+            RebuildForLiveConfigRefresh();
+
+            _lastShowControllerHotkeys = ShowControllerHotkeys;
+            _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
+            _lastVoteClickTarget = VoteClickTarget;
         }
 
-        RebuildForLiveConfigRefresh();
-
-        _lastShowControllerHotkeys = ShowControllerHotkeys;
-        _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
-        _lastVoteClickTarget = VoteClickTarget;
+        UpdateWholeSlotHoverFromMouse();
     }
 
     private void SyncConfigFromSavedSettings()
@@ -452,8 +452,9 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         _stageArea.ClipContents = true;
         _slotsCanvas.ClipContents = false;
-        _stageArea.MouseFilter = MouseFilterEnum.Ignore;
+        _stageArea.MouseFilter = MouseFilterEnum.Pass;
         _slotsCanvas.MouseFilter = MouseFilterEnum.Ignore;
+        _stageArea.GuiInput += OnStageAreaGuiInput;
         _stageArea.Resized += RefreshLayout;
         ConnectControllerPromptSignals();
         UpdateVoteButtonControllerIcons();
@@ -896,6 +897,136 @@ private void ShowRoundIntro()
         }
     }
 
+    private static Vector2[] BuildPortalPolygon(PortalShape shape)
+    {
+        return
+        [
+            shape.TopLeft,
+            shape.TopRight,
+            shape.BottomRight,
+            shape.BottomLeft,
+        ];
+    }
+
+    private bool TryGetStageLocalMousePosition(out Vector2 stageLocalMouse)
+    {
+        stageLocalMouse = Vector2.Zero;
+
+        if (_stageArea == null)
+        {
+            return false;
+        }
+
+        Vector2 viewportMouse = GetViewport().GetMousePosition();
+        if (!_stageArea.GetGlobalRect().HasPoint(viewportMouse))
+        {
+            return false;
+        }
+
+        stageLocalMouse = _stageArea.GetLocalMousePosition();
+        return true;
+    }
+
+    private static bool IsPointInsidePortalShape(PortalShape shape, Vector2 stagePoint)
+    {
+        return Geometry2D.IsPointInPolygon(stagePoint, BuildPortalPolygon(shape));
+    }
+
+    private int? GetWholeSlotPoolIndexAtStagePoint(Vector2 stagePoint)
+    {
+        foreach (SlotRefs refs in _slots)
+        {
+            if (IsPointInsidePortalShape(refs.Shape, stagePoint))
+            {
+                return refs.PoolIndex;
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsMouseOverWholeSlot(SlotRefs refs)
+    {
+        return TryGetStageLocalMousePosition(out Vector2 stagePoint) &&
+               IsPointInsidePortalShape(refs.Shape, stagePoint);
+    }
+
+    private void UpdateWholeSlotHoverFromMouse()
+    {
+        if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
+        {
+            return;
+        }
+
+        if (_resolved)
+        {
+            return;
+        }
+
+        if (!TryGetStageLocalMousePosition(out Vector2 stagePoint))
+        {
+            if (_hoveredSlot != null)
+            {
+                ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(null);
+                _hoveredSlot = null;
+                _lastHoveredPoolIndex = null;
+                RefreshSlotVisuals(animate: true);
+                RefreshAllVoteButtonOutlines();
+            }
+
+            return;
+        }
+
+        int? hoveredPoolIndex = GetWholeSlotPoolIndexAtStagePoint(stagePoint);
+        if (!hoveredPoolIndex.HasValue)
+        {
+            if (_hoveredSlot != null)
+            {
+                ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(null);
+                _hoveredSlot = null;
+                _lastHoveredPoolIndex = null;
+                RefreshSlotVisuals(animate: true);
+                RefreshAllVoteButtonOutlines();
+            }
+
+            return;
+        }
+
+        OnSlotHovered(hoveredPoolIndex.Value);
+    }
+
+    private void OnStageAreaGuiInput(InputEvent @event)
+    {
+        if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
+        {
+            return;
+        }
+
+        if (_resolved || _closing)
+        {
+            return;
+        }
+
+        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+        {
+            return;
+        }
+
+        if (!TryGetStageLocalMousePosition(out Vector2 stagePoint))
+        {
+            return;
+        }
+
+        int? poolIndex = GetWholeSlotPoolIndexAtStagePoint(stagePoint);
+        if (!poolIndex.HasValue)
+        {
+            return;
+        }
+
+        Select(poolIndex.Value);
+        AcceptEvent();
+    }
+
     private Control CreateVoteClickTarget(string name, int poolIndex, bool isSlotTarget)
     {
         Control clickTarget = new()
@@ -945,9 +1076,10 @@ private void ShowRoundIntro()
         refs.CardClickTarget.MouseFilter = VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.ButtonOnly
             ? MouseFilterEnum.Pass
             : MouseFilterEnum.Stop;
-        refs.SlotClickTarget.MouseFilter = VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot
-            ? MouseFilterEnum.Stop
-            : MouseFilterEnum.Ignore;
+
+        // Whole-slot hit testing is handled against the actual portal polygon from the shared stage area.
+        // That keeps hover/click exactly inside the visible slot seams instead of using overlapping rectangles.
+        refs.SlotClickTarget.MouseFilter = MouseFilterEnum.Ignore;
     }
 
     private static void ApplyVoteButtonLook(
@@ -2396,6 +2528,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         Vector2 mousePosition = GetViewport().GetMousePosition();
         bool stillHovering = refs.CardRoot.GetGlobalRect().HasPoint(mousePosition)
             || refs.ChooseButton.GetGlobalRect().HasPoint(mousePosition)
+            || (VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot && IsMouseOverWholeSlot(refs))
             || refs.ChooseButtonWrap.HasFocus()
             || refs.ChooseButton.HasFocus()
             || refs.PreviewWidgets.Any(widget => GodotObject.IsInstanceValid(widget.Wrapper) && widget.Wrapper.HasFocus());
