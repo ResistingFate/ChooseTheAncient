@@ -286,9 +286,17 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         AddChild(_layoutRoot);
 
         _roundIntroAnchor = _layoutRoot.GetNode<Control>("RoundIntroOverlay/RoundIntroAnchor");
+        _roundIntroBasePosition = _roundIntroAnchor.Position;
 
         Node? existingIntro = _roundIntroAnchor.GetNodeOrNull("RoundIntroLabel");
         existingIntro?.QueueFree();
+
+        Font regularFont = GD.Load<Font>("res://themes/kreon_regular_glyph_space_one.tres")
+            ?? throw new InvalidOperationException("Could not load kreon regular font.");
+        Font boldFont = GD.Load<Font>("res://themes/kreon_bold_glyph_space_one.tres")
+            ?? throw new InvalidOperationException("Could not load kreon bold font.");
+        Font italicFont = GD.Load<Font>("res://themes/bitter_medium_italic_glyph_space_one.tres")
+            ?? throw new InvalidOperationException("Could not load bitter italic font.");
 
         _roundIntroLabel = new MegaRichTextLabel
         {
@@ -309,18 +317,22 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         };
 
         _roundIntroLabel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        _roundIntroLabel.AddThemeColorOverride("default_color", Colors.White);
-        _roundIntroLabel.AddThemeFontOverride("normal_font", GD.Load<Font>("res://themes/kreon_regular_glyph_space_one.tres"));
-        _roundIntroLabel.AddThemeFontOverride("bold_font", GD.Load<Font>("res://themes/kreon_bold_glyph_space_one.tres"));
-        _roundIntroLabel.AddThemeFontOverride("italics_font", GD.Load<Font>("res://themes/bitter_medium_italic_glyph_space_one.tres"));
-        _roundIntroLabel.AddThemeFontSizeOverride("normal_font_size", 88);
-        _roundIntroLabel.AddThemeFontSizeOverride("bold_font_size", 88);
-        _roundIntroLabel.AddThemeFontSizeOverride("italics_font_size", 88);
-        _roundIntroLabel.AddThemeFontSizeOverride("bold_italics_font_size", 88);
-        _roundIntroLabel.AddThemeFontSizeOverride("mono_font_size", 88);
+
+        _roundIntroLabel.AddThemeFontOverride(RtNormalFont, regularFont);
+        _roundIntroLabel.AddThemeFontOverride(RtBoldFont, boldFont);
+        _roundIntroLabel.AddThemeFontOverride(RtItalicsFont, italicFont);
+
+        _roundIntroLabel.AddThemeFontSizeOverride(RtNormalFontSize, 88);
+        _roundIntroLabel.AddThemeFontSizeOverride(RtBoldFontSize, 88);
+        _roundIntroLabel.AddThemeFontSizeOverride(RtBoldItalicsFontSize, 88);
+        _roundIntroLabel.AddThemeFontSizeOverride(RtItalicsFontSize, 88);
+        _roundIntroLabel.AddThemeFontSizeOverride(RtMonoFontSize, 88);
+
+        _roundIntroLabel.AddThemeColorOverride(RtDefaultColor, Colors.White);
+        _roundIntroLabel.AddThemeColorOverride(RtOutlineColor, Colors.Transparent);
+        _roundIntroLabel.AddThemeColorOverride(RtShadowColor, Colors.Transparent);
 
         _roundIntroAnchor.AddChild(_roundIntroLabel);
-        _roundIntroBasePosition = _roundIntroAnchor.Position;
 
         _stageArea = _layoutRoot.GetNode<Control>("StageMargin/StageArea");
         _slotsCanvas = _layoutRoot.GetNode<Control>("StageMargin/StageArea/SlotsCanvas");
@@ -360,10 +372,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
         // Copy the Font style from Ancient Banner
         AncientEventModel? sampleAncient = _slots.Count > 0 ? _slots[0].Ancient : null;
-        if (sampleAncient != null)
-        {
-            ApplyVanillaAncientBannerTitleStyle(sampleAncient);
-        }
+
         
         if (!_hasLoadedRound)
         {
@@ -2839,9 +2848,14 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         Font font = _roundIntroLabel.GetThemeFont(RtNormalFont, "RichTextLabel");
         int fontSize = _roundIntroLabel.GetThemeFontSize(RtNormalFontSize, "RichTextLabel");
 
-        if (_roundIntroBannerEffect != null && _roundIntroLabel.CustomEffects.Contains(_roundIntroBannerEffect))
+        _roundIntroLabel.BbcodeEnabled = true;
+        _roundIntroLabel.Call("InstallEffectsIfNeeded");
+
+        Godot.Collections.Array effects = _roundIntroLabel.CustomEffects;
+
+        if (_roundIntroBannerEffect != null && effects.Contains(_roundIntroBannerEffect))
         {
-            _roundIntroLabel.CustomEffects.Remove(_roundIntroBannerEffect);
+            effects.Remove(_roundIntroBannerEffect);
         }
 
         _roundIntroBannerEffect = new RichTextAncientBanner
@@ -2851,24 +2865,25 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             Spacing = 650f
         };
 
-        _roundIntroLabel.InstallEffect(_roundIntroBannerEffect);
-        _roundIntroLabel.BbcodeEnabled = true;
+        effects.Add(_roundIntroBannerEffect);
+        _roundIntroLabel.CustomEffects = effects;
+
         _roundIntroLabel.SetTextAutoSize($"[ancient_banner]{upper}[/ancient_banner]");
     } 
-    
+
     private static float GetTextCenterGlyphIndex(string text, Font font, int fontSize)
     {
         using TextParagraph paragraph = new();
         paragraph.AddString(text, font, fontSize);
 
-        TextServer textServer = TextServerManager.GetPrimaryInterface();
-        Godot.Collections.Array<Godot.Collections.Dictionary> glyphs = textServer.ShapedTextGetGlyphs(paragraph.GetLineRid(0));
+        TextServer textServer = TextServerManager.Singleton.GetPrimaryInterface();
+        Godot.Collections.Array<Godot.Collections.Dictionary> glyphs =
+            textServer.ShapedTextGetGlyphs(paragraph.GetLineRid(0));
 
         float totalWidth = 0f;
         foreach (Godot.Collections.Dictionary glyph in glyphs)
         {
-            float advance = glyph["advance"].AsSingle();
-            totalWidth += advance;
+            totalWidth += glyph.GetValueOrDefault("advance").AsSingle();
         }
 
         float traversedWidth = 0f;
@@ -2876,7 +2891,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
         foreach (Godot.Collections.Dictionary glyph in glyphs)
         {
-            float advance = glyph["advance"].AsSingle();
+            float advance = glyph.GetValueOrDefault("advance").AsSingle();
             traversedWidth += advance;
 
             if (traversedWidth > totalWidth * 0.5f)
@@ -2889,40 +2904,4 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
         return 0f;
     }
-    private void CopyRichTextStyle(MegaRichTextLabel from, MegaRichTextLabel to)
-    {
-        to.AddThemeFontOverride(RtNormalFont, from.GetThemeFont(RtNormalFont, "RichTextLabel"));
-        to.AddThemeFontOverride(RtBoldFont, from.GetThemeFont(RtBoldFont, "RichTextLabel"));
-        to.AddThemeFontOverride(RtItalicsFont, from.GetThemeFont(RtItalicsFont, "RichTextLabel"));
-
-        to.AddThemeFontSizeOverride(RtNormalFontSize, from.GetThemeFontSize(RtNormalFontSize, "RichTextLabel"));
-        to.AddThemeFontSizeOverride(RtBoldFontSize, from.GetThemeFontSize(RtBoldFontSize, "RichTextLabel"));
-        to.AddThemeFontSizeOverride(RtBoldItalicsFontSize, from.GetThemeFontSize(RtBoldItalicsFontSize, "RichTextLabel"));
-        to.AddThemeFontSizeOverride(RtItalicsFontSize, from.GetThemeFontSize(RtItalicsFontSize, "RichTextLabel"));
-        to.AddThemeFontSizeOverride(RtMonoFontSize, from.GetThemeFontSize(RtMonoFontSize, "RichTextLabel"));
-
-        to.AddThemeColorOverride(RtDefaultColor, from.GetThemeColor(RtDefaultColor, "RichTextLabel"));
-        to.AddThemeColorOverride(RtOutlineColor, from.GetThemeColor(RtOutlineColor, "RichTextLabel"));
-        to.AddThemeColorOverride(RtShadowColor, from.GetThemeColor(RtShadowColor, "RichTextLabel"));
-    }
-    
-    private void ApplyVanillaAncientBannerTitleStyle(AncientEventModel sampleAncient)
-    {
-        if (_roundIntroLabel == null)
-        {
-            return;
-        }
-
-        NAncientNameBanner? tempBanner = NAncientNameBanner.Create(sampleAncient);
-        if (tempBanner == null)
-        {
-            return;
-        }
-
-        MegaRichTextLabel vanillaTitle = tempBanner.GetNode<MegaRichTextLabel>("%Title");
-        CopyRichTextStyle(vanillaTitle, _roundIntroLabel);
-
-        tempBanner.Free();
-    }
-    
 }
