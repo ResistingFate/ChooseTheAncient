@@ -62,6 +62,9 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Compatability with Slay the Player
 - Compatability with local multiplayer
 - Compatability with infinate acts
+- Add Override for sets of ancients mods to pool from only that class
+  - With priority system between mods
+  - maybe picking from modconfig
 - Ancient menu themes
 - Language localizing for menu text
 - Language localizing for mod config option text

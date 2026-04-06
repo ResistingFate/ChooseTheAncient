@@ -1291,7 +1291,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             Name = "HoverFlashPolygon",
             Color = new Color(1f, 1f, 1f, 0f),
             Antialiased = true,
-            ZIndex = 2,
+            ZIndex = 1,
         };
         slotRoot.AddChild(hoverFlashPolygon);
 
