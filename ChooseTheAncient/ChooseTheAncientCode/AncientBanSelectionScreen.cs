@@ -1388,12 +1388,12 @@ private void ShowRoundIntro()
 
         if (!_previewDataByAncientId.TryGetValue(refs.Ancient.Id.Entry, out AncientBanHelpers.AncientPreviewData? preview))
         {
-            GD.Print($"[ChooseTheAncient] No preview data found for {refs.Ancient.Id.Entry}.");
+            ModLog.Warn($"No preview data found for {refs.Ancient.Id.Entry}.");
             refs.PreviewAnchor.Visible = false;
             return;
         }
 
-        GD.Print($"[ChooseTheAncient] Building preview UI for {refs.Ancient.Id.Entry} with {preview.Options.Count} option(s).");
+        ModLog.Debug($"Building preview UI for {refs.Ancient.Id.Entry} with {preview.Options.Count} option(s).");
 
         if (preview.Options.Count == 0)
         {
@@ -1457,7 +1457,7 @@ private void ShowRoundIntro()
                 HsvMaterial = previewHsvMaterial,
             });
 
-            GD.Print($"[ChooseTheAncient] Added preview widget {i} for {refs.Ancient.Id.Entry}: relic={(option.Relic?.Id.Entry ?? "<none>")}, textKey={option.TextKey}");
+            ModLog.Trace($"Added preview widget {i} for {refs.Ancient.Id.Entry}: relic={(option.Relic?.Id.Entry ?? "<none>")}, textKey={option.TextKey}");
         }
     }
 
@@ -1505,7 +1505,7 @@ private void ShowRoundIntro()
             }
         }
 
-        GD.Print($"[ChooseTheAncient] Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, reaction={_reactionAncientId ?? "<none>"}");
+        ModLog.Debug($"Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, reaction={_reactionAncientId ?? "<none>"}");
     }
 
     private void TryShowReactionBubble(SlotRefs refs, bool animate)
@@ -1527,7 +1527,7 @@ private void ShowRoundIntro()
         }
 
         bubble.Modulate = new Color(1f, 1f, 1f, 0f);
-        GD.Print($"[ChooseTheAncient] Showing custom reaction bubble for {refs.Ancient.Id.Entry}: How about now?");
+        ModLog.Trace($"Showing custom reaction bubble for {refs.Ancient.Id.Entry}: How about now?");
     }
 
 
@@ -1960,7 +1960,7 @@ private void ShowRoundIntro()
             .Property("BackgroundScenePath")
             .GetValue<string?>();
 
-        GD.Print($"[ChooseTheAncient] Reflected BackgroundScenePath for {ancient.Id.Entry}: '{reflected ?? "<null>"}'");
+        ModLog.Trace($"Reflected BackgroundScenePath for {ancient.Id.Entry}: '{reflected ?? "<null>"}'");
 
         return IsUsableScenePath(reflected) ? reflected : null;
     }
@@ -1973,14 +1973,14 @@ private void ShowRoundIntro()
         string? scenePath = GetAncientScenePath(refs.Ancient);
         if (!IsUsableScenePath(scenePath))
         {
-            GD.Print($"[ChooseTheAncient] No usable ancient scene for {refs.Ancient.Id.Entry}. Path was '{scenePath ?? "<null>"}'. Using overlay only.");
+            ModLog.Debug($"No usable ancient scene for {refs.Ancient.Id.Entry}. Path was '{scenePath ?? "<null>"}'. Using overlay only.");
             return;
         }
 
         PackedScene? scene = GD.Load<PackedScene>(scenePath);
         if (scene == null)
         {
-            GD.Print($"[ChooseTheAncient] Could not load ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}'");
+            ModLog.Warn($"Could not load ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}'");
             return;
         }
 
@@ -1993,7 +1993,7 @@ private void ShowRoundIntro()
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"[ChooseTheAncient] Failed to instantiate ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}': {ex}");
+            ModLog.Error($"Failed to instantiate ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}': {ex}");
         }
     }
     private void RefreshLayout()
@@ -2072,7 +2072,7 @@ private void ShowRoundIntro()
         float gap = 8f;
         float startY = GetPreviewListStartY(refs, anchorSize);
 
-        GD.Print($"[ChooseTheAncient] Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWidgets.Count}, startY={startY}");
+        ModLog.Trace($"Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWidgets.Count}, startY={startY}");
 
         for (int i = 0; i < refs.PreviewWidgets.Count; i++)
         {
@@ -3366,7 +3366,7 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"[ChooseTheAncient] Failed to create fallback UI sounds: {ex}");
+            ModLog.Error($"Failed to create fallback UI sounds: {ex}");
         }
     }
 

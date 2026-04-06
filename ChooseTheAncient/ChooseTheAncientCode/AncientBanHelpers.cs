@@ -64,7 +64,7 @@ public static class AncientBanHelpers
         }
         catch (Exception e)
         {
-            GD.PrintErr($"[ChooseTheAncient] Failed to call IsValidForAct on {ancient.GetType().FullName}: {e}");
+            ModLog.Error($"Failed to call IsValidForAct on {ancient.GetType().FullName}: {e}");
             return true;
         }
     }
@@ -72,14 +72,17 @@ public static class AncientBanHelpers
     public static List<AncientEventModel> BuildCandidatePool(ActModel act, RunState runState)
     {
         if (!runState.UnlockState.SharedAncients.Any())
-            GD.Print("[ChooseTheAncient] runState.UnlockState.SharedAncients is empty");
+            ModLog.Debug("runState.UnlockState.SharedAncients is empty");
 
         List<AncientEventModel> sharedSubset = runState.UnlockState.SharedAncients
             .Where(ancient => IsAncientValidForAct(ancient, act))
             .ToList();
 
-        string sharedPool = string.Join(",", sharedSubset.Select(ancient => ancient.Id.Entry));
-        GD.Print($"[ChooseTheAncient] shared ancients valid for {act.Id.Entry}: {sharedPool}");
+        if (ModLog.IsDebugEnabled)
+        {
+            string sharedPool = string.Join(",", sharedSubset.Select(ancient => ancient.Id.Entry));
+            ModLog.Debug($"Shared ancients valid for {act.Id.Entry}: {sharedPool}");
+        }
 
         return act
             .GetUnlockedAncients(runState.UnlockState)
@@ -226,7 +229,7 @@ public static class AncientBanHelpers
                 // We use are new rng to change how the ancients randomness work and don't change it back
                 EventRngBackingField.SetValue(previewEvent, previewRng);
 
-                GD.Print($"[ChooseTheAncient] Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} at act index {nextActIndex}.");
+                ModLog.Debug($"Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} at act index {nextActIndex}.");
 
                 // This is what BeginEvents does in Megacritic EventModel
                 previewEvent.CalculateVars();
@@ -250,7 +253,7 @@ public static class AncientBanHelpers
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"[ChooseTheAncient] Failed to generate preview data for ancient {ancient.Id.Entry}: {ex}");
+            ModLog.Error($"Failed to generate preview data for ancient {ancient.Id.Entry}: {ex}");
             return null;
         }
     }
@@ -278,7 +281,13 @@ public static class AncientBanHelpers
 
     private static void LogPreviewOptions(AncientEventModel previewEvent, AncientEventModel ancient, IReadOnlyList<EventOption> options)
     {
-        GD.Print($"[ChooseTheAncient] Preview options for {ancient.Id.Entry}: count={options.Count}");
+        if (!ModLog.IsDebugEnabled)
+            return;
+
+        ModLog.Debug($"Preview options for {ancient.Id.Entry}: count={options.Count}");
+
+        if (!ModLog.IsTraceEnabled)
+            return;
 
         for (int i = 0; i < options.Count; i++)
         {
@@ -297,7 +306,7 @@ public static class AncientBanHelpers
             string title = SafeFormatLoc(option.Title);
             string description = SafeFormatLoc(option.Description);
 
-            GD.Print($"[ChooseTheAncient]   [{i}] textKey={option.TextKey}, relicId={relicId}, relicTitle={relicTitle}, title={title}, description={description}");
+            ModLog.Trace($"  [{i}] textKey={option.TextKey}, relicId={relicId}, relicTitle={relicTitle}, title={title}, description={description}");
         }
     }
 
@@ -308,7 +317,10 @@ public static class AncientBanHelpers
 
     public static void LogPool(string context, IEnumerable<AncientEventModel> ancients)
     {
-        GD.Print($"[ChooseTheAncient] {context}: {DescribeAncients(ancients)}");
+        if (!ModLog.IsDebugEnabled)
+            return;
+
+        ModLog.Debug($"{context}: {DescribeAncients(ancients)}");
     }
     
     

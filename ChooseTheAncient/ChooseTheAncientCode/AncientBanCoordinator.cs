@@ -32,8 +32,11 @@ public static class AncientBanCoordinator
 
             ActModel nextAct = runState.Acts[nextActIndex];
             List<AncientEventModel> pool = AncientBanHelpers.BuildCandidatePool(nextAct, runState);
-            String ancientpool = String.Join(",",pool.Select(ancient => ancient.Id.Entry));
-            GD.Print($"[ChooseTheAncient] Available ancients to draw {ancientCount} from: {ancientpool}");
+            if (ModLog.IsDebugEnabled)
+            {
+                string ancientPool = string.Join(",", pool.Select(ancient => ancient.Id.Entry));
+                ModLog.Debug($"Available ancients to draw {ancientCount} from: {ancientPool}");
+            }
             pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
 
             AncientBanHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
@@ -43,7 +46,7 @@ public static class AncientBanCoordinator
                 if (pool.Count == 1)
                 {
                     AncientBanHelpers.SetChosenAncient(nextAct, pool[0]);
-                    GD.Print($"[ChooseTheAncient] Only one ancient available for act {nextActIndex + 1}: {pool[0].Id.Entry}");
+                    ModLog.Info($"Only one ancient available for act {nextActIndex + 1}: {pool[0].Id.Entry}");
                 }
 
                 flow.ResolvedActs.Add(nextActIndex);
@@ -113,7 +116,7 @@ public static class AncientBanCoordinator
                 // Build finalists directly instead of filtering the whole pool
                 finalists = [firstAncient, secondAncient];
 
-                GD.Print($"[ChooseTheAncient] First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
+                ModLog.Info($"First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
                 AncientBanHelpers.LogPool($"Act {nextActIndex + 1} finalists", finalists);
             }
 
@@ -168,7 +171,7 @@ public static class AncientBanCoordinator
             }
 
             AncientBanHelpers.SetChosenAncient(nextAct, chosen);
-            GD.Print($"[ChooseTheAncient] Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}");
+            ModLog.Info($"Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}");
 
             flow.ResolvedActs.Add(nextActIndex);
             flow.ContinueEnterNextAct = true;
@@ -176,7 +179,7 @@ public static class AncientBanCoordinator
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"[ChooseTheAncient] Ancient selection flow failed: {ex}");
+            ModLog.Error($"Ancient selection flow failed: {ex}");
             flow.ContinueEnterNextAct = true;
             await runManager.EnterNextAct();
         }
@@ -212,7 +215,7 @@ public static class AncientBanCoordinator
 
         for (int i = 0; i < orderedPlayers.Count; i++)
         {
-            GD.Print($"[ChooseTheAncient] Vote received for player {orderedPlayers[i].NetId}: {votes[i]}");
+            ModLog.Debug($"Vote received for player {orderedPlayers[i].NetId}: {votes[i]}");
         }
 
         return votes.ToList();
@@ -310,7 +313,7 @@ public static class AncientBanCoordinator
         AncientEventModel reactionAncient = finalists
             .First(ancient => ancient.Id.Entry != suppressedPreviewAncient.Id.Entry);
 
-        GD.Print($"[ChooseTheAncient] Second vote presentation decided from round-one votes: suppress={suppressedPreviewAncient.Id.Entry}, reaction={reactionAncient.Id.Entry}, voteCounts={leftCount}/{rightCount}");
+        ModLog.Debug($"Second vote presentation decided from round-one votes: suppress={suppressedPreviewAncient.Id.Entry}, reaction={reactionAncient.Id.Entry}, voteCounts={leftCount}/{rightCount}");
 
         return (suppressedPreviewAncient.Id.Entry, reactionAncient.Id.Entry);
     }
@@ -413,7 +416,7 @@ public static class AncientBanCoordinator
                 choiceId,
                 PlayerChoiceResult.FromIndex(hostAncientCount));
 
-            GD.Print($"[ChooseTheAncient] Broadcasting host AncientCount={hostAncientCount}");
+            ModLog.Debug($"Broadcasting host AncientCount={hostAncientCount}");
             return hostAncientCount;
         }
 
@@ -423,7 +426,7 @@ public static class AncientBanCoordinator
 
         syncedCount = Math.Clamp(syncedCount, 2, 8);
 
-        GD.Print($"[ChooseTheAncient] Received host AncientCount={syncedCount}");
+        ModLog.Debug($"Received host AncientCount={syncedCount}");
         return syncedCount;
     }
 }

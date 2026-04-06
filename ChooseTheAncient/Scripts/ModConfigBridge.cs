@@ -46,7 +46,11 @@ internal static class ModConfigBridge
         var tree = (SceneTree)Engine.GetMainLoop();
         tree.ProcessFrame -= OnNextFrame;
         Detect();
-        if (_available) Register();
+        if (_available)
+        {
+            Register();
+            ChooseTheAncientConfig.RefreshFromModConfig();
+        }
     }
 
     // ─── Step 2: Detect ModConfig via reflection ────────────────
@@ -122,7 +126,7 @@ internal static class ModConfigBridge
         catch (Exception e)
         {
             // Log but don't crash — ModConfig is optional
-            GD.PrintErr($"[ChooseTheAncient] ModConfig registration failed: {e}");
+            ModLog.Error($"ModConfig registration failed: {e}");
         }
     }
 
@@ -179,7 +183,7 @@ internal static class ModConfigBridge
             Set(cfg, "Type", EnumVal("Slider"));
 
             // Slider example in ModConfig uses float, so this is the safest shape.
-            Set(cfg, "DefaultValue", (object)3.0f);
+            Set(cfg, "DefaultValue", (object)(float)ChooseTheAncientConfig.DefaultAncientCount);
             Set(cfg, "Min", 2.0f);
             Set(cfg, "Max", 8.0f);
             Set(cfg, "Step", 1.0f);
@@ -190,7 +194,7 @@ internal static class ModConfigBridge
             Set(cfg, "OnChanged", new Action<object>(v =>
             {
                 ChooseTheAncientConfig.ApplyAncientCount(v);
-                GD.Print($"[ChooseTheAncient] ancientCount changed to {v}");
+                ModLog.Info($"ancientCount changed to {v}");
             }));
         }));
 
@@ -199,7 +203,7 @@ internal static class ModConfigBridge
             Set(cfg, "Key", "showControllerHotkeys");
             Set(cfg, "Label", "Show controller hotkeys");
             Set(cfg, "Type", EnumVal("Toggle"));
-            Set(cfg, "DefaultValue", (object)true);
+            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.DefaultShowControllerHotkeys);
 
             Set(cfg, "Description", "Show controller/keyboard prompt hints on the ancient selection screen.");
 
@@ -214,7 +218,7 @@ internal static class ModConfigBridge
             Set(cfg, "Key", "showOnlyButtonOutline");
             Set(cfg, "Label", "Alternative Vote Button Design");
             Set(cfg, "Type", EnumVal("Toggle"));
-            Set(cfg, "DefaultValue", (object)true);
+            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.DefaultShowOnlyButtonOutline);
 
             Set(cfg, "Description", "Only shows the White Outline and Text for the Vote Buttons.");
 
@@ -228,18 +232,31 @@ internal static class ModConfigBridge
         {
             Set(cfg, "Key", "voteClickTarget");
             Set(cfg, "Label", "Vote click area");
-            Set(cfg, "Type", EnumVal("Slider"));
-            Set(cfg, "DefaultValue", (object)0.0f);
-            Set(cfg, "Min", 0.0f);
-            Set(cfg, "Max", 2.0f);
-            Set(cfg, "Step", 1.0f);
-            Set(cfg, "Format", "F0");
+            Set(cfg, "Type", EnumVal("Dropdown"));
+            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.DefaultVoteClickTarget));
+            Set(cfg, "Options", ChooseTheAncientConfig.VoteClickTargetOptions);
 
-            Set(cfg, "Description", "0 = button only, 1 = whole card, 2 = whole ancient slot.");
+            Set(cfg, "Description", "Choose whether only the button, the whole card, or the whole ancient slot can be clicked.");
 
             Set(cfg, "OnChanged", new Action<object>(v =>
             {
                 ChooseTheAncientConfig.ApplyVoteClickTarget(v);
+            }));
+        }));
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Key", "logLevel");
+            Set(cfg, "Label", "Log level");
+            Set(cfg, "Type", EnumVal("Dropdown"));
+            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.DefaultLogLevel));
+            Set(cfg, "Options", ChooseTheAncientConfig.LogLevelOptions);
+
+            Set(cfg, "Description", "Controls how much ChooseTheAncient writes to the log. Changes apply immediately.");
+
+            Set(cfg, "OnChanged", new Action<object>(v =>
+            {
+                ChooseTheAncientConfig.ApplyLogLevel(v);
             }));
         }));
         

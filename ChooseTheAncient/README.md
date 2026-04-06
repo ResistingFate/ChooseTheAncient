@@ -3,25 +3,26 @@
 No longer do you stumble upon the Ancients, now they come to you.
 At the end of each act, vote the ancient you want for the start of the next.
 
-
+[The Custom Ancient is Arq's Ancients - Phoenix by Arquebus]
 
 ## Features
 - After you proceed Act 1 or Act 2, a new screen asks you to choose the ancient
 - Ancients' scenes clash together, and zoom in as you hover over them
-- Votes are weighted, randomized picks in multiplayer
+- Multiplayer Support. Votes are weighted, randomized picks in multiplayer
 - After the first round a second round starts where the second most voted ancient clashes with the choosen ancient
 - The Second Ancient sweatens the deal by revealing their reilc options in case they have what you need
 - Procceds cleanly to the next act, building the same rewards for the second most voted acient if you picked them
 - Ancient spawning is no longer deterimned by the base game
 - Darv can appear in both Act 2 and Act 3 in the same run
 - Works with Custom Ancients
-- Works with controller
+- Controller Support
 - Resizes for different resolutions
 - Optional Settings
     - Can edit the number of ancients shown 2 to 8 currently
     - Can enable controller tooltips
     - Set the Vote button colour to invisible for a clean desgin
     - Change whether a vote happens when you click the vote button, and the card surrounding it, or the the whole ancient
+    - Debug level
 
 ## Optional  Requirements
 - Modconfig for settings
@@ -34,17 +35,26 @@ At the end of each act, vote the ancient you want for the start of the next.
 - I patch the EnterNextAct method in RunManager.cs so that this mod loads before the next act starts
 - I loop through all ancients and check if they have a ValidForAct method (this is what baselib uses for Custom Ancients). The mod calls this itself to check if your ancient should be added to pool for Choose The Ancient in this act. 
 
+## Credit & Appreciation
+- Thanks to the Slay The Spire Discord for mod resources and community 
+- Thanks for Alchyr. It was their guide and templates I used to set up my JellyBeans Rider environment :
+  - https://github.com/Alchyr/ModTemplate-StS2/wiki
+- To Arquebus for publishing that cool phoenix custom ancient I use in my showcase
+  - https://www.nexusmods.com/slaythespire2/mods/279
+- Thanks Megacritic for making modding on Slay The Spire 2 accessable.
+- 
 ## Any issuses
-- Create an issue with your log after you've turned on the debug setting
+- Create an issue in the github with your log after you've turned on the Trace debug setting in ModConfig
+- https://github.com/ResistingFate/ChooseTheAncient
 
 ## New features Roadmap:
-- Add a debug settings for mod config
+- Change the name of files to ChooseTheAncient, instead of AncientBan. The idea changed.
+- Clean up code with comments, Selection Screen segregatted by comment Headers for each section
 - Make sure Nert cursors in multiplayer hover above all elements in the scene
 - Support for Ancients in Ritsulib
 - Setting to set 1 round only
 - Setting to enable previews for both options in round 2
 - Setting to enable previews to all ancients in first round
-- Clean up code with comments, Selection Screen segregatted by comment Headers for each section
 - Compatability with Slay the Player
 - Compatability with local multiplayer
 - Ancient menu themes
