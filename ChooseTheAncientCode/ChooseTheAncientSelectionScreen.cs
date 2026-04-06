@@ -46,6 +46,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const float PortalRimThickness = 6f;
     private const float ReactionBubbleHeight = 96f;
     private const float ReactionBubbleGap = 10f;
+    private const float TopUiCutoffExtraPxAt1080 = 18f;
+    private const float TopUiFallbackBottomPxAt1080 = 86f;
+    private const bool ShowTopUiCutoffDebugLine = false;
     private static readonly string DialogueBubbleTexturePath = "res://images/ui/dialogue_nine_patch.png";
     private static readonly string DialogueTailTexturePath = "res://images/ui/dialogue_tail.png";
     private static readonly string DialogueRegularFontPath = "res://themes/kreon_regular_glyph_space_one.tres";
@@ -262,6 +265,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private int? _initialSecondRoundFocusPoolIndex;
     private float _initialSecondRoundWinnerEmphasisAmount;
     private Tween? _initialSecondRoundWinnerEmphasisFadeTween;
+    private float _topUiCutoffYInStageSpace;
+    private ColorRect? _topUiCutoffDebugLine;
 
     private Control? _layoutRoot;
     private Control? _roundIntroAnchor;
@@ -416,6 +421,19 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
         _clickSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("ClickSfx");
 
+        _topUiCutoffDebugLine = new ColorRect
+        {
+            /*
+             * Handles the Games Top Menu
+             */
+            Name = "TopUiCutoffDebugLine",
+            Color = new Color(1f, 0.15f, 0.15f, 0.75f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            ZIndex = 50,
+            Visible = ShowTopUiCutoffDebugLine
+        };
+        _stageArea.AddChild(_topUiCutoffDebugLine);
+        
         if (_clickSfx != null)
         {
             _clickSfx.VolumeDb = -16f;
@@ -438,6 +456,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         RefreshModConfigValues();
 
         _uiReady = true;
+        CallDeferred(nameof(RefreshLayout)); // Update the layout toget the right size for the top menu UI
         _readyCompletion.TrySetResult(true);
     }
 
@@ -2160,7 +2179,74 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         return MathF.Max(reserveTop, anchorSize.Y - totalHeight);
     }
+    
+    /*
+     * Code to add a Node to account for the Top Menu from the Base Game
+     */
 
+    private static float ScaleFrom1080(float pxAt1080)
+    {
+        Vector2 viewportSize = NGame.Instance?.GetViewport()?.GetVisibleRect().Size
+                               ?? DisplayServer.WindowGetSize();
+
+        float height = Math.Max(1f, viewportSize.Y);
+        return pxAt1080 * (height / 1080f);
+    }
+
+    private static float GetControlBottomY(Control control)
+    {
+        Rect2 rect = control.GetGlobalRect();
+        return rect.Position.Y + rect.Size.Y;
+    }
+
+    private static Control? GetTopUiControl()
+    {
+        /*
+         * How to retrieve the games TopBar
+         */
+        return NRun.Instance?.GlobalUi?.TopBar;
+    }
+
+    private float GetTopUiCutoffInStageSpace(Control topUiControl)
+    {
+        if (_stageArea == null)
+            return 0f;
+
+        float globalBottomY = GetControlBottomY(topUiControl);
+        float paddedGlobalBottomY = globalBottomY + ScaleFrom1080(TopUiCutoffExtraPxAt1080);
+
+        float stageGlobalTopY = _stageArea.GetGlobalRect().Position.Y;
+        float stageLocalY = paddedGlobalBottomY - stageGlobalTopY;
+
+        return Mathf.Clamp(stageLocalY, 0f, Math.Max(0f, _stageArea.Size.Y - 1f));
+    }
+
+    private float ResolveTopUiCutoffInStageSpace()
+    {
+        Control? topUi = GetTopUiControl();
+        if (topUi != null && GodotObject.IsInstanceValid(topUi))
+            return GetTopUiCutoffInStageSpace(topUi);
+
+        return ScaleFrom1080(TopUiFallbackBottomPxAt1080);
+    }
+
+    private void UpdateTopUiCutoffDebugLine(float cutoffY)
+    {
+        if (_stageArea == null || _topUiCutoffDebugLine == null)
+            return;
+
+        _topUiCutoffDebugLine.Visible = ShowTopUiCutoffDebugLine;
+        if (!ShowTopUiCutoffDebugLine)
+            return;
+
+        _topUiCutoffDebugLine.Position = new Vector2(0f, cutoffY);
+        _topUiCutoffDebugLine.Size = new Vector2(_stageArea.Size.X, 2f);
+    }
+    
+    /*
+     * Handle the Layout of all nodes.
+     */
+    
     private void RefreshLayout()
     {
         /*
@@ -2176,6 +2262,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             return;
         }
+        
+        _topUiCutoffYInStageSpace = ResolveTopUiCutoffInStageSpace();
+        UpdateTopUiCutoffDebugLine(_topUiCutoffYInStageSpace);
 
         float cardHeight = Math.Clamp(MathF.Round(area.Y * CardHeightRatio), 188f, 224f);
         float cardWidth = _slots.Count == 2
@@ -2212,7 +2301,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             refs.SlotClickTarget.Position = shape.PortalRect.Position;
             refs.SlotClickTarget.Size = shape.PortalRect.Size;
 
-            ApplyPortalGeometry(shape, refs);
+            ApplyPortalGeometry(shape, refs, _topUiCutoffYInStageSpace);
             ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
             LayoutVoteIcons(refs);
             LayoutPreview(refs);
@@ -2486,23 +2575,42 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ];
     }
 
-    private void ApplyPortalGeometry(PortalShape shape, SlotRefs refs)
+    private static Vector2 MovePointDownToY(Vector2 top, Vector2 bottom, float targetY)
+    {
+        float dy = bottom.Y - top.Y;
+        if (Mathf.Abs(dy) <= 0.001f)
+            return top;
+
+        float t = Mathf.Clamp((targetY - top.Y) / dy, 0f, 0.98f);
+        return top.Lerp(bottom, t);
+    }
+
+    private static Vector2[] BuildPortalPolygonWithTopCutoff(PortalShape shape, float cutoffY)
+    {
+        Vector2 left = MovePointDownToY(shape.TopLeft, shape.BottomLeft, cutoffY);
+        Vector2 right = MovePointDownToY(shape.TopRight, shape.BottomRight, cutoffY);
+
+        return
+        [
+            left,
+            right,
+            shape.BottomRight,
+            shape.BottomLeft,
+        ];
+    }
+    
+    private void ApplyPortalGeometry(PortalShape shape, SlotRefs refs, float hoverTopCutoffY)
     {
         /*
          * Applies portal polygons, UVs, and rim quads to a slot from its resolved shape.
          */
-        Vector2[] polygon = new[]
-        {
-            shape.TopLeft,
-            shape.TopRight,
-            shape.BottomRight,
-            shape.BottomLeft,
-        };
+        Vector2[] fullPolygon = BuildPortalPolygon(shape);
+        Vector2[] hoverPolygon = BuildPortalPolygonWithTopCutoff(shape, hoverTopCutoffY);
 
-        refs.ScenePolygon.Polygon = polygon;
-        refs.ScenePolygon.Set("uv", polygon);
-        refs.GlowPolygon.Polygon = polygon;
-        refs.HoverFlashPolygon.Polygon = polygon;
+        refs.ScenePolygon.Polygon = fullPolygon;
+        refs.ScenePolygon.Set("uv", fullPolygon);
+        refs.GlowPolygon.Polygon = fullPolygon;
+        refs.HoverFlashPolygon.Polygon = hoverPolygon;
 
         refs.LeftRim.Polygon = BuildLineQuad(shape.TopLeft, shape.BottomLeft, PortalRimThickness);
         refs.RightRim.Polygon = BuildLineQuad(shape.TopRight, shape.BottomRight, PortalRimThickness);
