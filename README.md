@@ -54,13 +54,14 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - https://github.com/ResistingFate/ChooseTheAncient
 
 ## New features Roadmap:
-- Make sure Nert cursors in multiplayer hover above all elements in the scene
+- Fix controller tooltips for only 1 vote button at a time
 - Support for Ancients in Ritsulib
 - Setting to set 1 round only
 - Setting to enable previews for both options in round 2
 - Setting to enable previews to all ancients in first round
 - Compatability with Slay the Player
 - Compatability with local multiplayer
+- Compatability with infinate acts
 - Ancient menu themes
 - Language localizing for menu text
 - Language localizing for mod config option text

@@ -23,6 +23,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 using MegaCrit.Sts2.Core.RichTextTags;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -252,6 +253,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private bool _hasLoadedRound;
     private Player? _localPlayer;
     private SlotRefs? _hoveredSlot;
+    private int? _remoteCursorOldZIndex;
+    private int? _remoteCursorOldSiblingIndex;
     private int? _lastHoveredPoolIndex;
     private PreviewWidgetRefs? _hoveredPreviewWidget;
     private Player? _currentlyHighlightedVotePlayer;
@@ -524,6 +527,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Unregisters the screen, tears down signal hooks, and cancels any unfinished vote task.
          */
+        RestoreRemoteCursors();
         _openScreens.Remove(this);
         _roundIntroTween?.Kill();
         DisconnectControllerPromptSignals();
@@ -535,12 +539,65 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         base._ExitTree();
     }
 
+    private void RaiseRemoteCursors()
+    {
+        var container = NGame.Instance?.RemoteCursorContainer;
+        if (container == null || !GodotObject.IsInstanceValid(container))
+            return;
+
+        if (_remoteCursorOldZIndex == null)
+            _remoteCursorOldZIndex = container.ZIndex;
+
+        if (_remoteCursorOldSiblingIndex == null)
+            _remoteCursorOldSiblingIndex = container.GetIndex();
+
+        container.ZIndex = 12;
+
+        Node? parent = container.GetParent();
+        if (parent != null)
+            parent.MoveChild(container, parent.GetChildCount() - 1);
+
+        foreach (var child in container.GetChildren())
+        {
+            if (child is NRemoteMouseCursor cursor)
+                cursor.ZIndex = 12;
+        }
+    }
+
+    private void RestoreRemoteCursors()
+    {
+        var container = NGame.Instance?.RemoteCursorContainer;
+        if (container == null || !GodotObject.IsInstanceValid(container))
+            return;
+
+        if (_remoteCursorOldZIndex != null)
+            container.ZIndex = _remoteCursorOldZIndex.Value;
+
+        Node? parent = container.GetParent();
+        if (parent != null && _remoteCursorOldSiblingIndex != null)
+        {
+            int maxIndex = Math.Max(0, parent.GetChildCount() - 1);
+            int restoreIndex = Math.Clamp(_remoteCursorOldSiblingIndex.Value, 0, maxIndex);
+            parent.MoveChild(container, restoreIndex);
+        }
+
+        foreach (var child in container.GetChildren())
+        {
+            if (child is NRemoteMouseCursor cursor)
+                cursor.ZIndex = 0;
+        }
+
+        _remoteCursorOldZIndex = null;
+        _remoteCursorOldSiblingIndex = null;
+    }
+    
     public void AfterOverlayOpened()
     {
         /*
          * Makes the screen visible and restores initial focus after the overlay opens.
          */
         Visible = true;
+        RaiseRemoteCursors();
         GrabInitialFocus();
     }
 
@@ -558,6 +615,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          * Makes the screen visible and restores focus when the overlay becomes shown again.
          */
         Visible = true;
+        RaiseRemoteCursors();
         GrabInitialFocus();
     }
 
@@ -567,6 +625,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          * Hides the screen while the overlay remains alive but not visible.
          */
         Visible = false;
+        RestoreRemoteCursors();
     }
 
     #endregion
