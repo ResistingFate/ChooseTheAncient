@@ -24,6 +24,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 using MegaCrit.Sts2.Core.RichTextTags;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
+using MegaCrit.Sts2.Core.Runs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -895,16 +896,40 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
      */
 
     private string GetRoundIntroText()
-{
+    {
         /*
          * Returns the banner text shown for the current round.
          */
-    string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
+        string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
 
-    return _roundType == VoteRoundType.InitialKeepVote
-        ? $"Choose the {actLabel} Ancients"
-        : "It's Not Over";
-}
+        if (_roundType == VoteRoundType.InitialKeepVote)
+        {
+            return $"Choose the {actLabel} Ancients";
+        }
+
+        string reactionAncientId = _reactionAncientId ?? "Unknown Ancient";
+
+        return ChooseTheAncientBaseAncientText.GetSecondRoundBannerText(
+            reactionAncientId,
+            new SecondRoundTextContext(
+                _nextActIndex,
+                reactionAncientId,
+                _suppressedPreviewAncientId));
+    }
+
+    private AncientEventModel? GetSecondRoundReactionAncient()
+    {
+        /*
+         * Returns the ancient driving the second-round custom banner and dialogue presentation.
+         */
+        if (_roundType != VoteRoundType.FinalRevealVote || string.IsNullOrWhiteSpace(_reactionAncientId))
+        {
+            return null;
+        }
+
+        return _pool.FirstOrDefault(ancient => ancient.Id.Entry == _reactionAncientId);
+    }
+
 
     private void ShowRoundIntro()
 {
@@ -1824,7 +1849,17 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         refs.ReactionBubble = null;
 
-        Control bubble = BuildReactionBubble(refs.Ancient);
+        RunState? runState = RunManager.Instance != null
+            ? ChooseTheAncientHelpers.GetRunState(RunManager.Instance)
+            : null;
+        
+        string dialogueText = ChooseTheAncientBaseAncientText.GetSecondRoundDialogueText(
+            runState,
+            _nextActIndex,
+            refs.Ancient.Id.Entry,
+            _suppressedPreviewAncientId);
+
+        Control bubble = BuildReactionBubble(refs.Ancient, dialogueText);
         bubble.ZIndex = 6;
         refs.PreviewAnchor.AddChild(bubble);
         refs.ReactionBubble = bubble;
@@ -1839,10 +1874,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         bubble.Modulate = new Color(1f, 1f, 1f, 0f);
-        ModLog.Trace($"Showing custom reaction bubble for {refs.Ancient.Id.Entry}: How about now?");
+        ModLog.Trace($"Showing custom reaction bubble for {refs.Ancient.Id.Entry}: {dialogueText}");
     }
 
-    private Control BuildReactionBubble(AncientEventModel ancient)
+    private Control BuildReactionBubble(AncientEventModel ancient, string dialogueText)
     {
         /*
          * Builds the full reaction bubble control tree, fonts, icon, and text styling.
@@ -2091,7 +2126,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             Name = "LineText",
             BbcodeEnabled = true,
-            Text = "[i]How about now?[/i]",
+            Text = $"[i]{dialogueText}[/i]",
             FitContent = true,
             ScrollActive = false,
             MouseFilter = MouseFilterEnum.Ignore,

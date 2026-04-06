@@ -54,6 +54,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - https://github.com/ResistingFate/ChooseTheAncient
 
 ## New features Roadmap:
+- Complete Base Ancient's Colour highlights
 - Fix controller tooltips for only 1 vote button at a time
 - Support for Ancients in Ritsulib
 - Setting to set 1 round only
@@ -70,7 +71,6 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Language localizing for mod config option text
 - Add mod settings to BsaeLib's mod config version
 - Look up split path mod in multiplayer, might need new mod for new path and more ancient nodes in the map
-- Add ancient dialouges
 - Add support for custom ancient dialouges
 - Custom portal effect
 - Load improvements

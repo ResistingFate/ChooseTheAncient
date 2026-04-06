@@ -1,5 +1,18 @@
 # Changelog
 
+## Unrelesaed
+
+## [v1.1.0] - Specific Ancient Text andSmall fixes
+
+### Features
+- Ancient specific Secound Ronud Banner Text
+- Ancient specific Secound Round Dialouge Text
+- Dictionaries in ChooseTheAncientBaseAncientText.cs hold specific dialouge lines and banner headings for each Ancient
+
+### Fixes
+- Pushes up the Remote Cursors from other players above the vote buttons
+- Fixed the hover glow overlaying above the game menu toolback 
+
 ## [v1.0.0] - Initial Release
 - After you proceed Act 1 or Act 2, a new screen asks you to choose the ancient
 - Ancients' scenes clash together, and zoom in as you hover over them
