@@ -20,12 +20,15 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Works with Custom Ancients
 - Controller Support
 - Resizes for different resolutions
-- Optional Settings
-    - Can edit the number of ancients shown 2 to 8 currently
-    - Can enable controller tooltips
-    - Set the Vote button colour to invisible for a clean desgin
-    - Change whether a vote happens when you click the vote button, and the card surrounding it, or the the whole ancient
-    - Debug level
+- Optional Settings 
+  - Number of ancients
+  - Controller tooltips 
+  - Invisible vote buttons 
+  - Vote happens whe clicking 
+    - vote button 
+    - Ancient card 
+    - The Ancient
+  - Debug level
 
 ## Optional  Requirements
 - Modconfig for settings

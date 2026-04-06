@@ -3,7 +3,7 @@
   "name": "ChooseTheAncient",
   "author": "xyzlewis",
   "description": "After each act lets you pick 1 of the ancients you don't want to see.",
-  "version": "v0.0.0",
+  "version": "v1.0.0",
   "has_pck": true,
   "has_dll": true,
   "dependencies": [],
