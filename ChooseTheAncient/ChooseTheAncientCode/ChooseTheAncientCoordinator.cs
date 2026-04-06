@@ -12,15 +12,15 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
-public static class AncientBanCoordinator
+public static class ChooseTheAncientCoordinator
 {
     public static async Task RunAsync(
         RunManager runManager,
         RunState runState,
         int nextActIndex,
-        AncientBanFlowState flow)
+        ChooseTheAncientFlowState flow)
     {
-        AncientBanSelectionScreen? localScreen = null;
+        ChooseTheAncientSelectionScreen? localScreen = null;
 
         try
         {
@@ -31,21 +31,21 @@ public static class AncientBanCoordinator
             int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
 
             ActModel nextAct = runState.Acts[nextActIndex];
-            List<AncientEventModel> pool = AncientBanHelpers.BuildCandidatePool(nextAct, runState);
+            List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(nextAct, runState);
             if (ModLog.IsDebugEnabled)
             {
                 string ancientPool = string.Join(",", pool.Select(ancient => ancient.Id.Entry));
                 ModLog.Debug($"Available ancients to draw {ancientCount} from: {ancientPool}");
             }
-            pool = AncientBanHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
+            pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
 
-            AncientBanHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
+            ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
 
             if (pool.Count <= 1)
             {
                 if (pool.Count == 1)
                 {
-                    AncientBanHelpers.SetChosenAncient(nextAct, pool[0]);
+                    ChooseTheAncientHelpers.SetChosenAncient(nextAct, pool[0]);
                     ModLog.Info($"Only one ancient available for act {nextActIndex + 1}: {pool[0].Id.Entry}");
                 }
 
@@ -59,7 +59,7 @@ public static class AncientBanCoordinator
             Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
             if (localPlayer != null)
             {
-                localScreen = AncientBanSelectionScreen.Show(nextActIndex, orderedPlayers);
+                localScreen = ChooseTheAncientSelectionScreen.Show(nextActIndex, orderedPlayers);
             }
 
             List<AncientEventModel> finalists = pool;
@@ -67,9 +67,9 @@ public static class AncientBanCoordinator
 
             if (pool.Count >= 2)
             {
-                var firstRound = new AncientBanSelectionScreen.RoundDefinition(
+                var firstRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
                     pool,
-                    AncientBanSelectionScreen.VoteRoundType.InitialKeepVote,
+                    ChooseTheAncientSelectionScreen.VoteRoundType.InitialKeepVote,
                     null,
                     null,
                     null);
@@ -117,7 +117,7 @@ public static class AncientBanCoordinator
                 finalists = [firstAncient, secondAncient];
 
                 ModLog.Info($"First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
-                AncientBanHelpers.LogPool($"Act {nextActIndex + 1} finalists", finalists);
+                ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} finalists", finalists);
             }
 
             AncientEventModel chosen;
@@ -127,11 +127,11 @@ public static class AncientBanCoordinator
             }
             else
             {
-                Dictionary<string, AncientBanHelpers.AncientPreviewData>? localPreviewData = null;
+                Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
                 if (localPlayer != null)
                 {
                     // Builds for each ancient in case I want to allow all ancients to show relics
-                    localPreviewData = AncientBanHelpers.BuildPreviewDataByAncientId(
+                    localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
                         localPlayer,
                         finalists,
                         nextActIndex);
@@ -144,9 +144,9 @@ public static class AncientBanCoordinator
                     finalists,
                     firstVotes);
 
-                var secondRound = new AncientBanSelectionScreen.RoundDefinition(
+                var secondRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
                     finalists,
-                    AncientBanSelectionScreen.VoteRoundType.FinalRevealVote,
+                    ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote,
                     localPreviewData,
                     suppressedPreviewAncientId,
                     reactionAncientId);
@@ -170,7 +170,7 @@ public static class AncientBanCoordinator
                 chosen = finalists[chosenIndex];
             }
 
-            AncientBanHelpers.SetChosenAncient(nextAct, chosen);
+            ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
             ModLog.Info($"Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}");
 
             flow.ResolvedActs.Add(nextActIndex);
@@ -192,8 +192,8 @@ public static class AncientBanCoordinator
 
     private static async Task<List<int>> CollectVotes(
         IReadOnlyList<Player> orderedPlayers,
-        AncientBanSelectionScreen.RoundDefinition round,
-        AncientBanSelectionScreen? localScreen)
+        ChooseTheAncientSelectionScreen.RoundDefinition round,
+        ChooseTheAncientSelectionScreen? localScreen)
     {
         Dictionary<ulong, uint> choiceIdsByPlayer = new();
 
@@ -224,8 +224,8 @@ public static class AncientBanCoordinator
     private static async Task<int> GetVoteForPlayer(
         Player player,
         uint choiceId,
-        AncientBanSelectionScreen.RoundDefinition round,
-        AncientBanSelectionScreen? localScreen)
+        ChooseTheAncientSelectionScreen.RoundDefinition round,
+        ChooseTheAncientSelectionScreen? localScreen)
     {
         if (ShouldSelectLocally(player))
         {
@@ -300,7 +300,7 @@ public static class AncientBanCoordinator
 
         if (leftCount == rightCount)
         {
-            var rng = AncientBanHelpers.CreateSecondRoundPresentationRng(runState, nextActIndex);
+            var rng = ChooseTheAncientHelpers.CreateSecondRoundPresentationRng(runState, nextActIndex);
             suppressedPreviewAncient = finalists[rng.NextInt(finalists.Count)];
         }
         else
@@ -334,7 +334,7 @@ public static class AncientBanCoordinator
             return leaders[0];
         }
 
-        var rng = AncientBanHelpers.CreateFinalVoteResolutionRng(runState, nextActIndex);
+        var rng = ChooseTheAncientHelpers.CreateFinalVoteResolutionRng(runState, nextActIndex);
         return leaders[rng.NextInt(leaders.Count)];
     }
 

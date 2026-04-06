@@ -9,7 +9,7 @@ public static class EnterNextActPatch
 {
     static bool Prefix(RunManager __instance, ref Task __result)
     {
-        RunState? runState = AncientBanHelpers.GetRunState(__instance);
+        RunState? runState = ChooseTheAncientHelpers.GetRunState(__instance);
         if (runState == null)
         {
             return true;
@@ -22,7 +22,7 @@ public static class EnterNextActPatch
             return true;
         }
 
-        AncientBanFlowState flow = AncientBanStateStore.Get(runState);
+        ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);
 
         if (flow.ContinueEnterNextAct)
         {
@@ -37,7 +37,7 @@ public static class EnterNextActPatch
         }
 
         flow.FlowInProgress = true;
-        __result = AncientBanCoordinator.RunAsync(__instance, runState, nextActIndex, flow);
+        __result = ChooseTheAncientCoordinator.RunAsync(__instance, runState, nextActIndex, flow);
         return false;
     }
 }

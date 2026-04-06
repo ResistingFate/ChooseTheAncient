@@ -26,13 +26,13 @@ using MegaCrit.Sts2.Core.Nodes;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
-public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen, IScreenContext
+public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayScreen, IScreenContext
 {
     private const string LayoutScenePath =
-        "res://scenes/mod/choose_the_ancient/ancient_ban_selection_screen.tscn";
+        "res://scenes/mod/choose_the_ancient/choose_the_ancient_selection_screen.tscn";
 
     private const string CardScenePath =
-        "res://scenes/mod/choose_the_ancient/ancient_ban_choice_card.tscn";
+        "res://scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn";
 
     private const float HoverSceneScaleMultiplier = 1.028f;
     private const float CardBottomInset = 18f;
@@ -78,7 +78,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
     public readonly record struct RoundDefinition(
         IReadOnlyList<AncientEventModel> Pool,
         VoteRoundType RoundType,
-        IReadOnlyDictionary<string, AncientBanHelpers.AncientPreviewData>? PreviewDataByAncientId,
+        IReadOnlyDictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? PreviewDataByAncientId,
         string? SuppressedPreviewAncientId,
         string? ReactionAncientId);
 
@@ -199,7 +199,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     private IReadOnlyList<AncientEventModel> _pool = Array.Empty<AncientEventModel>();
     private VoteRoundType _roundType = VoteRoundType.InitialKeepVote;
-    private Dictionary<string, AncientBanHelpers.AncientPreviewData> _previewDataByAncientId = new();
+    private Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData> _previewDataByAncientId = new();
     private string? _suppressedPreviewAncientId; // ancient that does not reveal options, the initial vote
     private string? _reactionAncientId; // ancient that reacts with dialogue on the final preview vote
     private int _nextActIndex;
@@ -248,18 +248,18 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
 
     public Control? DefaultFocusedControl { get; private set; }
 
-    public AncientBanSelectionScreen()
+    public ChooseTheAncientSelectionScreen()
     {
-        Name = "AncientBanSelectionScreen";
+        Name = "ChooseTheAncientSelectionScreen";
         ProcessMode = ProcessModeEnum.Always;
         MouseFilter = MouseFilterEnum.Ignore;
         FocusMode = FocusModeEnum.All;
         SetFullRect(this);
     }
 
-    public static AncientBanSelectionScreen Show(int nextActIndex, IReadOnlyList<Player> orderedPlayers)
+    public static ChooseTheAncientSelectionScreen Show(int nextActIndex, IReadOnlyList<Player> orderedPlayers)
     {
-        AncientBanSelectionScreen screen = new();
+        ChooseTheAncientSelectionScreen screen = new();
         screen.Initialize(nextActIndex, orderedPlayers);
         NOverlayStack.Instance.Push(screen);
         return screen;
@@ -282,7 +282,7 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         _pool = round.Pool;
         _roundType = round.RoundType;
         _previewDataByAncientId = round.PreviewDataByAncientId?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-            ?? new Dictionary<string, AncientBanHelpers.AncientPreviewData>();
+            ?? new Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>();
         _suppressedPreviewAncientId = round.SuppressedPreviewAncientId;
         _reactionAncientId = round.ReactionAncientId;
         _pendingPoolIndex = null;
@@ -302,13 +302,13 @@ public sealed partial class AncientBanSelectionScreen : Control, IOverlayScreen,
         return await _voteSubmitted.Task;
     }
     
-    private static readonly List<AncientBanSelectionScreen> _openScreens = new();
+    private static readonly List<ChooseTheAncientSelectionScreen> _openScreens = new();
 
     public static void RefreshModConfigHotkeys()
     {
         for (int i = _openScreens.Count - 1; i >= 0; i--)
         {
-            AncientBanSelectionScreen screen = _openScreens[i];
+            ChooseTheAncientSelectionScreen screen = _openScreens[i];
             if (!GodotObject.IsInstanceValid(screen))
             {
                 _openScreens.RemoveAt(i);
@@ -1386,7 +1386,7 @@ private void ShowRoundIntro()
             return;
         }
 
-        if (!_previewDataByAncientId.TryGetValue(refs.Ancient.Id.Entry, out AncientBanHelpers.AncientPreviewData? preview))
+        if (!_previewDataByAncientId.TryGetValue(refs.Ancient.Id.Entry, out ChooseTheAncientHelpers.AncientPreviewData? preview))
         {
             ModLog.Warn($"No preview data found for {refs.Ancient.Id.Entry}.");
             refs.PreviewAnchor.Visible = false;

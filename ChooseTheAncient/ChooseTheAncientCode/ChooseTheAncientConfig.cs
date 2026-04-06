@@ -236,19 +236,19 @@ internal static class ChooseTheAncientConfig
     public static void ApplyShowControllerHotkeys(object value)
     {
         ShowControllerHotkeys = Convert.ToBoolean(value);
-        AncientBanSelectionScreen.RefreshModConfigHotkeys();
+        ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
     }
 
     public static void ApplyShowOnlyButtonOutlineHotkeys(object value)
     {
         ShowOnlyButtonOutline = Convert.ToBoolean(value);
-        AncientBanSelectionScreen.RefreshModConfigHotkeys();
+        ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
     }
 
     public static void ApplyVoteClickTarget(object value)
     {
         VoteClickTarget = NormalizeVoteClickTarget(value);
-        AncientBanSelectionScreen.RefreshModConfigHotkeys();
+        ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
     }
 
     public static void ApplyLogLevel(object value)

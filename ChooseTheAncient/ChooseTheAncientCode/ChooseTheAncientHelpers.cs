@@ -16,7 +16,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
-public static class AncientBanHelpers
+public static class ChooseTheAncientHelpers
 {
     private static readonly MethodInfo GenerateInitialOptionsWrapperMethod =
         AccessTools.Method(typeof(AncientEventModel), "GenerateInitialOptionsWrapper")
