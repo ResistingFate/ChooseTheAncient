@@ -3,7 +3,10 @@
 No longer do you stumble upon the Ancients, now they come to you.
 At the end of each act, vote the ancient you want for the start of the next.
 
-[The Custom Ancient is Arq's Ancients - Phoenix by Arquebus]
+<img src="ChooseTheAncient/Choose_The_Ancients_Custom_Short_Decision.gif" alt="Alt Text" width="480" />
+
+As you can see, you have 3 ancients to vote for and after you select one, another ancient has the chance to change your mind.
+The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 
 ## Features
 - After you proceed Act 1 or Act 2, a new screen asks you to choose the ancient
@@ -48,8 +51,6 @@ At the end of each act, vote the ancient you want for the start of the next.
 - https://github.com/ResistingFate/ChooseTheAncient
 
 ## New features Roadmap:
-- Change the name of files to ChooseTheAncient, instead of AncientBan. The idea changed.
-- Clean up code with comments, Selection Screen segregatted by comment Headers for each section
 - Make sure Nert cursors in multiplayer hover above all elements in the scene
 - Support for Ancients in Ritsulib
 - Setting to set 1 round only

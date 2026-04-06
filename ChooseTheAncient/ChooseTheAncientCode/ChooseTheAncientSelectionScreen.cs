@@ -28,6 +28,11 @@ namespace ChooseTheAncient.ChooseTheAncientCode;
 
 public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayScreen, IScreenContext
 {
+    #region Constants and shared asset paths
+
+    /*
+     * SECTION: Shared scene paths, layout constants, visual tuning values, and reusable resource paths.
+     */
     private const string LayoutScenePath =
         "res://scenes/mod/choose_the_ancient/choose_the_ancient_selection_screen.tscn";
 
@@ -69,6 +74,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const Tween.TransitionType InitialSecondRoundWinnerEmphasisFadeTransition = Tween.TransitionType.Quint;
     private const Tween.EaseType InitialSecondRoundWinnerEmphasisFadeEase = Tween.EaseType.InOut;
     
+    #endregion
+
+    #region Round contracts and nested reference models
+
+    /*
+     * SECTION: Public round definitions plus the internal records/reference containers used to build and manage slot UI.
+     */
     public enum VoteRoundType
     {
         InitialKeepVote,
@@ -138,7 +150,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public Vector2 CardBasePosition { get; set; }
         public PortalShape Shape { get; set; }
         public List<PreviewWidgetRefs> PreviewWidgets { get; } = new();
-        public NinePatchRect ChooseButtonOutline { get; set; }
+        public NinePatchRect ChooseButtonOutline { get; set; } = null!;
     }
 
 
@@ -155,6 +167,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public Vector2 BaseScale { get; set; }
     }
 
+    #endregion
+
+    #region Static lookup tables
+
+    /*
+     * SECTION: Lookup tables for per-ancient scene resources and default visual transform configuration.
+     */
     private static readonly Dictionary<string, string> AncientScenePaths = new()
     {
         ["DARV"] = "res://scenes/events/background_scenes/darv.tscn",
@@ -185,7 +204,29 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private static readonly string VoteButtonTexturePath = "res://images/packed/common_ui/event_button.png";
     private static readonly string VoteButtonOutlineTexturePath = "res://images/packed/common_ui/event_button_outline.png";
     private static readonly string VoteButtonFontPath = "res://themes/kreon_bold_glyph_space_one.tres";
+
+    private static readonly StringName RtNormalFont = "normal_font";
+    private static readonly StringName RtBoldFont = "bold_font";
+    private static readonly StringName RtItalicsFont = "italics_font";
+
+    private static readonly StringName RtNormalFontSize = "normal_font_size";
+    private static readonly StringName RtBoldFontSize = "bold_font_size";
+    private static readonly StringName RtBoldItalicsFontSize = "bold_italics_font_size";
+    private static readonly StringName RtItalicsFontSize = "italics_font_size";
+    private static readonly StringName RtMonoFontSize = "mono_font_size";
+
+    private static readonly StringName RtDefaultColor = "default_color";
+    private static readonly StringName RtOutlineColor = "font_outline_color";
+    private static readonly StringName RtShadowColor = "font_shadow_color";
+
     
+    #endregion
+
+    #region Runtime state, cached nodes, and config-backed properties
+
+    /*
+     * SECTION: Shared audio/shader caches, live round state, cached node references, and public screen surface values.
+     */
     private static AudioStreamWav? _generatedHoverStream;
     private static AudioStreamWav? _generatedClickStream;
     private static Shader? _dialogueWaveShader;
@@ -248,8 +289,22 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     public Control? DefaultFocusedControl { get; private set; }
 
+
+    private static readonly List<ChooseTheAncientSelectionScreen> _openScreens = new();
+    #endregion
+
+    #region Construction, overlay registration, and lifetime hooks
+
+    /*
+     * SECTION: Construction, overlay registration, and lifetime hooks.
+     * Creates the screen, registers it with the overlay stack, tracks live lifetime hooks, and handles close/input behavior.
+     */
+
     public ChooseTheAncientSelectionScreen()
     {
+        /*
+         * Initializes the overlay control so it behaves as a full-screen always-processing selection surface.
+         */
         Name = "ChooseTheAncientSelectionScreen";
         ProcessMode = ProcessModeEnum.Always;
         MouseFilter = MouseFilterEnum.Ignore;
@@ -259,6 +314,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     public static ChooseTheAncientSelectionScreen Show(int nextActIndex, IReadOnlyList<Player> orderedPlayers)
     {
+        /*
+         * Creates, initializes, and pushes a new selection screen onto the overlay stack.
+         */
         ChooseTheAncientSelectionScreen screen = new();
         screen.Initialize(nextActIndex, orderedPlayers);
         NOverlayStack.Instance.Push(screen);
@@ -267,115 +325,29 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     public void Initialize(int nextActIndex, IReadOnlyList<Player> orderedPlayers)
     {
+        /*
+         * Stores the act/player context that later round execution and vote display logic rely on.
+         */
         _nextActIndex = nextActIndex;
         _orderedPlayers.Clear();
         _orderedPlayers.AddRange(orderedPlayers);
         _localPlayer = _orderedPlayers.FirstOrDefault(LocalContext.IsMe);
     }
 
-    public async Task<int> RunRoundAsync(RoundDefinition round)
+    public override void _EnterTree()
     {
-        /* Handles each of the vote rounds for the selection screen */
-        await _readyCompletion.Task;
-
-        _voteSubmitted = new TaskCompletionSource<int>();
-        _pool = round.Pool;
-        _roundType = round.RoundType;
-        _previewDataByAncientId = round.PreviewDataByAncientId?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-            ?? new Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>();
-        _suppressedPreviewAncientId = round.SuppressedPreviewAncientId;
-        _reactionAncientId = round.ReactionAncientId;
-        _pendingPoolIndex = null;
-        _selectedPoolIndex = null;
-        _finalChosenPoolIndex = null;
-        _currentlyHighlightedVotePlayer = null;
-        _votesByPlayerNetId.Clear();
-        _resolved = false;
-        _hoveredSlot = null;
-        _lastHoveredPoolIndex = null;
-        _initialSecondRoundFocusPoolIndex = null;
-        _initialSecondRoundWinnerEmphasisFadeTween?.Kill();
-        _initialSecondRoundWinnerEmphasisFadeTween = null;
-        _initialSecondRoundWinnerEmphasisAmount = 0f;
-
-        await ApplyRoundAsync();
-        return await _voteSubmitted.Task;
-    }
-    
-    private static readonly List<ChooseTheAncientSelectionScreen> _openScreens = new();
-
-    public static void RefreshModConfigHotkeys()
-    {
-        for (int i = _openScreens.Count - 1; i >= 0; i--)
-        {
-            ChooseTheAncientSelectionScreen screen = _openScreens[i];
-            if (!GodotObject.IsInstanceValid(screen))
-            {
-                _openScreens.RemoveAt(i);
-                continue;
-            }
-
-            screen.RefreshModConfigValues();
-        }
+        /*
+         * Registers this screen instance in the shared open-screen list.
+         */
+        base._EnterTree();
+        _openScreens.Add(this);
     }
 
-    public void InitiateConfigValues()
-    {
-        _lastShowControllerHotkeys = ShowControllerHotkeys;
-        _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
-        _lastVoteClickTarget = VoteClickTarget;
-    }
-
-    public void RefreshModConfigValues()
-    {
-        ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
-        ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
-        VoteClickTarget = ChooseTheAncientConfig.VoteClickTarget;
-    }
-
-    public override void _Process(double delta)
-    {
-        if (!_uiReady || !Visible)
-            return;
-
-        ChooseTheAncientConfig.RefreshFromModConfig();
-        RefreshModConfigValues();
-
-        if (_lastShowControllerHotkeys != ShowControllerHotkeys ||
-            _lastShowOnlyButtonOutline != ShowOnlyButtonOutline ||
-            _lastVoteClickTarget != VoteClickTarget)
-        {
-            RebuildForLiveConfigRefresh();
-
-            _lastShowControllerHotkeys = ShowControllerHotkeys;
-            _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
-            _lastVoteClickTarget = VoteClickTarget;
-        }
-
-        UpdateWholeSlotHoverFromMouse();
-    }
-
-    private void SyncConfigFromSavedSettings()
-    {
-        ChooseTheAncientConfig.RefreshFromModConfig();
-        ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
-        ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
-        VoteClickTarget = ChooseTheAncientConfig.VoteClickTarget;
-    }
-
-    private void RebuildForLiveConfigRefresh()
-    {
-        BuildUi();
-        ApplySecondVotePresentation(animate: false);
-        RefreshLayout();
-        RefreshSlotVisuals(animate: false);
-        RefreshButtonTexts();
-        RefreshVoteDisplays(animate: false);
-        GrabInitialFocus();
-    }
-    
     public override void _Ready()
     {
+        /*
+         * Instantiates the root scene, wires up cached node references, installs audio, and marks the screen ready.
+         */
         SyncConfigFromSavedSettings();
         PackedScene? layoutScene = GD.Load<PackedScene>(LayoutScenePath);
         if (layoutScene == null)
@@ -464,11 +436,257 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         _uiReady = true;
         _readyCompletion.TrySetResult(true);
-    } 
-    
+    }
+
+    public override void _Process(double delta)
+    {
+        /*
+         * Polls for live config changes while visible and updates whole-slot hover state every frame.
+         */
+        if (!_uiReady || !Visible)
+            return;
+
+        ChooseTheAncientConfig.RefreshFromModConfig();
+        RefreshModConfigValues();
+
+        if (_lastShowControllerHotkeys != ShowControllerHotkeys ||
+            _lastShowOnlyButtonOutline != ShowOnlyButtonOutline ||
+            _lastVoteClickTarget != VoteClickTarget)
+        {
+            RebuildForLiveConfigRefresh();
+
+            _lastShowControllerHotkeys = ShowControllerHotkeys;
+            _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
+            _lastVoteClickTarget = VoteClickTarget;
+        }
+
+        UpdateWholeSlotHoverFromMouse();
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        /*
+         * Consumes select and cancel actions that apply to the currently focused vote controls.
+         */
+        if (_resolved)
+        {
+            return;
+        }
+
+        if (@event.IsActionPressed(MegaInput.select) && !@event.IsEcho())
+        {
+            Control? focusedControl = GetViewport().GuiGetFocusOwner();
+            SlotRefs? focusedSlot = FindFocusedVoteSlot(focusedControl);
+            if (focusedSlot != null && !focusedSlot.ChooseButton.Disabled)
+            {
+                Select(focusedSlot.PoolIndex);
+                AcceptEvent();
+                return;
+            }
+        }
+
+        if (@event.IsActionPressed(MegaInput.cancel))
+        {
+            AcceptEvent();
+        }
+    }
+
+    public void CloseScreen()
+    {
+        /*
+         * Safely removes the screen from the overlay stack or frees it if it is no longer in tree.
+         */
+        if (_closing || !GodotObject.IsInstanceValid(this))
+        {
+            return;
+        }
+
+        _closing = true;
+
+        try
+        {
+            if (IsInsideTree())
+            {
+                NOverlayStack.Instance.Remove(this);
+            }
+            else
+            {
+                QueueFree();
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        /*
+         * Unregisters the screen, tears down signal hooks, and cancels any unfinished vote task.
+         */
+        _openScreens.Remove(this);
+        _roundIntroTween?.Kill();
+        DisconnectControllerPromptSignals();
+        if (!_voteSubmitted.Task.IsCompleted)
+        {
+            _voteSubmitted.TrySetCanceled();
+        }
+
+        base._ExitTree();
+    }
+
+    public void AfterOverlayOpened()
+    {
+        /*
+         * Makes the screen visible and restores initial focus after the overlay opens.
+         */
+        Visible = true;
+        GrabInitialFocus();
+    }
+
+    public void AfterOverlayClosed()
+    {
+        /*
+         * Frees the screen once the overlay stack has finished closing it.
+         */
+        QueueFree();
+    }
+
+    public void AfterOverlayShown()
+    {
+        /*
+         * Makes the screen visible and restores focus when the overlay becomes shown again.
+         */
+        Visible = true;
+        GrabInitialFocus();
+    }
+
+    public void AfterOverlayHidden()
+    {
+        /*
+         * Hides the screen while the overlay remains alive but not visible.
+         */
+        Visible = false;
+    }
+
+    #endregion
+
+    #region ModConfig state and live refresh behavior
+
+    /*
+     * SECTION: ModConfig state and live refresh behavior.
+     * Reads config-backed values, applies them to the live screen, and refreshes open screens when settings change.
+     */
+
+    public static void RefreshModConfigHotkeys()
+    {
+        /*
+         * Refreshes live config-dependent visuals on every still-valid open selection screen.
+         */
+        for (int i = _openScreens.Count - 1; i >= 0; i--)
+        {
+            ChooseTheAncientSelectionScreen screen = _openScreens[i];
+            if (!GodotObject.IsInstanceValid(screen))
+            {
+                _openScreens.RemoveAt(i);
+                continue;
+            }
+
+            screen.RefreshModConfigValues();
+        }
+    }
+
+    public void InitiateConfigValues()
+    {
+        /*
+         * Captures the currently applied config values so live-refresh change detection has a baseline.
+         */
+        _lastShowControllerHotkeys = ShowControllerHotkeys;
+        _lastShowOnlyButtonOutline = ShowOnlyButtonOutline;
+        _lastVoteClickTarget = VoteClickTarget;
+    }
+
+    public void RefreshModConfigValues()
+    {
+        /*
+         * Copies the latest saved config values into this screen's runtime properties.
+         */
+        ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
+        ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
+        VoteClickTarget = ChooseTheAncientConfig.VoteClickTarget;
+    }
+
+    private void SyncConfigFromSavedSettings()
+    {
+        /*
+         * Reloads config from ModConfig and applies the latest persisted values to this screen.
+         */
+        ChooseTheAncientConfig.RefreshFromModConfig();
+        ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
+        ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
+        VoteClickTarget = ChooseTheAncientConfig.VoteClickTarget;
+    }
+
+    private void RebuildForLiveConfigRefresh()
+    {
+        /*
+         * Rebuilds UI and visuals so layout and interaction changes from config apply immediately.
+         */
+        BuildUi();
+        ApplySecondVotePresentation(animate: false);
+        RefreshLayout();
+        RefreshSlotVisuals(animate: false);
+        RefreshButtonTexts();
+        RefreshVoteDisplays(animate: false);
+        GrabInitialFocus();
+    }
+
+    #endregion
+
+    #region Round flow orchestration
+
+    /*
+     * SECTION: Round flow orchestration.
+     * Owns the per-round flow from data load through transition timing and vote completion.
+     */
+
+    public async Task<int> RunRoundAsync(RoundDefinition round)
+    {
+        /*
+         * Resets all round-scoped state, applies the supplied round data, and waits for a vote to be submitted.
+         */
+        /* Handles each of the vote rounds for the selection screen */
+        await _readyCompletion.Task;
+
+        _voteSubmitted = new TaskCompletionSource<int>();
+        _pool = round.Pool;
+        _roundType = round.RoundType;
+        _previewDataByAncientId = round.PreviewDataByAncientId?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            ?? new Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>();
+        _suppressedPreviewAncientId = round.SuppressedPreviewAncientId;
+        _reactionAncientId = round.ReactionAncientId;
+        _pendingPoolIndex = null;
+        _selectedPoolIndex = null;
+        _finalChosenPoolIndex = null;
+        _currentlyHighlightedVotePlayer = null;
+        _votesByPlayerNetId.Clear();
+        _resolved = false;
+        _hoveredSlot = null;
+        _lastHoveredPoolIndex = null;
+        _initialSecondRoundFocusPoolIndex = null;
+        _initialSecondRoundWinnerEmphasisFadeTween?.Kill();
+        _initialSecondRoundWinnerEmphasisFadeTween = null;
+        _initialSecondRoundWinnerEmphasisAmount = 0f;
+
+        await ApplyRoundAsync();
+        return await _voteSubmitted.Task;
+    }
 
     private async Task ApplyRoundAsync()
     { 
+        /*
+         * Either builds the first round presentation or transitions from the previous round into the next one.
+         */
         /*
          * Has two branches. One for if round has not loaded.
          * And the other that transitions the ancients in and out.
@@ -508,10 +726,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         await AnimateInSlotsAsync();
-    } 
+    }
 
     private async Task AnimateOutSlotsAsync()
     {
+        /*
+         * Animates existing slot cards out before a new round layout is rebuilt.
+         */
         /* old slots slide slightly upward/outward and fade out. */
         if (_slots.Count == 0)
         {
@@ -536,6 +757,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     private void PrimeSlotsForTransitionIn()
     {
+        /*
+         * Places freshly rebuilt slots in their off-screen starting positions for the entrance tween.
+         */
         /* → places the new slot roots off to the sides and invisible so they are ready to tween in after they've been moved out*/
         for (int i = 0; i < _slots.Count; i++)
         {
@@ -553,6 +777,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     private async Task AnimateInSlotsAsync()
     {
+        /*
+         * Animates rebuilt slots into place and then restores initial focus.
+         */
         /*
          Slot slide/fade into place. After that tween finishes, if it’s FinalRevealVote, it directly calls the ancient preview animation.
          */
@@ -580,8 +807,20 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         GrabInitialFocus();
     }
 
-private string GetRoundIntroText()
+    #endregion
+
+    #region Round intro text and banner animation
+
+    /*
+     * SECTION: Round intro text and banner animation.
+     * Builds and animates the round-intro text as well as the final-round banner reveal timing.
+     */
+
+    private string GetRoundIntroText()
 {
+        /*
+         * Returns the banner text shown for the current round.
+         */
     string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
 
     return _roundType == VoteRoundType.InitialKeepVote
@@ -589,8 +828,11 @@ private string GetRoundIntroText()
         : "It's Not Over";
 }
 
-private void ShowRoundIntro()
+    private void ShowRoundIntro()
 {
+        /*
+         * Plays the animated banner intro for the current round title.
+         */
     if (_roundIntroAnchor == null || _roundIntroLabel == null)
     {
         return;
@@ -671,8 +913,86 @@ private void ShowRoundIntro()
     }));
 }
 
+    private void SetRoundIntroTextStyled(string text)
+    {
+        /*
+         * Applies the custom banner effect and rich-text styling for the round intro label.
+         */
+        if (_roundIntroLabel == null)
+        {
+            return;
+        }
+
+        string upper = text.ToUpperInvariant();
+
+        Font font = _roundIntroLabel.GetThemeFont(RtNormalFont, "RichTextLabel");
+        int fontSize = _roundIntroLabel.GetThemeFontSize(RtNormalFontSize, "RichTextLabel");
+
+        _roundIntroLabel.BbcodeEnabled = true;
+        _roundIntroLabel.Call("InstallEffectsIfNeeded");
+
+        Godot.Collections.Array effects = _roundIntroLabel.CustomEffects;
+
+        if (_roundIntroBannerEffect != null && effects.Contains(_roundIntroBannerEffect))
+        {
+            effects.Remove(_roundIntroBannerEffect);
+        }
+
+        _roundIntroBannerEffect = new RichTextAncientBanner
+        {
+            CenterCharacter = GetTextCenterGlyphIndex(upper, font, fontSize),
+            Rotation = 0.05f,
+            Spacing = 650f
+        };
+
+        effects.Add(_roundIntroBannerEffect);
+        _roundIntroLabel.CustomEffects = effects;
+
+        _roundIntroLabel.SetTextAutoSize($"[ancient_banner]{upper}[/ancient_banner]");
+    }
+
+    private static float GetTextCenterGlyphIndex(string text, Font font, int fontSize)
+    {
+        /*
+         * Estimates the visual center glyph index used by the round intro banner effect.
+         */
+        using TextParagraph paragraph = new();
+        paragraph.AddString(text, font, fontSize);
+
+        TextServer textServer = TextServerManager.Singleton.GetPrimaryInterface();
+        Godot.Collections.Array<Godot.Collections.Dictionary> glyphs =
+            textServer.ShapedTextGetGlyphs(paragraph.GetLineRid(0));
+
+        float totalWidth = 0f;
+        foreach (Godot.Collections.Dictionary glyph in glyphs)
+        {
+            totalWidth += glyph.GetValueOrDefault("advance").AsSingle();
+        }
+
+        float traversedWidth = 0f;
+        int glyphIndex = 0;
+
+        foreach (Godot.Collections.Dictionary glyph in glyphs)
+        {
+            float advance = glyph.GetValueOrDefault("advance").AsSingle();
+            traversedWidth += advance;
+
+            if (traversedWidth > totalWidth * 0.5f)
+            {
+                return glyphIndex + (totalWidth * 0.5f - (traversedWidth - advance)) / advance;
+            }
+
+            glyphIndex++;
+        }
+
+        return 0f;
+    }
+
     private void PrimeFinalRoundElementAnimation()
     {
+        /*
+         * Prepares preview widgets and reaction bubbles so their final-round entrance tween starts from hidden offset values.
+         */
         /* Readies the ancient preview elements to animation by setting alpha to 0, and putting down. */
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
@@ -716,6 +1036,9 @@ private void ShowRoundIntro()
 
     private void StartFinalRoundElementAnimation()
     {
+        /*
+         * Runs the staggered entrance animation for preview widgets and reaction bubbles in the final round.
+         */
         /* animation the ancient preview animation */   
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
@@ -776,28 +1099,20 @@ private void ShowRoundIntro()
         }
     }
 
-    private float GetPreviewListStartY(SlotRefs refs, Vector2 anchorSize)
-    {
-        if (refs.PreviewWidgets.Count == 0)
-        {
-            return 0f;
-        }
+    #endregion
 
-        float displayHeight = 70f;
-        float gap = 8f;
-        float totalHeight = (refs.PreviewWidgets.Count * displayHeight) + (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap);
+    #region UI construction and slot assembly
 
-        float reserveTop = 0f;
-        if (refs.ReactionBubble != null)
-        {
-            reserveTop = ReactionBubbleHeight + ReactionBubbleGap;
-        }
-
-        return MathF.Max(reserveTop, anchorSize.Y - totalHeight);
-    }
+    /*
+     * SECTION: UI construction and slot assembly.
+     * Builds slot roots, vote controls, button presentation, and the shared UI pieces each ancient slot depends on.
+     */
 
     private void BuildUi()
     {
+        /*
+         * Clears the current slot canvas, recreates every slot, and refreshes all dependent layout and interaction state.
+         */
         if (_slotsCanvas == null)
         {
             throw new InvalidOperationException("Layout scene was missing StageMargin/StageArea/SlotsCanvas.");
@@ -858,298 +1173,11 @@ private void ShowRoundIntro()
         GrabInitialFocus();
     }
 
-    private static void ApplyCardOutlineLook(Panel outline)
-    {
-        StyleBoxFlat sb = new()
-        {
-            BgColor = new Color(0f, 0f, 0f, 0f),
-            DrawCenter = false,
-            BorderWidthLeft = 4,
-            BorderWidthTop = 4,
-            BorderWidthRight = 4,
-            BorderWidthBottom = 4,
-            BorderColor = Colors.White,
-            CornerRadiusTopLeft = 12,
-            CornerRadiusTopRight = 12,
-            CornerRadiusBottomRight = 12,
-            CornerRadiusBottomLeft = 12
-        };
-
-        outline.AddThemeStyleboxOverride("panel", sb);
-    }
-
-    private static void SetMouseFilterRecursive(
-        Control root,
-        MouseFilterEnum mouseFilter,
-        Func<Control, bool>? shouldSkip = null)
-    {
-        if (shouldSkip?.Invoke(root) != true)
-        {
-            root.MouseFilter = mouseFilter;
-        }
-
-        foreach (Node child in root.GetChildren())
-        {
-            if (child is Control childControl)
-            {
-                SetMouseFilterRecursive(childControl, mouseFilter, shouldSkip);
-            }
-        }
-    }
-
-    private static Vector2[] BuildPortalPolygon(PortalShape shape)
-    {
-        return
-        [
-            shape.TopLeft,
-            shape.TopRight,
-            shape.BottomRight,
-            shape.BottomLeft,
-        ];
-    }
-
-    private bool TryGetStageLocalMousePosition(out Vector2 stageLocalMouse)
-    {
-        stageLocalMouse = Vector2.Zero;
-
-        if (_stageArea == null)
-        {
-            return false;
-        }
-
-        Vector2 viewportMouse = GetViewport().GetMousePosition();
-        if (!_stageArea.GetGlobalRect().HasPoint(viewportMouse))
-        {
-            return false;
-        }
-
-        stageLocalMouse = _stageArea.GetLocalMousePosition();
-        return true;
-    }
-
-    private static bool IsPointInsidePortalShape(PortalShape shape, Vector2 stagePoint)
-    {
-        return Geometry2D.IsPointInPolygon(stagePoint, BuildPortalPolygon(shape));
-    }
-
-    private int? GetWholeSlotPoolIndexAtStagePoint(Vector2 stagePoint)
-    {
-        foreach (SlotRefs refs in _slots)
-        {
-            if (IsPointInsidePortalShape(refs.Shape, stagePoint))
-            {
-                return refs.PoolIndex;
-            }
-        }
-
-        return null;
-    }
-
-    private bool IsMouseOverWholeSlot(SlotRefs refs)
-    {
-        return TryGetStageLocalMousePosition(out Vector2 stagePoint) &&
-               IsPointInsidePortalShape(refs.Shape, stagePoint);
-    }
-
-    private void UpdateWholeSlotHoverFromMouse()
-    {
-        if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
-        {
-            return;
-        }
-
-        if (_resolved)
-        {
-            return;
-        }
-
-        if (!TryGetStageLocalMousePosition(out Vector2 stagePoint))
-        {
-            if (_hoveredSlot != null)
-            {
-                ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(null);
-                _hoveredSlot = null;
-                _lastHoveredPoolIndex = null;
-                RefreshSlotVisuals(animate: true);
-                RefreshAllVoteButtonOutlines();
-            }
-
-            return;
-        }
-
-        int? hoveredPoolIndex = GetWholeSlotPoolIndexAtStagePoint(stagePoint);
-        if (!hoveredPoolIndex.HasValue)
-        {
-            if (_hoveredSlot != null)
-            {
-                ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(null);
-                _hoveredSlot = null;
-                _lastHoveredPoolIndex = null;
-                RefreshSlotVisuals(animate: true);
-                RefreshAllVoteButtonOutlines();
-            }
-
-            return;
-        }
-
-        OnSlotHovered(hoveredPoolIndex.Value);
-    }
-
-    private void OnStageAreaGuiInput(InputEvent @event)
-    {
-        if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
-        {
-            return;
-        }
-
-        if (_resolved || _closing)
-        {
-            return;
-        }
-
-        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
-        {
-            return;
-        }
-
-        if (!TryGetStageLocalMousePosition(out Vector2 stagePoint))
-        {
-            return;
-        }
-
-        int? poolIndex = GetWholeSlotPoolIndexAtStagePoint(stagePoint);
-        if (!poolIndex.HasValue)
-        {
-            return;
-        }
-
-        Select(poolIndex.Value);
-        AcceptEvent();
-    }
-
-    private Control CreateVoteClickTarget(string name, int poolIndex, bool isSlotTarget)
-    {
-        Control clickTarget = new()
-        {
-            Name = name,
-            MouseFilter = MouseFilterEnum.Ignore,
-            FocusMode = FocusModeEnum.None,
-        };
-
-        SetFullRect(clickTarget);
-        clickTarget.GuiInput += @event => OnVoteClickTargetGuiInput(poolIndex, isSlotTarget, @event);
-        clickTarget.MouseEntered += () => OnSlotHovered(poolIndex);
-        clickTarget.MouseExited += () => OnSlotUnhovered(poolIndex);
-        return clickTarget;
-    }
-
-    private void OnVoteClickTargetGuiInput(int poolIndex, bool isSlotTarget, InputEvent @event)
-    {
-        if (_resolved)
-        {
-            return;
-        }
-
-        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
-        {
-            return;
-        }
-
-        if (isSlotTarget)
-        {
-            if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
-            {
-                return;
-            }
-        }
-        else if (VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.ButtonOnly)
-        {
-            return;
-        }
-
-        Select(poolIndex);
-        AcceptEvent();
-    }
-
-    private void ApplyVoteClickTargetMode(SlotRefs refs)
-    {
-        refs.CardClickTarget.MouseFilter = VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.ButtonOnly
-            ? MouseFilterEnum.Pass
-            : MouseFilterEnum.Stop;
-
-        // Whole-slot hit testing is handled against the actual portal polygon from the shared stage area.
-        // That keeps hover/click exactly inside the visible slot seams instead of using overlapping rectangles.
-        refs.SlotClickTarget.MouseFilter = MouseFilterEnum.Ignore;
-    }
-
-    private static void ApplyVoteButtonLook(
-        Button chooseButton,
-        NinePatchRect chooseButtonOutline, bool bodyVisible)
-    {
-        Texture2D buttonTexture = GD.Load<Texture2D>(VoteButtonTexturePath)
-            ?? throw new InvalidOperationException($"Could not load {VoteButtonTexturePath}");
-        Texture2D outlineTexture = GD.Load<Texture2D>(VoteButtonOutlineTexturePath)
-            ?? throw new InvalidOperationException($"Could not load {VoteButtonOutlineTexturePath}");
-        Font buttonFont = GD.Load<Font>(VoteButtonFontPath)
-            ?? throw new InvalidOperationException($"Could not load {VoteButtonFontPath}");
-
-        // Style the button to have the game's event button texture
-        StyleBoxTexture normal = new()
-        {
-            Texture = buttonTexture,
-            TextureMarginLeft = 0f,
-            TextureMarginTop = 0f,
-            TextureMarginRight = 0f,
-            TextureMarginBottom = 0f,
-            AxisStretchHorizontal = StyleBoxTexture.AxisStretchMode.Stretch,
-            AxisStretchVertical = StyleBoxTexture.AxisStretchMode.Stretch,
-            ModulateColor = bodyVisible ? Colors.White : new Color(1f, 1f, 1f, 0f)
-        };
-
-        StyleBoxTexture hover = (StyleBoxTexture)normal.Duplicate();
-        hover.ModulateColor = bodyVisible ? Colors.White : new Color(1f, 1f, 1f, 0f);
-
-        StyleBoxTexture pressed = (StyleBoxTexture)normal.Duplicate();
-        pressed.ModulateColor = bodyVisible
-            ? new Color(0.92f, 0.92f, 0.92f, 1f)
-            : new Color(1f, 1f, 1f, 0f);
-
-        StyleBoxTexture disabled = (StyleBoxTexture)normal.Duplicate();
-        disabled.ModulateColor = bodyVisible
-            ? new Color(0.70f, 0.70f, 0.70f, 0.90f)
-            : new Color(1f, 1f, 1f, 0f);
-
-        chooseButtonOutline.Texture = outlineTexture;
-        chooseButtonOutline.PatchMarginLeft = 0;
-        chooseButtonOutline.PatchMarginTop = 18;
-        chooseButtonOutline.PatchMarginRight = 0;
-        chooseButtonOutline.PatchMarginBottom = 18;
-        chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
-
-        chooseButton.AddThemeStyleboxOverride("normal", normal);
-        chooseButton.AddThemeStyleboxOverride("hover", normal);
-        chooseButton.AddThemeStyleboxOverride("pressed", normal);
-        chooseButton.AddThemeStyleboxOverride("focus", normal);
-        chooseButton.AddThemeStyleboxOverride("disabled", normal);
-
-        chooseButton.CustomMinimumSize = new Vector2(0f, 72f);
-        chooseButton.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        chooseButton.Alignment = HorizontalAlignment.Center;
-
-        chooseButton.AddThemeFontOverride("font", buttonFont);
-        chooseButton.AddThemeFontSizeOverride("font_size", 24);
-        chooseButton.AddThemeColorOverride("font_color", Colors.White);
-        chooseButton.AddThemeColorOverride("font_hover_color", Colors.White);
-        chooseButton.AddThemeColorOverride("font_pressed_color", Colors.White);
-        chooseButton.AddThemeColorOverride("font_focus_color", Colors.White);
-        chooseButton.AddThemeColorOverride("font_disabled_color", new Color(0.78f, 0.78f, 0.78f, 1f));
-        chooseButton.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.70f));
-        chooseButton.AddThemeConstantOverride("outline_size", 6);
-
-    }
-    
     private SlotRefs CreateSlot(AncientEventModel ancient, int poolIndex, PackedScene cardScene)
     {
+        /*
+         * Creates one complete slot with its viewport, polygons, card UI, vote controls, and preview anchors.
+         */
         Color accentColor = GetAccentColor(ancient.Id.Entry, poolIndex);
 
         Control slotRoot = new()
@@ -1353,9 +1381,195 @@ private void ShowRoundIntro()
         return refs;
     }
 
+    private Control CreateVoteClickTarget(string name, int poolIndex, bool isSlotTarget)
+    {
+        /*
+         * Creates an invisible interaction surface that forwards hover and click handling for a slot or button area.
+         */
+        Control clickTarget = new()
+        {
+            Name = name,
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
+
+        SetFullRect(clickTarget);
+        clickTarget.GuiInput += @event => OnVoteClickTargetGuiInput(poolIndex, isSlotTarget, @event);
+        clickTarget.MouseEntered += () => OnSlotHovered(poolIndex);
+        clickTarget.MouseExited += () => OnSlotUnhovered(poolIndex);
+        return clickTarget;
+    }
+
+    private void ApplyVoteClickTargetMode(SlotRefs refs)
+    {
+        /*
+         * Applies the configured mouse-filter behavior for card and slot click targets.
+         */
+        refs.CardClickTarget.MouseFilter = VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.ButtonOnly
+            ? MouseFilterEnum.Pass
+            : MouseFilterEnum.Stop;
+
+        // Whole-slot hit testing is handled against the actual portal polygon from the shared stage area.
+        // That keeps hover/click exactly inside the visible slot seams instead of using overlapping rectangles.
+        refs.SlotClickTarget.MouseFilter = MouseFilterEnum.Ignore;
+    }
+
+    private static void ApplyVoteButtonLook(
+        Button chooseButton,
+        NinePatchRect chooseButtonOutline, bool bodyVisible)
+    {
+        /*
+         * Applies the configured vote-button presentation
+         * for the filled body and its outline-only fallback.
+         */
+        Texture2D buttonTexture = GD.Load<Texture2D>(VoteButtonTexturePath)
+            ?? throw new InvalidOperationException($"Could not load {VoteButtonTexturePath}");
+        Texture2D outlineTexture = GD.Load<Texture2D>(VoteButtonOutlineTexturePath)
+            ?? throw new InvalidOperationException($"Could not load {VoteButtonOutlineTexturePath}");
+        Font buttonFont = GD.Load<Font>(VoteButtonFontPath)
+            ?? throw new InvalidOperationException($"Could not load {VoteButtonFontPath}");
+
+        // Style the button to have the game's event button texture
+        StyleBoxTexture normal = new()
+        {
+            Texture = buttonTexture,
+            TextureMarginLeft = 0f,
+            TextureMarginTop = 0f,
+            TextureMarginRight = 0f,
+            TextureMarginBottom = 0f,
+            AxisStretchHorizontal = StyleBoxTexture.AxisStretchMode.Stretch,
+            AxisStretchVertical = StyleBoxTexture.AxisStretchMode.Stretch,
+            ModulateColor = bodyVisible ? Colors.White : new Color(1f, 1f, 1f, 0f)
+        };
+
+        StyleBoxTexture hover = (StyleBoxTexture)normal.Duplicate();
+        hover.ModulateColor = bodyVisible ? Colors.White : new Color(1f, 1f, 1f, 0f);
+
+        StyleBoxTexture pressed = (StyleBoxTexture)normal.Duplicate();
+        pressed.ModulateColor = bodyVisible
+            ? new Color(0.92f, 0.92f, 0.92f, 1f)
+            : new Color(1f, 1f, 1f, 0f);
+
+        StyleBoxTexture disabled = (StyleBoxTexture)normal.Duplicate();
+        disabled.ModulateColor = bodyVisible
+            ? new Color(0.70f, 0.70f, 0.70f, 0.90f)
+            : new Color(1f, 1f, 1f, 0f);
+
+        chooseButtonOutline.Texture = outlineTexture;
+        chooseButtonOutline.PatchMarginLeft = 0;
+        chooseButtonOutline.PatchMarginTop = 18;
+        chooseButtonOutline.PatchMarginRight = 0;
+        chooseButtonOutline.PatchMarginBottom = 18;
+        chooseButtonOutline.Modulate = new Color(1f, 1f, 1f, 0f);
+
+        chooseButton.AddThemeStyleboxOverride("normal", normal);
+        chooseButton.AddThemeStyleboxOverride("hover", normal);
+        chooseButton.AddThemeStyleboxOverride("pressed", normal);
+        chooseButton.AddThemeStyleboxOverride("focus", normal);
+        chooseButton.AddThemeStyleboxOverride("disabled", normal);
+
+        chooseButton.CustomMinimumSize = new Vector2(0f, 72f);
+        chooseButton.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        chooseButton.Alignment = HorizontalAlignment.Center;
+
+        chooseButton.AddThemeFontOverride("font", buttonFont);
+        chooseButton.AddThemeFontSizeOverride("font_size", 24);
+        chooseButton.AddThemeColorOverride("font_color", Colors.White);
+        chooseButton.AddThemeColorOverride("font_hover_color", Colors.White);
+        chooseButton.AddThemeColorOverride("font_pressed_color", Colors.White);
+        chooseButton.AddThemeColorOverride("font_focus_color", Colors.White);
+        chooseButton.AddThemeColorOverride("font_disabled_color", new Color(0.78f, 0.78f, 0.78f, 1f));
+        chooseButton.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.70f));
+        chooseButton.AddThemeConstantOverride("outline_size", 6);
+
+    }
+
+    private static void ApplyCardOutlineLook(Panel outline)
+    {
+        /*
+         * Applies the shared outline style used by each ancient card shell.
+         */
+        StyleBoxFlat sb = new()
+        {
+            BgColor = new Color(0f, 0f, 0f, 0f),
+            DrawCenter = false,
+            BorderWidthLeft = 4,
+            BorderWidthTop = 4,
+            BorderWidthRight = 4,
+            BorderWidthBottom = 4,
+            BorderColor = Colors.White,
+            CornerRadiusTopLeft = 12,
+            CornerRadiusTopRight = 12,
+            CornerRadiusBottomRight = 12,
+            CornerRadiusBottomLeft = 12
+        };
+
+        outline.AddThemeStyleboxOverride("panel", sb);
+    }
+
+    private static void SetMouseFilterRecursive(
+        Control root,
+        MouseFilterEnum mouseFilter,
+        Func<Control, bool>? shouldSkip = null)
+    {
+        /*
+         * Recursively applies a mouse filter to a control tree
+         * and optionally lets the caller adjust each visited node.
+         */
+        if (shouldSkip?.Invoke(root) != true)
+        {
+            root.MouseFilter = mouseFilter;
+        }
+
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is Control childControl)
+            {
+                SetMouseFilterRecursive(childControl, mouseFilter, shouldSkip);
+            }
+        }
+    }
+
+    private void RefreshButtonTexts()
+    {
+        /*
+         * Updates vote-button text, disabled state, outlines, and controller navigation after selection changes.
+         */
+        foreach (SlotRefs refs in _slots)
+        {
+            bool resolvedSelected = _resolved && _selectedPoolIndex == refs.PoolIndex;
+            bool finalWinner = _finalChosenPoolIndex.HasValue && _finalChosenPoolIndex.Value == refs.PoolIndex;
+
+            if (_resolved)
+            {
+                refs.ChooseButton.Disabled = true;
+                if (_finalChosenPoolIndex.HasValue)
+                {
+                    refs.ChooseButton.Text = finalWinner ? "Selected Ancient" : "Voting Closed";
+                }
+                else
+                {
+                    refs.ChooseButton.Text = resolvedSelected ? "Vote Locked" : "Unavailable";
+                }
+            }
+            else
+            {
+                refs.ChooseButton.Disabled = false;
+                refs.ChooseButton.Text = "Vote For This Ancient";
+            }
+            
+            UpdateVoteButtonOutline(refs);
+        }
+
+        ConfigureControllerNavigation();
+        UpdateVoteButtonControllerIcons();
+    }
 
     private void UpdateVoteButtonOutline(SlotRefs refs)
     {
+        /*
+         * Shows or hides a slot's vote-button outline based on current hover and availability state.
+         */
         bool show =
             !_resolved &&
             !refs.ChooseButton.Disabled &&
@@ -1363,17 +1577,32 @@ private void ShowRoundIntro()
 
         refs.ChooseButtonOutline.Modulate = new Color(1f, 1f, 1f, show ? 1f : 0f);
     }
-    
+
     private void RefreshAllVoteButtonOutlines()
     {
+        /*
+         * Recomputes the vote-button outline visibility for every slot.
+         */
         foreach (SlotRefs refs in _slots)
         {
             UpdateVoteButtonOutline(refs);
         }
     }
-    
+
+    #endregion
+
+    #region Preview content and reaction bubble content
+
+    /*
+     * SECTION: Preview content and reaction bubble content.
+     * Populates preview options, controls second-round content visibility, and builds the talking reaction bubble presentation.
+     */
+
     private void PopulatePreview(SlotRefs refs)
     {
+        /*
+         * Builds the preview widgets for a slot and registers their hover/focus handlers for final-round use.
+         */
         /* for this slot, create the little final-round option preview cards and register them for later layout, hover, and entrance animation. */
         ClearChildren(refs.PreviewAnchor);
         ClearChildren(refs.ReactionAnchor);
@@ -1461,9 +1690,11 @@ private void ShowRoundIntro()
         }
     }
 
-
     private void ApplySecondVotePresentation(bool animate)
     {
+        /*
+         * Applies final-round preview visibility rules and spawns any configured reaction bubble.
+         */
         /*
          * is the “final-round visibility policy” method: it hides the suppressed ancient’s preview, shows other previews,
          * and attaches the special reaction bubble to the designated ancient.
@@ -1510,6 +1741,9 @@ private void ShowRoundIntro()
 
     private void TryShowReactionBubble(SlotRefs refs, bool animate)
     {
+        /*
+         * Creates and stages the reaction bubble for the configured reacting ancient.
+         */
         refs.ReactionBubble = null;
 
         Control bubble = BuildReactionBubble(refs.Ancient);
@@ -1530,9 +1764,11 @@ private void ShowRoundIntro()
         ModLog.Trace($"Showing custom reaction bubble for {refs.Ancient.Id.Entry}: How about now?");
     }
 
-
     private Control BuildReactionBubble(AncientEventModel ancient)
     {
+        /*
+         * Builds the full reaction bubble control tree, fonts, icon, and text styling.
+         */
         Texture2D bubbleTexture = GD.Load<Texture2D>(DialogueBubbleTexturePath)
             ?? throw new InvalidOperationException($"Could not load {DialogueBubbleTexturePath}");
         Texture2D tailTexture = GD.Load<Texture2D>(DialogueTailTexturePath)
@@ -1799,119 +2035,11 @@ private void ShowRoundIntro()
         return root;
     }
 
-
-    private void OnPreviewHovered(SlotRefs refs, int previewIndex)
-    {
-        if (previewIndex < 0 || previewIndex >= refs.PreviewWidgets.Count)
-        {
-            return;
-        }
-
-        PreviewWidgetRefs widget = refs.PreviewWidgets[previewIndex];
-        if (_hoveredPreviewWidget == widget)
-        {
-            return;
-        }
-
-        if (_hoveredPreviewWidget != null)
-        {
-            ApplyPreviewHoverVisuals(_hoveredPreviewWidget, hovered: false);
-            NHoverTipSet.Remove(_hoveredPreviewWidget.Wrapper);
-        }
-
-        _hoveredPreviewWidget = widget;
-        _hoveredSlot = refs;
-        _lastHoveredPoolIndex = refs.PoolIndex;
-        ApplyPreviewHoverVisuals(widget, hovered: true);
-        RefreshSlotVisuals(animate: true);
-        RefreshAllVoteButtonOutlines();
-
-        try
-        {
-            SfxCmd.Play("event:/sfx/ui/enchant_simple");
-        }
-        catch
-        {
-        }
-
-        try
-        {
-            float viewportMid = GetViewportRect().Size.X * 0.5f;
-            float wrapperCenterX = widget.Wrapper.GetGlobalRect().GetCenter().X;
-            HoverTipAlignment alignment = wrapperCenterX < viewportMid
-                ? HoverTipAlignment.Right
-                : HoverTipAlignment.Left;
-            NHoverTipSet hoverTipSet = NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, alignment);
-            hoverTipSet.ZIndex = 9;
-            hoverTipSet.TopLevel = true;
-            hoverTipSet.ProcessMode = ProcessModeEnum.Always;
-            hoverTipSet.Show();
-            if (hoverTipSet.GetParent() != null)
-            {
-                hoverTipSet.GetParent().MoveChild(hoverTipSet, hoverTipSet.GetParent().GetChildCount() - 1);
-            }
-
-            foreach (Control tipChild in hoverTipSet.GetChildren().OfType<Control>())
-            {
-                tipChild.ZIndex = 8;
-            }
-        }
-        catch
-        {
-        }
-    }
-
-    private void OnPreviewUnhovered(SlotRefs refs, int previewIndex)
-    {
-        if (previewIndex < 0 || previewIndex >= refs.PreviewWidgets.Count)
-        {
-            return;
-        }
-
-        PreviewWidgetRefs widget = refs.PreviewWidgets[previewIndex];
-        if (_hoveredPreviewWidget != widget)
-        {
-            return;
-        }
-
-        _hoveredPreviewWidget = null;
-        ApplyPreviewHoverVisuals(widget, hovered: false);
-        NHoverTipSet.Remove(widget.Wrapper);
-        CallDeferred(nameof(ClearHoveredSlotIfInactive), refs.PoolIndex);
-    }
-
-    private void ApplyPreviewHoverVisuals(PreviewWidgetRefs widget, bool hovered)
-    {
-        if (widget.Wrapper == null || !GodotObject.IsInstanceValid(widget.Wrapper))
-        {
-            return;
-        }
-
-        Tween tween = CreateTween();
-        tween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-
-        Vector2 targetScale = hovered
-            ? widget.BaseScale * PreviewHoverScaleMultiplier
-            : widget.BaseScale;
-
-        tween.TweenProperty(widget.Wrapper, "scale", targetScale, hovered ? 0.12f : 0.22f);
-
-        if (widget.Outline != null)
-        {
-            Color targetOutline = hovered
-                ? new Color(0f, 0f, 0f, 0.92f)
-                : new Color(widget.Outline.Modulate.R, widget.Outline.Modulate.G, widget.Outline.Modulate.B, 0f);
-            tween.Parallel().TweenProperty(widget.Outline, "modulate", targetOutline, hovered ? 0.12f : 0.22f);
-        }
-
-        if (widget.HsvMaterial != null)
-        {
-            widget.HsvMaterial.SetShaderParameter("v", hovered ? 0.78f : 0.9f);
-        }
-    }
-
     private void StartReactionWave(Control bubble)
     {
+        /*
+         * Applies the animated dialogue wave shader to the reaction bubble text.
+         */
         RichTextLabel? speakerLabel = bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/SpeakerLabel");
         RichTextLabel? lineText = bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
 
@@ -1942,62 +2070,43 @@ private void ShowRoundIntro()
         }
     }
 
-    private static bool IsUsableScenePath(string? path)
+    #endregion
+
+    #region Layout, geometry, and ancient scene transforms
+
+    /*
+     * SECTION: Layout, geometry, and ancient scene transforms.
+     * Calculates slot geometry, positions preview and reaction content, and fits each ancient scene into its portal.
+     */
+
+    private float GetPreviewListStartY(SlotRefs refs, Vector2 anchorSize)
     {
-       /* Made to handle Custom ancient scene paths not working. */ 
-        return !string.IsNullOrWhiteSpace(path)
-               && path.StartsWith("res://", StringComparison.Ordinal)
-               && path.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase)
-               && !string.Equals(path, "res://", StringComparison.Ordinal);
+        /*
+         * Calculates where the preview list should start so it clears any reaction bubble and fits inside the anchor.
+         */
+        if (refs.PreviewWidgets.Count == 0)
+        {
+            return 0f;
+        }
+
+        float displayHeight = 70f;
+        float gap = 8f;
+        float totalHeight = (refs.PreviewWidgets.Count * displayHeight) + (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap);
+
+        float reserveTop = 0f;
+        if (refs.ReactionBubble != null)
+        {
+            reserveTop = ReactionBubbleHeight + ReactionBubbleGap;
+        }
+
+        return MathF.Max(reserveTop, anchorSize.Y - totalHeight);
     }
 
-    private string? GetAncientScenePath(AncientEventModel ancient)
-    {
-        if (AncientScenePaths.TryGetValue(ancient.Id.Entry, out string? mapped) && IsUsableScenePath(mapped))
-            return mapped;
-
-        string? reflected = Traverse.Create(ancient)
-            .Property("BackgroundScenePath")
-            .GetValue<string?>();
-
-        ModLog.Trace($"Reflected BackgroundScenePath for {ancient.Id.Entry}: '{reflected ?? "<null>"}'");
-
-        return IsUsableScenePath(reflected) ? reflected : null;
-    }
-
-    private void LoadAncientScene(SlotRefs refs)
-    {
-        ClearChildren(refs.SceneMount);
-        refs.SceneRoot = null;
-
-        string? scenePath = GetAncientScenePath(refs.Ancient);
-        if (!IsUsableScenePath(scenePath))
-        {
-            ModLog.Debug($"No usable ancient scene for {refs.Ancient.Id.Entry}. Path was '{scenePath ?? "<null>"}'. Using overlay only.");
-            return;
-        }
-
-        PackedScene? scene = GD.Load<PackedScene>(scenePath);
-        if (scene == null)
-        {
-            ModLog.Warn($"Could not load ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}'");
-            return;
-        }
-
-        try
-        {
-            Node root = scene.Instantiate();
-            refs.SceneMount.AddChild(root);
-            refs.SceneRoot = root;
-            ApplySceneTransform(refs, hovered: false, animate: false);
-        }
-        catch (Exception ex)
-        {
-            ModLog.Error($"Failed to instantiate ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}': {ex}");
-        }
-    }
     private void RefreshLayout()
     {
+        /*
+         * Recalculates slot geometry for the current stage size and reapplies all dependent layout work.
+         */
         if (_stageArea == null || _slots.Count == 0)
         {
             return;
@@ -2054,6 +2163,9 @@ private void ShowRoundIntro()
 
     private void LayoutPreview(SlotRefs refs)
     {
+        /*
+         * Positions and sizes each preview widget within its preview anchor.
+         */
         if (!refs.PreviewAnchor.Visible || refs.PreviewWidgets.Count == 0)
         {
             return;
@@ -2092,10 +2204,11 @@ private void ShowRoundIntro()
         }
     }
 
-
-
     private void LayoutReaction(SlotRefs refs)
     {
+        /*
+         * Places the reaction bubble above the preview list inside the slot preview area.
+         */
         if (refs.ReactionBubble == null)
         {
             return;
@@ -2123,6 +2236,9 @@ private void ShowRoundIntro()
 
     private static PortalShape[] BuildThreePortalShapes(Vector2 area, float cardWidth, float cardHeight)
     {
+        /*
+         * Builds the default three-slot portal layout and matching card rectangles.
+         */
         float h = area.Y;
         float outerPad = Math.Max(20f, (area.X - (cardWidth * 3f)) / 4f);
         float cardGap = outerPad;
@@ -2175,6 +2291,9 @@ private void ShowRoundIntro()
 
     private static PortalShape[] BuildTwoPortalShapes(Vector2 area, float cardWidth, float cardHeight)
     {
+        /*
+         * Builds the default two-slot portal layout and matching card rectangles.
+         */
         float h = area.Y;
         float outerPad = Math.Max(42f, (area.X - (cardWidth * 2f)) / 3f);
         float cardGap = outerPad;
@@ -2209,8 +2328,11 @@ private void ShowRoundIntro()
         };
     }
 
-private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, float cardHeight, int count)
+    private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, float cardHeight, int count)
 {
+        /*
+         * Builds a generalized portal layout for slot counts that do not use the bespoke two- or three-slot shapes.
+         */
     if (count <= 0)
         return [];
 
@@ -2291,8 +2413,25 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
     return shapes;
 }
 
+    private static Vector2[] BuildPortalPolygon(PortalShape shape)
+    {
+        /*
+         * Builds the four-point polygon array for a slot portal shape.
+         */
+        return
+        [
+            shape.TopLeft,
+            shape.TopRight,
+            shape.BottomRight,
+            shape.BottomLeft,
+        ];
+    }
+
     private void ApplyPortalGeometry(PortalShape shape, SlotRefs refs)
     {
+        /*
+         * Applies portal polygons, UVs, and rim quads to a slot from its resolved shape.
+         */
         Vector2[] polygon = new[]
         {
             shape.TopLeft,
@@ -2312,8 +2451,75 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         refs.RightRim.ZIndex = 0;
     }
 
+    private static bool IsUsableScenePath(string? path)
+    {
+        /*
+         * Validates that a reflected or mapped background-scene path is a usable Godot scene resource.
+         */
+       /* Made to handle Custom ancient scene paths not working. */ 
+        return !string.IsNullOrWhiteSpace(path)
+               && path.StartsWith("res://", StringComparison.Ordinal)
+               && path.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase)
+               && !string.Equals(path, "res://", StringComparison.Ordinal);
+    }
+
+    private string? GetAncientScenePath(AncientEventModel ancient)
+    {
+        /*
+         * Resolves the scene path for an ancient using known mappings first and reflection as a fallback.
+         */
+        if (AncientScenePaths.TryGetValue(ancient.Id.Entry, out string? mapped) && IsUsableScenePath(mapped))
+            return mapped;
+
+        string? reflected = Traverse.Create(ancient)
+            .Property("BackgroundScenePath")
+            .GetValue<string?>();
+
+        ModLog.Trace($"Reflected BackgroundScenePath for {ancient.Id.Entry}: '{reflected ?? "<null>"}'");
+
+        return IsUsableScenePath(reflected) ? reflected : null;
+    }
+
+    private void LoadAncientScene(SlotRefs refs)
+    {
+        /*
+         * Loads and instantiates the ancient background scene for a slot when a valid path exists.
+         */
+        ClearChildren(refs.SceneMount);
+        refs.SceneRoot = null;
+
+        string? scenePath = GetAncientScenePath(refs.Ancient);
+        if (!IsUsableScenePath(scenePath))
+        {
+            ModLog.Debug($"No usable ancient scene for {refs.Ancient.Id.Entry}. Path was '{scenePath ?? "<null>"}'. Using overlay only.");
+            return;
+        }
+
+        PackedScene? scene = GD.Load<PackedScene>(scenePath);
+        if (scene == null)
+        {
+            ModLog.Warn($"Could not load ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}'");
+            return;
+        }
+
+        try
+        {
+            Node root = scene.Instantiate();
+            refs.SceneMount.AddChild(root);
+            refs.SceneRoot = root;
+            ApplySceneTransform(refs, hovered: false, animate: false);
+        }
+        catch (Exception ex)
+        {
+            ModLog.Error($"Failed to instantiate ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}': {ex}");
+        }
+    }
+
     private AncientSceneConfig GetSceneConfig(string ancientId)
     {
+        /*
+         * Returns the per-ancient background-scene transform configuration.
+         */
         return AncientSceneConfigs.TryGetValue(ancientId, out AncientSceneConfig found)
             ? found
             : DefaultAncientSceneConfig;
@@ -2321,6 +2527,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private Vector2 ResolveSceneBaseSize(SlotRefs refs, AncientSceneConfig cfg)
     {
+        /*
+         * Chooses the base reference size used when positioning and scaling an ancient background scene.
+         */
         if (cfg.BaseSize.X > 1f && cfg.BaseSize.Y > 1f)
         {
             return cfg.BaseSize;
@@ -2347,6 +2556,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private SceneTransform GetSceneTransform(SlotRefs refs, bool hovered)
     {
+        /*
+         * Calculates the target scene size, position, and scale for a slot's background scene.
+         */
         AncientSceneConfig cfg = GetSceneConfig(refs.Ancient.Id.Entry);
         Vector2 baseSize = ResolveSceneBaseSize(refs, cfg);
         float appliedScale = cfg.Scale * (hovered ? HoverSceneScaleMultiplier : 1f);
@@ -2371,6 +2583,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void ApplySceneTransform(SlotRefs refs, bool hovered, bool animate)
     {
+        /*
+         * Applies or animates the resolved background-scene transform for a slot.
+         */
         if (refs.SceneRoot == null)
         {
             return;
@@ -2401,13 +2616,243 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
     }
 
+    private static Color GetAccentColor(string ancientId, int fallbackIndex)
+    {
+        /*
+         * Returns the accent color associated with an ancient, with a fallback by slot order.
+         */
+        return ancientId switch
+        {
+            "OROBAS" => new Color(0.47f, 0.86f, 0.98f, 1f),
+            "PAEL" => new Color(0.93f, 0.82f, 0.56f, 1f),
+            "TEZCATARA" => new Color(0.98f, 0.55f, 0.22f, 1f),
+            _ => fallbackIndex switch
+            {
+                0 => new Color(0.47f, 0.86f, 0.98f, 1f),
+                1 => new Color(0.93f, 0.82f, 0.56f, 1f),
+                _ => new Color(0.98f, 0.55f, 0.22f, 1f),
+            },
+        };
+    }
+
+    private static Vector2[] BuildLineQuad(Vector2 a, Vector2 b, float thickness)
+    {
+        /*
+         * Builds a quad polygon around a line segment for the portal rim visuals.
+         */
+        Vector2 delta = b - a;
+        Vector2 normal = delta.LengthSquared() <= 0.001f
+            ? new Vector2(thickness * 0.5f, 0f)
+            : delta.Orthogonal().Normalized() * (thickness * 0.5f);
+
+        return new[]
+        {
+            a - normal,
+            a + normal,
+            b + normal,
+            b - normal,
+        };
+    }
+
+    #endregion
+
+    #region Mouse hit testing, hover focus, and input routing
+
+    /*
+     * SECTION: Mouse hit testing, hover focus, and input routing.
+     * Routes raw mouse input into slot-level hover and click decisions.
+     */
+
+    private bool TryGetStageLocalMousePosition(out Vector2 stageLocalMouse)
+    {
+        /*
+         * Returns the mouse position in stage-local space only when the cursor is inside the stage area.
+         */
+        stageLocalMouse = Vector2.Zero;
+
+        if (_stageArea == null)
+        {
+            return false;
+        }
+
+        Vector2 viewportMouse = GetViewport().GetMousePosition();
+        if (!_stageArea.GetGlobalRect().HasPoint(viewportMouse))
+        {
+            return false;
+        }
+
+        stageLocalMouse = _stageArea.GetLocalMousePosition();
+        return true;
+    }
+
+    private static bool IsPointInsidePortalShape(PortalShape shape, Vector2 stagePoint)
+    {
+        /*
+         * Checks whether a stage-space point lies inside a slot's portal polygon.
+         */
+        return Geometry2D.IsPointInPolygon(stagePoint, BuildPortalPolygon(shape));
+    }
+
+    private int? GetWholeSlotPoolIndexAtStagePoint(Vector2 stagePoint)
+    {
+        /*
+         * Finds which slot polygon contains a given stage-space point.
+         */
+        foreach (SlotRefs refs in _slots)
+        {
+            if (IsPointInsidePortalShape(refs.Shape, stagePoint))
+            {
+                return refs.PoolIndex;
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsMouseOverWholeSlot(SlotRefs refs)
+    {
+        /*
+         * Checks whether the cursor is currently inside the supplied slot's full portal hit area.
+         */
+        return TryGetStageLocalMousePosition(out Vector2 stagePoint) &&
+               IsPointInsidePortalShape(refs.Shape, stagePoint);
+    }
+
+    private void UpdateWholeSlotHoverFromMouse()
+    {
+        /*
+         * Maintains slot hover state when whole-slot interaction mode is enabled.
+         */
+        if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
+        {
+            return;
+        }
+
+        if (_resolved)
+        {
+            return;
+        }
+
+        if (!TryGetStageLocalMousePosition(out Vector2 stagePoint))
+        {
+            if (_hoveredSlot != null)
+            {
+                ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(null);
+                _hoveredSlot = null;
+                _lastHoveredPoolIndex = null;
+                RefreshSlotVisuals(animate: true);
+                RefreshAllVoteButtonOutlines();
+            }
+
+            return;
+        }
+
+        int? hoveredPoolIndex = GetWholeSlotPoolIndexAtStagePoint(stagePoint);
+        if (!hoveredPoolIndex.HasValue)
+        {
+            if (_hoveredSlot != null)
+            {
+                ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(null);
+                _hoveredSlot = null;
+                _lastHoveredPoolIndex = null;
+                RefreshSlotVisuals(animate: true);
+                RefreshAllVoteButtonOutlines();
+            }
+
+            return;
+        }
+
+        OnSlotHovered(hoveredPoolIndex.Value);
+    }
+
+    private void OnStageAreaGuiInput(InputEvent @event)
+    {
+        /*
+         * Handles stage-area clicks that should select a slot in whole-slot interaction mode.
+         */
+        if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
+        {
+            return;
+        }
+
+        if (_resolved || _closing)
+        {
+            return;
+        }
+
+        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+        {
+            return;
+        }
+
+        if (!TryGetStageLocalMousePosition(out Vector2 stagePoint))
+        {
+            return;
+        }
+
+        int? poolIndex = GetWholeSlotPoolIndexAtStagePoint(stagePoint);
+        if (!poolIndex.HasValue)
+        {
+            return;
+        }
+
+        Select(poolIndex.Value);
+        AcceptEvent();
+    }
+
+    private void OnVoteClickTargetGuiInput(int poolIndex, bool isSlotTarget, InputEvent @event)
+    {
+        /*
+         * Validates click-target input against the active click mode before submitting a selection.
+         */
+        if (_resolved)
+        {
+            return;
+        }
+
+        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+        {
+            return;
+        }
+
+        if (isSlotTarget)
+        {
+            if (VoteClickTarget != ChooseTheAncientConfig.VoteClickTargetMode.WholeSlot)
+            {
+                return;
+            }
+        }
+        else if (VoteClickTarget == ChooseTheAncientConfig.VoteClickTargetMode.ButtonOnly)
+        {
+            return;
+        }
+
+        Select(poolIndex);
+        AcceptEvent();
+    }
+
+    #endregion
+
+    #region Ancient hover animation and visual emphasis
+
+    /*
+     * SECTION: Ancient hover animation and visual emphasis.
+     * Applies hover visuals, focus-driven emphasis, preview highlight behavior, and initial focus selection.
+     */
+
     private SlotRefs? FindSlot(int poolIndex)
     {
+        /*
+         * Finds the slot reference associated with a pool index.
+         */
         return _slots.Find(slot => slot.PoolIndex == poolIndex);
     }
 
     private void PlayHoverSoundIfNeeded(int poolIndex)
     {
+        /*
+         * Plays the hover sound only when focus moves onto a different slot.
+         */
         if (_lastHoveredPoolIndex == poolIndex)
         {
             return;
@@ -2424,6 +2869,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void SetInitialSecondRoundWinnerEmphasisAmount(float amount)
     {
+        /*
+         * Updates the carried-over second-round winner emphasis amount and refreshes visuals when needed.
+         */
         amount = Mathf.Clamp(amount, 0f, 1f);
 
         if (Mathf.IsEqualApprox(_initialSecondRoundWinnerEmphasisAmount, amount))
@@ -2441,6 +2889,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void ClearInitialSecondRoundWinnerEmphasisIfFocusChanged(int? nextPoolIndex)
     {
+        /*
+         * Fades out the carried-over second-round emphasis once focus leaves the preserved winner.
+         */
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
             _initialSecondRoundFocusPoolIndex = null;
@@ -2480,9 +2931,11 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }));
     }
 
-
     private void OnSlotHovered(int poolIndex)
     {
+        /*
+         * Applies slot hover state, including focus-emphasis adjustments and hover audio.
+         */
         if (_resolved)
         {
             return;
@@ -2508,6 +2961,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void OnSlotUnhovered(int poolIndex)
     {
+        /*
+         * Schedules deferred hover cleanup for a slot after the cursor or focus leaves it.
+         */
         SlotRefs? refs = _slots.FirstOrDefault(s => s.PoolIndex == poolIndex);
         if (_resolved)
         {
@@ -2519,6 +2975,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void ClearHoveredSlotIfInactive(int poolIndex)
     {
+        /*
+         * Clears slot hover state only when the slot is no longer hovered or focused by any relevant control.
+         */
         SlotRefs? refs = FindSlot(poolIndex);
         if (refs == null || !ReferenceEquals(_hoveredSlot, refs))
         {
@@ -2547,8 +3006,130 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         UpdateVoteButtonOutline(refs);
     }
 
+    private void OnPreviewHovered(SlotRefs refs, int previewIndex)
+    {
+        /*
+         * Activates preview hover visuals, updates slot emphasis, and shows the option hover tips.
+         */
+        if (previewIndex < 0 || previewIndex >= refs.PreviewWidgets.Count)
+        {
+            return;
+        }
+
+        PreviewWidgetRefs widget = refs.PreviewWidgets[previewIndex];
+        if (_hoveredPreviewWidget == widget)
+        {
+            return;
+        }
+
+        if (_hoveredPreviewWidget != null)
+        {
+            ApplyPreviewHoverVisuals(_hoveredPreviewWidget, hovered: false);
+            NHoverTipSet.Remove(_hoveredPreviewWidget.Wrapper);
+        }
+
+        _hoveredPreviewWidget = widget;
+        _hoveredSlot = refs;
+        _lastHoveredPoolIndex = refs.PoolIndex;
+        ApplyPreviewHoverVisuals(widget, hovered: true);
+        RefreshSlotVisuals(animate: true);
+        RefreshAllVoteButtonOutlines();
+
+        try
+        {
+            SfxCmd.Play("event:/sfx/ui/enchant_simple");
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            float viewportMid = GetViewportRect().Size.X * 0.5f;
+            float wrapperCenterX = widget.Wrapper.GetGlobalRect().GetCenter().X;
+            HoverTipAlignment alignment = wrapperCenterX < viewportMid
+                ? HoverTipAlignment.Right
+                : HoverTipAlignment.Left;
+            NHoverTipSet hoverTipSet = NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, alignment);
+            hoverTipSet.ZIndex = 9;
+            hoverTipSet.TopLevel = true;
+            hoverTipSet.ProcessMode = ProcessModeEnum.Always;
+            hoverTipSet.Show();
+            if (hoverTipSet.GetParent() != null)
+            {
+                hoverTipSet.GetParent().MoveChild(hoverTipSet, hoverTipSet.GetParent().GetChildCount() - 1);
+            }
+
+            foreach (Control tipChild in hoverTipSet.GetChildren().OfType<Control>())
+            {
+                tipChild.ZIndex = 8;
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private void OnPreviewUnhovered(SlotRefs refs, int previewIndex)
+    {
+        /*
+         * Clears preview hover state and schedules slot hover cleanup if nothing else is active.
+         */
+        if (previewIndex < 0 || previewIndex >= refs.PreviewWidgets.Count)
+        {
+            return;
+        }
+
+        PreviewWidgetRefs widget = refs.PreviewWidgets[previewIndex];
+        if (_hoveredPreviewWidget != widget)
+        {
+            return;
+        }
+
+        _hoveredPreviewWidget = null;
+        ApplyPreviewHoverVisuals(widget, hovered: false);
+        NHoverTipSet.Remove(widget.Wrapper);
+        CallDeferred(nameof(ClearHoveredSlotIfInactive), refs.PoolIndex);
+    }
+
+    private void ApplyPreviewHoverVisuals(PreviewWidgetRefs widget, bool hovered)
+    {
+        /*
+         * Tweens the outline, scale, and shader brightness for a preview widget.
+         */
+        if (widget.Wrapper == null || !GodotObject.IsInstanceValid(widget.Wrapper))
+        {
+            return;
+        }
+
+        Tween tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+
+        Vector2 targetScale = hovered
+            ? widget.BaseScale * PreviewHoverScaleMultiplier
+            : widget.BaseScale;
+
+        tween.TweenProperty(widget.Wrapper, "scale", targetScale, hovered ? 0.12f : 0.22f);
+
+        if (widget.Outline != null)
+        {
+            Color targetOutline = hovered
+                ? new Color(0f, 0f, 0f, 0.92f)
+                : new Color(widget.Outline.Modulate.R, widget.Outline.Modulate.G, widget.Outline.Modulate.B, 0f);
+            tween.Parallel().TweenProperty(widget.Outline, "modulate", targetOutline, hovered ? 0.12f : 0.22f);
+        }
+
+        if (widget.HsvMaterial != null)
+        {
+            widget.HsvMaterial.SetShaderParameter("v", hovered ? 0.78f : 0.9f);
+        }
+    }
+
     private void RefreshSlotVisuals(bool animate)
     {
+        /*
+         * Recomputes glow, shade, rim, outline, and background-scene emphasis for every slot.
+         */
         bool anyHovered = !_resolved && _hoveredSlot != null;
 
         foreach (SlotRefs refs in _slots)
@@ -2654,9 +3235,39 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
     }
 
+    private void GrabInitialFocus()
+    {
+        /*
+         * Defers initial focus to the preferred control and then refreshes focus-dependent outlines.
+         */
+        DefaultFocusedControl?.CallDeferred(Control.MethodName.GrabFocus);
+        CallDeferred(nameof(RefreshVoteButtonOutlinesAfterFocus));
+    }
+
+    private void RefreshVoteButtonOutlinesAfterFocus()
+    {
+        /*
+         * Refreshes vote-button outlines after deferred focus has fully settled.
+         */
+        /* Deferred to deal with timing to settle focus. Might need to be deferred twice if
+         this is not working. */
+        CallDeferred(nameof(RefreshAllVoteButtonOutlines));
+    }
+
+    #endregion
+
+    #region Controller navigation and focus graph
+
+    /*
+     * SECTION: Controller navigation and focus graph.
+     * Configures gamepad/controller traversal and keeps button prompt icons synchronized.
+     */
 
     private void ConnectControllerPromptSignals()
     {
+        /*
+         * Subscribes to controller and input rebinding events so prompt icons stay up to date.
+         */
         if (NControllerManager.Instance != null)
         {
             Callable updatePrompts = Callable.From(UpdateVoteButtonControllerIcons);
@@ -2683,6 +3294,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void DisconnectControllerPromptSignals()
     {
+        /*
+         * Removes controller and input rebinding subscriptions during teardown.
+         */
         Callable updatePrompts = Callable.From(UpdateVoteButtonControllerIcons);
 
         if (NControllerManager.Instance != null)
@@ -2706,6 +3320,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void UpdateVoteButtonControllerIcons()
     {
+        /*
+         * Shows or hides select-button prompt icons based on the current input device and config.
+         */
         bool showControllerPrompts = NControllerManager.Instance != null && NControllerManager.Instance.IsUsingController;
         Texture2D? selectIcon = NInputManager.Instance?.GetHotkeyIcon(MegaInput.select);
 
@@ -2726,6 +3343,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private List<PreviewWidgetRefs> GetNavigablePreviewWidgets(SlotRefs refs)
     {
+        /*
+         * Returns the visible preview widgets that should participate in controller navigation.
+         */
         if (!refs.PreviewAnchor.Visible)
         {
             return new List<PreviewWidgetRefs>();
@@ -2738,6 +3358,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private SlotRefs GetWrappedSlot(int slotIndex, int direction)
     {
+        /*
+         * Returns the adjacent slot index with wraparound semantics for controller navigation.
+         */
         if (_slots.Count == 0)
         {
             throw new InvalidOperationException("Tried to navigate controller focus with no slots.");
@@ -2754,6 +3377,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private Control GetPreviewTargetForAdjacentSlot(int slotIndex, int previewIndex, int direction)
     {
+        /*
+         * Finds the best preview focus target in an adjacent slot for left/right controller navigation.
+         */
         SlotRefs adjacentSlot = GetWrappedSlot(slotIndex, direction);
         List<PreviewWidgetRefs> adjacentPreviews = GetNavigablePreviewWidgets(adjacentSlot);
         if (adjacentPreviews.Count == 0)
@@ -2767,6 +3393,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void ConfigureControllerNavigation()
     {
+        /*
+         * Wires controller focus neighbors across vote buttons and preview widgets.
+         */
         if (_slots.Count == 0)
         {
             return;
@@ -2821,6 +3450,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private SlotRefs? FindFocusedVoteSlot(Control? focusedControl)
     {
+        /*
+         * Maps the currently focused control back to its owning vote slot.
+         */
         if (focusedControl == null)
         {
             return null;
@@ -2833,8 +3465,20 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
             || refs.ChooseButton.IsAncestorOf(focusedControl));
     }
 
+    #endregion
+
+    #region Vote selection, display refresh, and resolution playback
+
+    /*
+     * SECTION: Vote selection, display refresh, and resolution playback.
+     * Records votes, refreshes vote markers, and plays the resolution sequences for both rounds.
+     */
+
     public void RecordVote(Player player, int poolIndex)
     {
+        /*
+         * Stores a player's vote and refreshes the slot vote displays.
+         */
         if (!GodotObject.IsInstanceValid(this))
         {
             return;
@@ -2846,6 +3490,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private void RefreshVoteDisplays(bool animate, bool highlightLocalPlayer = true)
     {
+        /*
+         * Refreshes multiplayer vote containers and optionally highlights the local player's vote.
+         */
         foreach (SlotRefs refs in _slots)
         {
             if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
@@ -2871,10 +3518,181 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
     }
 
+    private void LayoutVoteIcons(SlotRefs refs)
+    {
+        /*
+         * Repositions vote icons inside a slot's vote anchor so they stack cleanly.
+         */
+        if (refs.VoteIconsAnchor == null || !GodotObject.IsInstanceValid(refs.VoteIconsAnchor))
+        {
+            return;
+        }
+
+        if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
+        {
+            return;
+        }
+
+        refs.VoteIconsAnchor.LayoutMode = 1;
+        refs.VoteIconsAnchor.AnchorLeft = 1f;
+        refs.VoteIconsAnchor.AnchorTop = 1f;
+        refs.VoteIconsAnchor.AnchorRight = 1f;
+        refs.VoteIconsAnchor.AnchorBottom = 1f;
+        refs.VoteIconsAnchor.OffsetLeft = -112f;
+        refs.VoteIconsAnchor.OffsetTop = -88f;
+        refs.VoteIconsAnchor.OffsetRight = -16f;
+        refs.VoteIconsAnchor.OffsetBottom = -48f;
+
+        List<Control> icons = refs.VoteContainer.GetChildren()
+            .OfType<Control>()
+            .OrderBy(node => node.GetIndex())
+            .ToList();
+
+        if (icons.Count == 0)
+        {
+            return;
+        }
+
+        float spacing = VoteIconSize - VoteIconOverlap;
+        float totalWidth = VoteIconSize + ((icons.Count - 1) * spacing);
+        float startX = MathF.Max(0f, refs.VoteIconsAnchor.Size.X - totalWidth);
+        float y = MathF.Max(0f, (refs.VoteIconsAnchor.Size.Y - VoteIconSize) * 0.5f);
+
+        for (int i = 0; i < icons.Count; i++)
+        {
+            Control icon = icons[i];
+            icon.LayoutMode = 1;
+            icon.AnchorLeft = 0f;
+            icon.AnchorTop = 0f;
+            icon.AnchorRight = 0f;
+            icon.AnchorBottom = 0f;
+            icon.Position = new Vector2(startX + (i * spacing), y);
+            icon.Size = new Vector2(VoteIconSize, VoteIconSize);
+            icon.ZIndex = 12;
+            icon.MouseFilter = MouseFilterEnum.Ignore;
+        }
+    }
+
+    private void HighlightVotePlayer(Player? player)
+    {
+        /*
+         * Moves vote highlighting from the previously emphasized player to the new one.
+         */
+        if (_currentlyHighlightedVotePlayer == player)
+        {
+            return;
+        }
+
+        if (_currentlyHighlightedVotePlayer != null)
+        {
+            foreach (SlotRefs refs in _slots)
+            {
+                if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    refs.VoteContainer.SetPlayerHighlighted(_currentlyHighlightedVotePlayer, isHighlighted: false);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        _currentlyHighlightedVotePlayer = player;
+
+        if (player == null)
+        {
+            return;
+        }
+
+        foreach (SlotRefs refs in _slots)
+        {
+            if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
+            {
+                continue;
+            }
+
+            try
+            {
+                bool votedForThisSlot = _votesByPlayerNetId.TryGetValue(player.NetId, out int poolIndex) && poolIndex == refs.PoolIndex;
+                refs.VoteContainer.SetPlayerHighlighted(player, votedForThisSlot);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private int GetVoteIconIndex(Player player, int poolIndex)
+    {
+        /*
+         * Returns a stable icon ordering for a player's vote in a given slot.
+         */
+        SlotRefs? slot = FindSlot(poolIndex);
+        if (slot?.VoteContainer != null && GodotObject.IsInstanceValid(slot.VoteContainer))
+        {
+            try
+            {
+                int index = slot.VoteContainer.GetVoteIndex(player);
+                if (index >= 0)
+                {
+                    return index;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        int fallbackIndex = _orderedPlayers.IndexOf(player);
+        return fallbackIndex >= 0 ? fallbackIndex : 999;
+    }
+
+    private void Select(int poolIndex)
+    {
+        /*
+         * Locks in a pool choice, updates resolved state, and completes the awaiting vote task.
+         */
+        if (_resolved)
+        {
+            return;
+        }
+
+        _resolved = true;
+        _selectedPoolIndex = poolIndex;
+        _pendingPoolIndex = null;
+        _hoveredSlot = null;
+        _lastHoveredPoolIndex = null;
+
+        if (_localPlayer != null)
+        {
+            RecordVote(_localPlayer, poolIndex);
+        }
+
+        if (_clickSfx?.Stream != null)
+        {
+            _clickSfx.Stop();
+            _clickSfx.Play();
+        }
+
+        RefreshButtonTexts();
+        RefreshSlotVisuals(animate: true);
+
+        _voteSubmitted.TrySetResult(poolIndex);
+    }
+
     private async Task PlayVoteResolutionHighlightAsync(
         IReadOnlyList<int> votesByPlayerSlotOrder,
         int chosenPoolIndex)
     {
+        /*
+         * Plays the vote-resolution highlight and spin presentation
+         * that settles votes onto the chosen ancient slot.
+         */
         RefreshVoteDisplays(animate: false, highlightLocalPlayer: false);
 
         List<(Player player, int poolIndex)> recordedVotes = new();
@@ -2944,6 +3762,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     public async Task PlayFinalVoteResolutionAsync(IReadOnlyList<int> finalVotesByPlayerSlotOrder, int chosenPoolIndex)
     {
+        /*
+         * Plays the final-round resolution sequence and marks the chosen slot as the final winner.
+         */
         if (!GodotObject.IsInstanceValid(this) || !IsInsideTree() || _roundType != VoteRoundType.FinalRevealVote)
         {
             return;
@@ -2972,12 +3793,16 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         }
 
         await Cmd.Wait(0.45f, ignoreCombatEnd: true);
-    } 
-    
+    }
+
     public async Task PlayInitialVoteResolutionAsync(
         IReadOnlyList<int> firstVotesByPlayerSlotOrder,
         int chosenPoolIndex)
     {
+        /*
+         * Plays the initial keep-vote resolution sequence
+         * before the flow transitions into the final reveal round.
+         */
         if (!GodotObject.IsInstanceValid(this) || !IsInsideTree() || _roundType != VoteRoundType.InitialKeepVote)
         {
             return;
@@ -3006,81 +3831,11 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         await Cmd.Wait(0.45f, ignoreCombatEnd: true);
     }
 
-    private void HighlightVotePlayer(Player? player)
-    {
-        if (_currentlyHighlightedVotePlayer == player)
-        {
-            return;
-        }
-
-        if (_currentlyHighlightedVotePlayer != null)
-        {
-            foreach (SlotRefs refs in _slots)
-            {
-                if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
-                {
-                    continue;
-                }
-
-                try
-                {
-                    refs.VoteContainer.SetPlayerHighlighted(_currentlyHighlightedVotePlayer, isHighlighted: false);
-                }
-                catch
-                {
-                }
-            }
-        }
-
-        _currentlyHighlightedVotePlayer = player;
-
-        if (player == null)
-        {
-            return;
-        }
-
-        foreach (SlotRefs refs in _slots)
-        {
-            if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
-            {
-                continue;
-            }
-
-            try
-            {
-                bool votedForThisSlot = _votesByPlayerNetId.TryGetValue(player.NetId, out int poolIndex) && poolIndex == refs.PoolIndex;
-                refs.VoteContainer.SetPlayerHighlighted(player, votedForThisSlot);
-            }
-            catch
-            {
-            }
-        }
-    }
-
-    private int GetVoteIconIndex(Player player, int poolIndex)
-    {
-        SlotRefs? slot = FindSlot(poolIndex);
-        if (slot?.VoteContainer != null && GodotObject.IsInstanceValid(slot.VoteContainer))
-        {
-            try
-            {
-                int index = slot.VoteContainer.GetVoteIndex(player);
-                if (index >= 0)
-                {
-                    return index;
-                }
-            }
-            catch
-            {
-            }
-        }
-
-        int fallbackIndex = _orderedPlayers.IndexOf(player);
-        return fallbackIndex >= 0 ? fallbackIndex : 999;
-    }
-
     private int BuildVoteResolutionSeed(IReadOnlyList<int> finalVotesByPlayerSlotOrder, int chosenPoolIndex)
     {
+        /*
+         * Builds a deterministic seed for the vote-resolution highlight animation.
+         */
         unchecked
         {
             int seed = 17;
@@ -3107,6 +3862,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private static int PositiveMod(int value, int mod)
     {
+        /*
+         * Returns a modulo result that is always non-negative.
+         */
         if (mod <= 0)
         {
             return 0;
@@ -3116,226 +3874,20 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         return result < 0 ? result + mod : result;
     }
 
-    private void LayoutVoteIcons(SlotRefs refs)
-    {
-        if (refs.VoteIconsAnchor == null || !GodotObject.IsInstanceValid(refs.VoteIconsAnchor))
-        {
-            return;
-        }
+    #endregion
 
-        if (refs.VoteContainer == null || !GodotObject.IsInstanceValid(refs.VoteContainer))
-        {
-            return;
-        }
+    #region Audio generation and shared utilities
 
-        refs.VoteIconsAnchor.LayoutMode = 1;
-        refs.VoteIconsAnchor.AnchorLeft = 1f;
-        refs.VoteIconsAnchor.AnchorTop = 1f;
-        refs.VoteIconsAnchor.AnchorRight = 1f;
-        refs.VoteIconsAnchor.AnchorBottom = 1f;
-        refs.VoteIconsAnchor.OffsetLeft = -112f;
-        refs.VoteIconsAnchor.OffsetTop = -88f;
-        refs.VoteIconsAnchor.OffsetRight = -16f;
-        refs.VoteIconsAnchor.OffsetBottom = -48f;
-
-        List<Control> icons = refs.VoteContainer.GetChildren()
-            .OfType<Control>()
-            .OrderBy(node => node.GetIndex())
-            .ToList();
-
-        if (icons.Count == 0)
-        {
-            return;
-        }
-
-        float spacing = VoteIconSize - VoteIconOverlap;
-        float totalWidth = VoteIconSize + ((icons.Count - 1) * spacing);
-        float startX = MathF.Max(0f, refs.VoteIconsAnchor.Size.X - totalWidth);
-        float y = MathF.Max(0f, (refs.VoteIconsAnchor.Size.Y - VoteIconSize) * 0.5f);
-
-        for (int i = 0; i < icons.Count; i++)
-        {
-            Control icon = icons[i];
-            icon.LayoutMode = 1;
-            icon.AnchorLeft = 0f;
-            icon.AnchorTop = 0f;
-            icon.AnchorRight = 0f;
-            icon.AnchorBottom = 0f;
-            icon.Position = new Vector2(startX + (i * spacing), y);
-            icon.Size = new Vector2(VoteIconSize, VoteIconSize);
-            icon.ZIndex = 12;
-            icon.MouseFilter = MouseFilterEnum.Ignore;
-        }
-    }
-
-    private void RefreshButtonTexts()
-    {
-        foreach (SlotRefs refs in _slots)
-        {
-            bool resolvedSelected = _resolved && _selectedPoolIndex == refs.PoolIndex;
-            bool finalWinner = _finalChosenPoolIndex.HasValue && _finalChosenPoolIndex.Value == refs.PoolIndex;
-
-            if (_resolved)
-            {
-                refs.ChooseButton.Disabled = true;
-                if (_finalChosenPoolIndex.HasValue)
-                {
-                    refs.ChooseButton.Text = finalWinner ? "Selected Ancient" : "Voting Closed";
-                }
-                else
-                {
-                    refs.ChooseButton.Text = resolvedSelected ? "Vote Locked" : "Unavailable";
-                }
-            }
-            else
-            {
-                refs.ChooseButton.Disabled = false;
-                refs.ChooseButton.Text = "Vote For This Ancient";
-            }
-            
-            UpdateVoteButtonOutline(refs);
-        }
-
-        ConfigureControllerNavigation();
-        UpdateVoteButtonControllerIcons();
-    }
-
-    private void GrabInitialFocus()
-    {
-        DefaultFocusedControl?.CallDeferred(Control.MethodName.GrabFocus);
-        CallDeferred(nameof(RefreshVoteButtonOutlinesAfterFocus));
-    }
-    
-    private void RefreshVoteButtonOutlinesAfterFocus()
-    {
-        /* Deferred to deal with timing to settle focus. Might need to be deferred twice if
-         this is not working. */
-        CallDeferred(nameof(RefreshAllVoteButtonOutlines));
-    }
-
-    private void Select(int poolIndex)
-    {
-        if (_resolved)
-        {
-            return;
-        }
-
-        _resolved = true;
-        _selectedPoolIndex = poolIndex;
-        _pendingPoolIndex = null;
-        _hoveredSlot = null;
-        _lastHoveredPoolIndex = null;
-
-        if (_localPlayer != null)
-        {
-            RecordVote(_localPlayer, poolIndex);
-        }
-
-        if (_clickSfx?.Stream != null)
-        {
-            _clickSfx.Stop();
-            _clickSfx.Play();
-        }
-
-        RefreshButtonTexts();
-        RefreshSlotVisuals(animate: true);
-
-        _voteSubmitted.TrySetResult(poolIndex);
-    }
-
-    public void CloseScreen()
-    {
-        if (_closing || !GodotObject.IsInstanceValid(this))
-        {
-            return;
-        }
-
-        _closing = true;
-
-        try
-        {
-            if (IsInsideTree())
-            {
-                NOverlayStack.Instance.Remove(this);
-            }
-            else
-            {
-                QueueFree();
-            }
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-    }
-
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        if (_resolved)
-        {
-            return;
-        }
-
-        if (@event.IsActionPressed(MegaInput.select) && !@event.IsEcho())
-        {
-            Control? focusedControl = GetViewport().GuiGetFocusOwner();
-            SlotRefs? focusedSlot = FindFocusedVoteSlot(focusedControl);
-            if (focusedSlot != null && !focusedSlot.ChooseButton.Disabled)
-            {
-                Select(focusedSlot.PoolIndex);
-                AcceptEvent();
-                return;
-            }
-        }
-
-        if (@event.IsActionPressed(MegaInput.cancel))
-        {
-            AcceptEvent();
-        }
-    }
-    
-    public override void _EnterTree()
-    {
-        base._EnterTree();
-        _openScreens.Add(this);
-    }
-    
-    public override void _ExitTree()
-    {
-        _openScreens.Remove(this);
-        _roundIntroTween?.Kill();
-        DisconnectControllerPromptSignals();
-        if (!_voteSubmitted.Task.IsCompleted)
-        {
-            _voteSubmitted.TrySetCanceled();
-        }
-
-        base._ExitTree();
-    }
-
-    public void AfterOverlayOpened()
-    {
-        Visible = true;
-        GrabInitialFocus();
-    }
-
-    public void AfterOverlayClosed()
-    {
-        QueueFree();
-    }
-
-    public void AfterOverlayShown()
-    {
-        Visible = true;
-        GrabInitialFocus();
-    }
-
-    public void AfterOverlayHidden()
-    {
-        Visible = false;
-    }
+    /*
+     * SECTION: Audio generation and shared utilities.
+     * Builds fallback UI audio and contains generic helper utilities used across the screen.
+     */
 
     private void TryInstallGeneratedSounds()
     {
+        /*
+         * Creates lightweight generated UI sounds and assigns them to the cached audio players when possible.
+         */
         try
         {
             if (_hoverSfx != null && _hoverSfx.Stream == null)
@@ -3379,6 +3931,10 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         float releaseSeconds,
         float noiseAmount)
     {
+        /*
+         * Builds a small synthesized UI tone
+         * used for generated hover and click feedback.
+         */
         const int mixRate = 44100;
         int sampleCount = Math.Max(1, (int)MathF.Round(durationSeconds * mixRate));
         byte[] data = new byte[sampleCount * sizeof(short)];
@@ -3422,6 +3978,9 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private static float ComputeEnvelope(float t, float duration, float attackSeconds, float releaseSeconds)
     {
+        /*
+         * Calculates the attack/release envelope multiplier for a synthesized sample point.
+         */
         float attack = attackSeconds <= 0f ? 1f : Math.Clamp(t / attackSeconds, 0f, 1f);
         float sustainUntil = MathF.Max(0f, duration - releaseSeconds);
         float release = releaseSeconds <= 0f || t <= sustainUntil
@@ -3433,40 +3992,11 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
         return shapedAttack * shapedRelease;
     }
 
-    private static Color GetAccentColor(string ancientId, int fallbackIndex)
-    {
-        return ancientId switch
-        {
-            "OROBAS" => new Color(0.47f, 0.86f, 0.98f, 1f),
-            "PAEL" => new Color(0.93f, 0.82f, 0.56f, 1f),
-            "TEZCATARA" => new Color(0.98f, 0.55f, 0.22f, 1f),
-            _ => fallbackIndex switch
-            {
-                0 => new Color(0.47f, 0.86f, 0.98f, 1f),
-                1 => new Color(0.93f, 0.82f, 0.56f, 1f),
-                _ => new Color(0.98f, 0.55f, 0.22f, 1f),
-            },
-        };
-    }
-
-    private static Vector2[] BuildLineQuad(Vector2 a, Vector2 b, float thickness)
-    {
-        Vector2 delta = b - a;
-        Vector2 normal = delta.LengthSquared() <= 0.001f
-            ? new Vector2(thickness * 0.5f, 0f)
-            : delta.Orthogonal().Normalized() * (thickness * 0.5f);
-
-        return new[]
-        {
-            a - normal,
-            a + normal,
-            b + normal,
-            b - normal,
-        };
-    }
-
     private static void SetFullRect(Control control)
     {
+        /*
+         * Applies full-rect layout anchors and offsets to a control.
+         */
         control.LayoutMode = 1;
         control.AnchorLeft = 0f;
         control.AnchorTop = 0f;
@@ -3482,92 +4012,15 @@ private static PortalShape[] BuildFallbackShapes(Vector2 area, float cardWidth, 
 
     private static void ClearChildren(Node parent)
     {
+        /*
+         * Queues every existing child of a node for removal.
+         */
         foreach (Node child in parent.GetChildren())
         {
             child.QueueFree();
         }
     }
 
-    private static readonly StringName RtNormalFont = "normal_font";
-    private static readonly StringName RtBoldFont = "bold_font";
-    private static readonly StringName RtItalicsFont = "italics_font";
+    #endregion
 
-    private static readonly StringName RtNormalFontSize = "normal_font_size";
-    private static readonly StringName RtBoldFontSize = "bold_font_size";
-    private static readonly StringName RtBoldItalicsFontSize = "bold_italics_font_size";
-    private static readonly StringName RtItalicsFontSize = "italics_font_size";
-    private static readonly StringName RtMonoFontSize = "mono_font_size";
-
-    private static readonly StringName RtDefaultColor = "default_color";
-    private static readonly StringName RtOutlineColor = "font_outline_color";
-    private static readonly StringName RtShadowColor = "font_shadow_color";
-    
-    private void SetRoundIntroTextStyled(string text)
-    {
-        if (_roundIntroLabel == null)
-        {
-            return;
-        }
-
-        string upper = text.ToUpperInvariant();
-
-        Font font = _roundIntroLabel.GetThemeFont(RtNormalFont, "RichTextLabel");
-        int fontSize = _roundIntroLabel.GetThemeFontSize(RtNormalFontSize, "RichTextLabel");
-
-        _roundIntroLabel.BbcodeEnabled = true;
-        _roundIntroLabel.Call("InstallEffectsIfNeeded");
-
-        Godot.Collections.Array effects = _roundIntroLabel.CustomEffects;
-
-        if (_roundIntroBannerEffect != null && effects.Contains(_roundIntroBannerEffect))
-        {
-            effects.Remove(_roundIntroBannerEffect);
-        }
-
-        _roundIntroBannerEffect = new RichTextAncientBanner
-        {
-            CenterCharacter = GetTextCenterGlyphIndex(upper, font, fontSize),
-            Rotation = 0.05f,
-            Spacing = 650f
-        };
-
-        effects.Add(_roundIntroBannerEffect);
-        _roundIntroLabel.CustomEffects = effects;
-
-        _roundIntroLabel.SetTextAutoSize($"[ancient_banner]{upper}[/ancient_banner]");
-    } 
-
-    private static float GetTextCenterGlyphIndex(string text, Font font, int fontSize)
-    {
-        using TextParagraph paragraph = new();
-        paragraph.AddString(text, font, fontSize);
-
-        TextServer textServer = TextServerManager.Singleton.GetPrimaryInterface();
-        Godot.Collections.Array<Godot.Collections.Dictionary> glyphs =
-            textServer.ShapedTextGetGlyphs(paragraph.GetLineRid(0));
-
-        float totalWidth = 0f;
-        foreach (Godot.Collections.Dictionary glyph in glyphs)
-        {
-            totalWidth += glyph.GetValueOrDefault("advance").AsSingle();
-        }
-
-        float traversedWidth = 0f;
-        int glyphIndex = 0;
-
-        foreach (Godot.Collections.Dictionary glyph in glyphs)
-        {
-            float advance = glyph.GetValueOrDefault("advance").AsSingle();
-            traversedWidth += advance;
-
-            if (traversedWidth > totalWidth * 0.5f)
-            {
-                return glyphIndex + (totalWidth * 0.5f - (traversedWidth - advance)) / advance;
-            }
-
-            glyphIndex++;
-        }
-
-        return 0f;
-    }
 }
