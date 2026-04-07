@@ -177,6 +177,12 @@ public static class ChooseTheAncientCoordinator
             flow.ContinueEnterNextAct = true;
             await runManager.EnterNextAct();
         }
+        catch (OperationCanceledException ex)
+        {
+            ModLog.Warn(
+                $"Ancient selection flow canceled for act {nextActIndex + 1}: " +
+                $"{ex.GetType().Name}. Skipping forced act progression."); 
+        }
         catch (Exception ex)
         {
             ModLog.Error($"Ancient selection flow failed: {ex}");
@@ -186,7 +192,8 @@ public static class ChooseTheAncientCoordinator
         finally
         {
             localScreen?.CloseScreen();
-            flow.FlowInProgress = false;
+            flow.FlowInProgress = false; 
+            flow.ContinueEnterNextAct = false;;
         }
     }
 

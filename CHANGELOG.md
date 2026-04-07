@@ -14,6 +14,7 @@
 ### Fixes
 - Pushes up the Remote Cursors from other players above the vote buttons
 - Fixed the hover glow overlaying above the game menu toolback 
+- Fixed act console commands during selection screen softlocking the game.
 
 ## [v1.0.0] - Initial Release
 - After you proceed Act 1 or Act 2, a new screen asks you to choose the ancient
