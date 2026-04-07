@@ -1,0 +1,10 @@
+{
+  "choose_the_ancient.act_label.2": "Act 2",
+  "choose_the_ancient.act_label.3": "Act 3",
+  "choose_the_ancient.round_intro.initial_keep_vote": "Choose the {ActLabel} Ancients",
+  "choose_the_ancient.button.vote_for_this_ancient": "Vote For This Ancient",
+  "choose_the_ancient.button.selected_ancient": "Selected Ancient",
+  "choose_the_ancient.button.voting_closed": "Voting Closed",
+  "choose_the_ancient.button.vote_locked": "Vote Locked",
+  "choose_the_ancient.button.unavailable": "Unavailable"
+}

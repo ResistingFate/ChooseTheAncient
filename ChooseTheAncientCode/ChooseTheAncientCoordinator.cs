@@ -194,6 +194,7 @@ public static class ChooseTheAncientCoordinator
             localScreen?.CloseScreen();
             flow.FlowInProgress = false; 
             flow.ContinueEnterNextAct = false;;
+            ModLog.Info($"Ancient flow cleanup. InProgress={flow.FlowInProgress}, Continue={flow.ContinueEnterNextAct}");
         }
     }
 
