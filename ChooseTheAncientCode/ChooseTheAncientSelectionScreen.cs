@@ -896,40 +896,25 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
      */
 
     private string GetRoundIntroText()
-    {
+{
         /*
          * Returns the banner text shown for the current round.
          */
-        string actLabel = _nextActIndex == 1 ? "Act 2" : "Act 3";
-
         if (_roundType == VoteRoundType.InitialKeepVote)
         {
-            return $"Choose the {actLabel} Ancients";
+            return ChooseTheAncientBaseAncientText.GetInitialRoundBannerText(_nextActIndex);
         }
 
-        string reactionAncientId = _reactionAncientId ?? "Unknown Ancient";
+        string reactionAncientId = _reactionAncientId
+            ?? _pool.FirstOrDefault()?.Id.Entry
+            ?? "UNKNOWN_ANCIENT";
 
         return ChooseTheAncientBaseAncientText.GetSecondRoundBannerText(
-            reactionAncientId,
-            new SecondRoundTextContext(
+            new AncientTextContext(
                 _nextActIndex,
                 reactionAncientId,
                 _suppressedPreviewAncientId));
-    }
-
-    private AncientEventModel? GetSecondRoundReactionAncient()
-    {
-        /*
-         * Returns the ancient driving the second-round custom banner and dialogue presentation.
-         */
-        if (_roundType != VoteRoundType.FinalRevealVote || string.IsNullOrWhiteSpace(_reactionAncientId))
-        {
-            return null;
-        }
-
-        return _pool.FirstOrDefault(ancient => ancient.Id.Entry == _reactionAncientId);
-    }
-
+}
 
     private void ShowRoundIntro()
 {
@@ -1648,17 +1633,21 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 refs.ChooseButton.Disabled = true;
                 if (_finalChosenPoolIndex.HasValue)
                 {
-                    refs.ChooseButton.Text = finalWinner ? "Selected Ancient" : "Voting Closed";
+                    refs.ChooseButton.Text = finalWinner
+                        ? ChooseTheAncientBaseAncientText.GetSelectedAncientButtonText()
+                        : ChooseTheAncientBaseAncientText.GetVotingClosedButtonText();
                 }
                 else
                 {
-                    refs.ChooseButton.Text = resolvedSelected ? "Vote Locked" : "Unavailable";
+                    refs.ChooseButton.Text = resolvedSelected
+                        ? ChooseTheAncientBaseAncientText.GetVoteLockedButtonText()
+                        : ChooseTheAncientBaseAncientText.GetUnavailableButtonText();
                 }
             }
             else
             {
                 refs.ChooseButton.Disabled = false;
-                refs.ChooseButton.Text = "Vote For This Ancient";
+                refs.ChooseButton.Text = ChooseTheAncientBaseAncientText.GetVoteForThisAncientButtonText();
             }
             
             UpdateVoteButtonOutline(refs);
@@ -1849,15 +1838,16 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         refs.ReactionBubble = null;
 
-        RunState? runState = RunManager.Instance != null
-            ? ChooseTheAncientHelpers.GetRunState(RunManager.Instance)
-            : null;
-        
-        string dialogueText = ChooseTheAncientBaseAncientText.GetSecondRoundDialogueText(
-            runState,
+        AncientTextContext context = new(
             _nextActIndex,
             refs.Ancient.Id.Entry,
             _suppressedPreviewAncientId);
+
+        RunState? runState = RunManager.Instance != null
+            ? ChooseTheAncientHelpers.GetRunState(RunManager.Instance)
+            : null;
+
+        string dialogueText = ChooseTheAncientBaseAncientText.GetSecondRoundDialogueText(runState, context);
 
         Control bubble = BuildReactionBubble(refs.Ancient, dialogueText);
         bubble.ZIndex = 6;

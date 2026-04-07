@@ -1,3 +1,21 @@
 {
-  
+  "choose_the_ancient.round_intro.final_reveal.default": "{ReactionAncientId} Reveals Offerings",
+  "choose_the_ancient.round_intro.final_reveal.DARV": "Darv Asks For A Roundtrip",
+  "choose_the_ancient.round_intro.final_reveal.OROBAS": "Orobas Wants To Help",
+  "choose_the_ancient.round_intro.final_reveal.PAEL": "Pael Becomes Sleepy",
+  "choose_the_ancient.round_intro.final_reveal.TEZCATARA": "Tezcatara Still Burns",
+  "choose_the_ancient.round_intro.final_reveal.NONUPEIPE": "No Mortal Shall Defy Nonupeipe",
+  "choose_the_ancient.round_intro.final_reveal.TANX": "Tanx Won't Give Up Without A Fight",
+  "choose_the_ancient.round_intro.final_reveal.VAKUU": "VAKUU Slides Up With An Offer",
+  "choose_the_ancient.round_intro.final_reveal.NEOW": "Neow Reappears",
+  "choose_the_ancient.second_round.dialogue.default.0": "You must know my offerings.",
+  "choose_the_ancient.second_round.dialogue.DARV.0": "These trinkets toppled the Spire a millennium ago.",
+  "choose_the_ancient.second_round.dialogue.OROBAS.0": "But Orobas brings so many great gifts?",
+  "choose_the_ancient.second_round.dialogue.PAEL.0": "Take a piece of me so I can go back to sleep.",
+  "choose_the_ancient.second_round.dialogue.TEZCATARA.0": "You could burn so bright with these.",
+  "choose_the_ancient.second_round.dialogue.NONUPEIPE.0": "What's not to like.",
+  "choose_the_ancient.second_round.dialogue.NONUPEIPE.1": "Even {SuppressedAncientId} couldn't match this offer.",
+  "choose_the_ancient.second_round.dialogue.TANX.0": "Come on, let's fight.",
+  "choose_the_ancient.second_round.dialogue.VAKUU.0": "Let's cut a deal.",
+  "choose_the_ancient.second_round.dialogue.NEOW.0": "I will always offer you my assistance."
 }

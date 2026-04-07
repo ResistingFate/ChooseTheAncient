@@ -6,8 +6,10 @@
 
 ### Features
 - Ancient specific Secound Ronud Banner Text
-- Ancient specific Secound Round Dialouge Text
+- Multiple Ancient specific Secound Round Dialouge for each Ancient
 - Dictionaries in ChooseTheAncientBaseAncientText.cs hold specific dialouge lines and banner headings for each Ancient
+- Loc Tables to change UI to other languages, currently eng and machine translated stub of zhs
+- Loc Tables to change Ancient Dialouge to other languages, currently eng and machine translated stub of zhs
 
 ### Fixes
 - Pushes up the Remote Cursors from other players above the vote buttons

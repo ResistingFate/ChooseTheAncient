@@ -55,8 +55,10 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 
 ## New features Roadmap:
 - Complete Base Ancient's Colour highlights
+- Touch up Ancient Dialouge in English
+- Ask help for good zhs translations
 - Fix controller tooltips for only 1 vote button at a time
-- Support for Ancients in Ritsulib
+- Support for Ancients in Ritsulib (Might work already. Looks promising)
 - Setting to set 1 round only
 - Setting to enable previews for both options in round 2
 - Setting to enable previews to all ancients in first round
@@ -66,8 +68,11 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Add Override for sets of ancients mods to pool from only that class
   - With priority system between mods
   - maybe picking from modconfig
+- Gameplay modes
+  - All previews, only 1 round
+  - Both previews in second round
+  - No previews, only 1 round
 - Ancient menu themes
-- Language localizing for menu text
 - Language localizing for mod config option text
 - Add mod settings to BsaeLib's mod config version
 - Look up split path mod in multiplayer, might need new mod for new path and more ancient nodes in the map

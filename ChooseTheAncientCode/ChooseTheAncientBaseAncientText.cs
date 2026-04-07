@@ -1,110 +1,56 @@
 using System.Collections.Generic;
-using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
-public readonly record struct SecondRoundTextContext(
+public readonly record struct AncientTextContext(
     int NextActIndex,
     string ReactionAncientId,
     string? SuppressedAncientId);
 
-
 public static class ChooseTheAncientBaseAncientText
 {
-    /*
-     * Edit second-round banner overrides here.
-     * Any ancient not listed here falls back to: $"{ancientId} Reveals Offerings"
-     */
-    private static readonly Dictionary<string, string> SecondRoundBannerTextOverrides = new()
+    // Must use base-game loc table names so STS2 actually loads the mod's JSON files.
+    // Generic UI goes in gameplay_ui.json, ancient-specific lines go in ancients.json.
+    private const string UiTableName = "gameplay_ui";
+    private const string AncientTableName = "ancients";
+
+    public static string GetInitialRoundBannerText(int nextActIndex)
     {
-        ["DARV"] = "Darv Asks For A Roundtrip",
-        ["OROBAS"] = "Orobas Wants To Help",
-        ["PAEL"] = "Pael Becomes Sleepy",
-        ["TEZCATARA"] = "Tezcatara still burns",
-        ["NONUPEIPE"] = "No mortal shall defy Nonupeipe",
-        ["TANX"] = "Tanx Won't Give Up Without A Fight",
-        ["VAKUU"] = "VAKUU Slides Up With An Offer",
-        ["NEOW"] = "Neow Reappears",
-    };
-
-    /*
-     * Edit second-round dialogue lists here.
-     * Each ancient can have multiple lines; the picker uses a deterministic RNG.
-     * Any ancient not listed here falls back to the default dialogue list below.
-     */
-    private static readonly IReadOnlyList<string> DefaultSecondRoundDialogueOptions =
-    [
-        "You must know my offerings."
-    ];
-
-    private static readonly Dictionary<string, IReadOnlyList<string>> SecondRoundDialogueOptionsByAncientId = new()
-    {
-        ["DARV"] = [
-                "These trinkets toppled the Spire a millennium ago."
-        ],
-        ["OROBAS"] = [
-                "But Orobas Brings So Many Great Gifts?"
-        ],
-        ["PAEL"] = [
-                "Take a piece of me so I can go back to sleep."
-        ],
-        ["TEZCATARA"] = [
-                "You could burn so bright with these."
-        ],
-        ["NONUPEIPE"] = [
-                "What's not to like.",
-                "Even {SuppressedAncientId} couldn't match this offer."
-        ],
-        ["TANX"] = [
-                "Come on, let's fight."
-        ],
-        ["VAKUU"] =
-            [
-                "Let's cut a deal",
-            ],
-        ["NEOW"] = [
-                "I will always offer you my assistance."
-        ] 
-    };
-
-    public static string GetSecondRoundBannerText(
-        string ancientId,
-        SecondRoundTextContext context)
-    {
-        string template = SecondRoundBannerTextOverrides.TryGetValue(ancientId, out string? overrideText)
-            ? overrideText
-            : "{ReactionAncientId} Reveals Offerings";
-
-        return FormatTemplate(template, context);
+        LocString loc = new(UiTableName, "choose_the_ancient.round_intro.initial_keep_vote");
+        loc.Add("ActLabel", GetActLabelText(nextActIndex));
+        loc.Add("ActNumber", (nextActIndex + 1).ToString());
+        return SafeFormat(loc, $"Choose the Act {nextActIndex + 1} Ancients");
     }
 
-    public static string GetSecondRoundDialogueText(
-        RunState runState,
-        int nextActIndex,
-        string reactionAncientId,
-        string? suppressedAncientId)
+    public static string GetSecondRoundBannerText(AncientTextContext context)
     {
-        IReadOnlyList<string> options =
-            SecondRoundDialogueOptionsByAncientId.TryGetValue(reactionAncientId, out IReadOnlyList<string>? mapped)
-                ? mapped
-                : DefaultSecondRoundDialogueOptions;
+        string key = AncientKeyExists($"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientId}")
+            ? $"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientId}"
+            : "choose_the_ancient.round_intro.final_reveal.default";
 
-        var rng = CreateSecondRoundAncientDialoguePickerRng(
-            runState,
-            nextActIndex,
-            reactionAncientId,
-            suppressedAncientId);
+        LocString loc = new(AncientTableName, key);
+        AddContextVariables(loc, context);
+        return SafeFormat(loc, $"{context.ReactionAncientId} Reveals Offerings");
+    }
 
-        string template = options.Count > 0
-            ? options[rng.NextInt(options.Count)]
-            : "You must know my offerings.";
+    public static string GetSecondRoundDialogueText(RunState? runState, AncientTextContext context)
+    {
+        Rng? rng = runState == null
+            ? null
+            : CreateSecondRoundAncientDialoguePickerRng(
+                runState,
+                context.NextActIndex,
+                context.ReactionAncientId,
+                context.SuppressedAncientId);
 
-        return FormatTemplate(template, new SecondRoundTextContext(
-            nextActIndex,
-            reactionAncientId,
-            suppressedAncientId));
+        LocString loc = GetDialogueLocString(context.ReactionAncientId, rng)
+            ?? new LocString(AncientTableName, "choose_the_ancient.second_round.dialogue.default.0");
+
+        AddContextVariables(loc, context);
+        return SafeFormat(loc, "You must know my offerings.");
     }
 
     public static Rng CreateSecondRoundAncientDialoguePickerRng(
@@ -122,22 +68,113 @@ public static class ChooseTheAncientBaseAncientText
             $"choose_the_ancient_second_round_dialogue_{nextActIndex}_{reactionAncientId}_{suppressedPart}");
     }
 
-    private static IReadOnlyList<string> GetSecondRoundDialogueOptions(string ancientId)
+    public static string GetVoteForThisAncientButtonText() =>
+        GetUiText("choose_the_ancient.button.vote_for_this_ancient", "Vote For This Ancient");
+
+    public static string GetSelectedAncientButtonText() =>
+        GetUiText("choose_the_ancient.button.selected_ancient", "Selected Ancient");
+
+    public static string GetVotingClosedButtonText() =>
+        GetUiText("choose_the_ancient.button.voting_closed", "Voting Closed");
+
+    public static string GetVoteLockedButtonText() =>
+        GetUiText("choose_the_ancient.button.vote_locked", "Vote Locked");
+
+    public static string GetUnavailableButtonText() =>
+        GetUiText("choose_the_ancient.button.unavailable", "Unavailable");
+
+    private static string GetActLabelText(int nextActIndex)
     {
-        if (SecondRoundDialogueOptionsByAncientId.TryGetValue(ancientId, out IReadOnlyList<string>? dialogueOptions) &&
-            dialogueOptions.Count > 0)
+        int actNumber = nextActIndex + 1;
+        return GetUiText($"choose_the_ancient.act_label.{actNumber}", $"Act {actNumber}");
+    }
+
+    private static string GetUiText(string key, string fallback)
+    {
+        if (!UiKeyExists(key))
+            return fallback;
+
+        return SafeFormat(new LocString(UiTableName, key), fallback);
+    }
+
+    private static LocString? GetDialogueLocString(string reactionAncientId, Rng? rng)
+    {
+        string specificPrefix = $"choose_the_ancient.second_round.dialogue.{reactionAncientId}.";
+        if (AncientPrefixExists(specificPrefix))
         {
-            return dialogueOptions;
+            return rng == null
+                ? TryGetFirstLocStringWithPrefix(AncientTableName, specificPrefix)
+                : LocString.GetRandomWithPrefix(AncientTableName, specificPrefix, rng);
         }
 
-        return DefaultSecondRoundDialogueOptions;
+        const string defaultPrefix = "choose_the_ancient.second_round.dialogue.default.";
+        if (AncientPrefixExists(defaultPrefix))
+        {
+            return rng == null
+                ? TryGetFirstLocStringWithPrefix(AncientTableName, defaultPrefix)
+                : LocString.GetRandomWithPrefix(AncientTableName, defaultPrefix, rng);
+        }
+
+        return null;
     }
-    
-    private static string FormatTemplate(string template, SecondRoundTextContext context)
+
+    private static LocString? TryGetFirstLocStringWithPrefix(string tableName, string keyPrefix)
     {
-        return template
-            .Replace("{ReactionAncientId}", context.ReactionAncientId)
-            .Replace("{SuppressedAncientId}", context.SuppressedAncientId ?? "that ancient")
-            .Replace("{ActNumber}", (context.NextActIndex + 1).ToString());
+        LocTable? table = TryGetTable(tableName);
+        if (table == null)
+            return null;
+
+        IReadOnlyList<LocString> options = table.GetLocStringsWithPrefix(keyPrefix);
+        return options.Count > 0 ? options[0] : null;
+    }
+
+    private static void AddContextVariables(LocString loc, AncientTextContext context)
+    {
+        loc.Add("ReactionAncientId", context.ReactionAncientId);
+        loc.Add("SuppressedAncientId", context.SuppressedAncientId ?? "that ancient");
+        loc.Add("ActNumber", (context.NextActIndex + 1).ToString());
+        loc.Add("ActLabel", GetActLabelText(context.NextActIndex));
+    }
+
+    private static string SafeFormat(LocString loc, string fallback)
+    {
+        try
+        {
+            return loc.GetFormattedText();
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
+    private static bool UiKeyExists(string key)
+    {
+        LocTable? table = TryGetTable(UiTableName);
+        return table?.HasEntry(key) ?? false;
+    }
+
+    private static bool AncientKeyExists(string key)
+    {
+        LocTable? table = TryGetTable(AncientTableName);
+        return table?.HasEntry(key) ?? false;
+    }
+
+    private static bool AncientPrefixExists(string keyPrefix)
+    {
+        LocTable? table = TryGetTable(AncientTableName);
+        return table != null && table.GetLocStringsWithPrefix(keyPrefix).Count > 0;
+    }
+
+    private static LocTable? TryGetTable(string tableName)
+    {
+        try
+        {
+            return LocManager.Instance.GetTable(tableName);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
