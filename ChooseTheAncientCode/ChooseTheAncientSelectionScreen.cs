@@ -97,7 +97,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         VoteRoundType RoundType,
         IReadOnlyDictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? PreviewDataByAncientId,
         string? SuppressedPreviewAncientId,
-        string? ReactionAncientId);
+        AncientEventModel? SuppressedPreviewAncient,
+        string? ReactionAncientId,
+        AncientEventModel? ReactionAncient);
 
     private readonly record struct AncientSceneConfig(
         Vector2 BaseSize,
@@ -287,6 +289,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private bool _lastShowOnlyButtonOutline;
     private bool _lastShowControllerHotkeys;
     private ChooseTheAncientConfig.VoteClickTargetMode _lastVoteClickTarget;
+    private AncientEventModel? _suppressedPreviewAncient;
+    private AncientEventModel? _reactionAncient;
 
     public NetScreenType ScreenType => NetScreenType.Rewards;
     public bool UseSharedBackstop => true;
@@ -743,7 +747,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _previewDataByAncientId = round.PreviewDataByAncientId?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
             ?? new Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>();
         _suppressedPreviewAncientId = round.SuppressedPreviewAncientId;
+        _suppressedPreviewAncient = round.SuppressedPreviewAncient;
         _reactionAncientId = round.ReactionAncientId;
+        _reactionAncient = round.ReactionAncient;
         _pendingPoolIndex = null;
         _selectedPoolIndex = null;
         _finalChosenPoolIndex = null;
@@ -912,8 +918,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         return ChooseTheAncientBaseAncientText.GetSecondRoundBannerText(
             new AncientTextContext(
                 _nextActIndex,
-                reactionAncientId,
-                _suppressedPreviewAncientId));
+                reactionAncientId, 
+                _reactionAncient.Title.GetFormattedText(),
+                _suppressedPreviewAncientId,
+                null)
+            );
 }
 
     private void ShowRoundIntro()
@@ -1841,7 +1850,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         AncientTextContext context = new(
             _nextActIndex,
             refs.Ancient.Id.Entry,
-            _suppressedPreviewAncientId);
+            refs.Ancient.Title.GetFormattedText(),
+            _suppressedPreviewAncientId,
+            _suppressedPreviewAncient?.Title.GetFormattedText()
+            );
 
         RunState? runState = RunManager.Instance != null
             ? ChooseTheAncientHelpers.GetRunState(RunManager.Instance)

@@ -72,6 +72,8 @@ public static class ChooseTheAncientCoordinator
                     ChooseTheAncientSelectionScreen.VoteRoundType.InitialKeepVote,
                     null,
                     null,
+                    null,
+                    null,
                     null);
 
                 // firstVotes is a list of voted ancient indices in the original pool
@@ -137,7 +139,7 @@ public static class ChooseTheAncientCoordinator
                         nextActIndex);
                 }
 
-                (string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
+                (AncientEventModel? suppressedPreviewAnceint, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
                     runState,
                     nextActIndex,
                     pool,
@@ -149,7 +151,9 @@ public static class ChooseTheAncientCoordinator
                     ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote,
                     localPreviewData,
                     suppressedPreviewAncientId,
-                    reactionAncientId);
+                    suppressedPreviewAnceint,
+                    reactionAncientId,
+                    reactionAncient);
 
                 List<int> finalVotes = await CollectVotes(
                     orderedPlayers,
@@ -273,7 +277,7 @@ public static class ChooseTheAncientCoordinator
         return false;
     }
 
-    private static (string? suppressedPreviewAncientId, string? reactionAncientId) ResolveSecondRoundPresentation(
+    private static (AncientEventModel? suppressedPreviewAncient, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) ResolveSecondRoundPresentation(
         RunState runState,
         int nextActIndex,
         IReadOnlyList<AncientEventModel> firstRoundPool,
@@ -282,7 +286,7 @@ public static class ChooseTheAncientCoordinator
     {
         if (finalists.Count != 2)
         {
-            return (null, null);
+            return (null, null, null, null);
         }
 
         Dictionary<string, int> finalistVoteCounts = finalists
@@ -322,8 +326,8 @@ public static class ChooseTheAncientCoordinator
             .First(ancient => ancient.Id.Entry != suppressedPreviewAncient.Id.Entry);
 
         ModLog.Debug($"Second vote presentation decided from round-one votes: suppress={suppressedPreviewAncient.Id.Entry}, reaction={reactionAncient.Id.Entry}, voteCounts={leftCount}/{rightCount}");
-
-        return (suppressedPreviewAncient.Id.Entry, reactionAncient.Id.Entry);
+        // return SuppressedPreviewAncient to pass on to the selection screen
+        return (suppressedPreviewAncient, reactionAncient, suppressedPreviewAncient.Id.Entry, reactionAncient.Id.Entry);
     }
     
     private static int ResolveMostVotedIndex(

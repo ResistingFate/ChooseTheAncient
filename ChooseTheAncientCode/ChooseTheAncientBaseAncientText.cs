@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Runs;
@@ -8,7 +7,9 @@ namespace ChooseTheAncient.ChooseTheAncientCode;
 public readonly record struct AncientTextContext(
     int NextActIndex,
     string ReactionAncientId,
-    string? SuppressedAncientId);
+    string? ReactionAncientTitle,
+    string? SuppressedAncientId,
+    String? SuppressedAncientTitle);
 
 public static class ChooseTheAncientBaseAncientText
 {
@@ -27,13 +28,13 @@ public static class ChooseTheAncientBaseAncientText
 
     public static string GetSecondRoundBannerText(AncientTextContext context)
     {
-        string key = AncientKeyExists($"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientId}")
+            string key = AncientKeyExists($"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientTitle}")
             ? $"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientId}"
             : "choose_the_ancient.round_intro.final_reveal.default";
 
         LocString loc = new(AncientTableName, key);
         AddContextVariables(loc, context);
-        return SafeFormat(loc, $"{context.ReactionAncientId} Reveals Offerings");
+        return SafeFormat(loc, $"{context.ReactionAncientTitle} Offers");
     }
 
     public static string GetSecondRoundDialogueText(RunState? runState, AncientTextContext context)
@@ -130,8 +131,8 @@ public static class ChooseTheAncientBaseAncientText
 
     private static void AddContextVariables(LocString loc, AncientTextContext context)
     {
-        loc.Add("ReactionAncientId", context.ReactionAncientId);
-        loc.Add("SuppressedAncientId", context.SuppressedAncientId ?? "that ancient");
+        if (context.ReactionAncientTitle != null) loc.Add("ReactionAncientId", context.ReactionAncientTitle);
+        loc.Add("SuppressedAncientId", context.SuppressedAncientTitle ?? "that ancient");
         loc.Add("ActNumber", (context.NextActIndex + 1).ToString());
         loc.Add("ActLabel", GetActLabelText(context.NextActIndex));
     }

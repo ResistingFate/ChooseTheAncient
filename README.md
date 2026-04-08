@@ -54,6 +54,8 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - https://github.com/ResistingFate/ChooseTheAncient
 
 ## New features Roadmap:
+- Implement Log switcher when game in VeryDebug state
+- Slowdown animations when not in fast mode
 - Complete Base Ancient's Colour highlights
 - Touch up Ancient Dialouge in English
 - Ask help for good zhs translations
