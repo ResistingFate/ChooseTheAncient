@@ -25,6 +25,8 @@ using MegaCrit.Sts2.Core.RichTextTags;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Saves;
+using MegaCrit.Sts2.Core.Settings;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -58,20 +60,42 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private static readonly string DialogueItalicFontPath = "res://themes/bitter_medium_italic_glyph_space_one.tres";
 
     // Animation tuning:
-    // Increase the duration values or offsets below if you want a slower, floatier final-vote entrance.
+    // Store standard timings first, then swap to the faster values when Fast Mode is enabled.
     private const float ReactionEntranceOffset = 40f;
     private const float PreviewEntranceOffset = 44f;
-    private const double ReactionEntranceDuration = 0.82;
-    private const double PreviewEntranceDuration = 0.76;
-    private const double ReactionTextDuration = 0.58;
-    private const double FinalRoundStagger = 0.22;
+    private const double ReactionEntranceDurationNormal = 1.00;
+    private const double ReactionEntranceDurationFast = 0.82;
+    private const double PreviewEntranceDurationNormal = 0.50;
+    private const double PreviewEntranceDurationFast = 0.25;
+    private const double PreviewEntranceInitialDelayNormal = 0.50;
+    private const double PreviewEntranceInitialDelayFast = 0.25;
+    private const double ReactionTextDurationNormal = 1.00;
+    private const double ReactionTextDurationFast = 0.58;
+    private const double FinalRoundStaggerNormal = 0.20;
+    private const double FinalRoundStaggerFast = 0.10;
+    private const double ReactionEntranceInitialDelayNormal = 0.50;
+    private const double ReactionEntranceInitialDelayFast = 0.20;
+    private const double ReactionIconDelayNormal = 0.25;
+    private const double ReactionIconDelayFast = 0.10;
+    private const double ReactionIconDurationNormal = 0.50;
+    private const double ReactionIconDurationFast = 0.36;
+    private const double ReactionTextDelayNormal = 0.25;
+    private const double ReactionTextDelayFast = 0.10;
+    private const double SlotTransitionOutDurationNormal = 0.30;
+    private const double SlotTransitionOutDurationFast = 0.16;
+    private const double SlotTransitionInDurationNormal = 0.40;
+    private const double SlotTransitionInDurationFast = 0.22;
     private const float PreviewHoverScaleMultiplier = 1.008f;
     private const float VoteIconSize = 28;
     private const float VoteIconOverlap = 10f;
-    private const double VoteResolutionSpinDuration = 1.20;
-    private const float VoteResolutionSettleDelayMin = 0.05f;
-
-    private const float VoteResolutionSettleDelayMax = 0.30f;
+    private const double VoteResolutionSpinDurationNormal = 1.80;
+    private const double VoteResolutionSpinDurationFast = 1.20;
+    private const float VoteResolutionSettleDelayMinNormal = 0.10f;
+    private const float VoteResolutionSettleDelayMinFast = 0.05f;
+    private const float VoteResolutionSettleDelayMaxNormal = 0.45f;
+    private const float VoteResolutionSettleDelayMaxFast = 0.30f;
+    private const float VoteResolutionPostSelectPauseNormal = 0.75f;
+    private const float VoteResolutionPostSelectPauseFast = 0.45f;
 
     // Slot visual timing:
     // Increase CardOutlineFadeDuration for a slower outline fade when focus/emphasis changes.
@@ -313,7 +337,46 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     
     #endregion
+    
+    #region Timing and fast mode helpers
 
+    private static FastModeType GetCurrentFastMode()
+    {
+        return SaveManager.Instance?.PrefsSave?.FastMode ?? FastModeType.Normal;
+    }
+
+    private static bool IsInstantMode()
+    {
+        return GetCurrentFastMode() == FastModeType.Instant;
+    }
+
+    private static double GetPresentationDuration(double normalSeconds, double fastSeconds)
+    {
+        return GetCurrentFastMode() switch
+        {
+            FastModeType.Fast => fastSeconds,
+            FastModeType.Instant => 0.0,
+            _ => normalSeconds,
+        };
+    }
+
+    private static float GetPresentationDuration(float normalSeconds, float fastSeconds)
+    {
+        return GetCurrentFastMode() switch
+        {
+            FastModeType.Fast => fastSeconds,
+            FastModeType.Instant => 0f,
+            _ => normalSeconds,
+        };
+    }
+
+    private static Task WaitPresentationAsync(float normalSeconds, float fastSeconds, bool ignoreCombatEnd = false)
+    {
+        return Cmd.CustomScaledWait(fastSeconds, normalSeconds, ignoreCombatEnd: ignoreCombatEnd);
+    }
+
+    #endregion
+    
     #region Runtime state, cached nodes, and config-backed properties
 
     /*
@@ -363,10 +426,17 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private Vector2 _roundIntroBasePosition;
     private RichTextAncientBanner? _roundIntroBannerEffect;
 
-    public double RoundIntroDuration { get; set; } = 1.70;
-
-    private const double RoundIntroFadeInDuration = 0.20;
+    private const double RoundIntroHoldDurationNormal = 2.00;
+    private const double RoundIntroHoldDurationFast = 0.50;
+    private const double RoundIntroFadeInDurationNormal = 0.50;
+    private const double RoundIntroFadeInDurationFast = 0.20;
     private const double RoundIntroFadeOutDuration = 0.45;
+    private const double RoundIntroAnchorTweenDurationNormal = 0.50;
+    private const double RoundIntroAnchorTweenDurationFast = 0.30;
+    private const double RoundIntroBannerEffectDurationNormal = 1.00;
+    private const double RoundIntroBannerEffectDurationFast = 0.75;
+
+    public double RoundIntroDuration { get; set; } = RoundIntroHoldDurationNormal;
     private Control? _stageArea;
     private Control? _slotsCanvas;
     private AudioStreamPlayer? _hoverSfx;
@@ -386,7 +456,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private ChooseTheAncientConfig.VoteClickTargetMode VoteClickTarget { get; set; } = ChooseTheAncientConfig.VoteClickTarget;
 
     public Control? DefaultFocusedControl { get; private set; }
-
 
     private static readonly List<ChooseTheAncientSelectionScreen> _openScreens = new();
     #endregion
@@ -904,10 +973,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          * Animates existing slot cards out before a new round layout is rebuilt.
          */
         /* old slots slide slightly upward/outward and fade out. */
-        if (_slots.Count == 0)
+        if (_slots.Count == 0 || IsInstantMode())
         {
             return;
         }
+
+        double duration = GetPresentationDuration(SlotTransitionOutDurationNormal, SlotTransitionOutDurationFast);
 
         Tween tween = CreateTween();
         tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
@@ -918,8 +989,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             float horizontalOffset = (i - ((_slots.Count - 1) * 0.5f)) * 120f;
             float verticalOffset = -32f;
 
-            tween.Parallel().TweenProperty(refs.SlotRoot, "position", new Vector2(horizontalOffset, verticalOffset), 0.16f);
-            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 0f, 0.16f);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "position", new Vector2(horizontalOffset, verticalOffset), duration);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 0f, duration);
         }
 
         await ToSignal(tween, Tween.SignalName.Finished);
@@ -958,13 +1029,32 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
+        if (IsInstantMode())
+        {
+            foreach (SlotRefs refs in _slots)
+            {
+                refs.SlotRoot.Position = Vector2.Zero;
+                refs.SlotRoot.Modulate = Colors.White;
+            }
+
+            if (_roundType == VoteRoundType.FinalRevealVote)
+            {
+                StartFinalRoundElementAnimation();
+            }
+
+            GrabInitialFocus();
+            return;
+        }
+
+        double duration = GetPresentationDuration(SlotTransitionInDurationNormal, SlotTransitionInDurationFast);
+
         Tween tween = CreateTween();
         tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
 
         foreach (SlotRefs refs in _slots)
         {
-            tween.Parallel().TweenProperty(refs.SlotRoot, "position", Vector2.Zero, 0.22f);
-            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 1f, 0.22f);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "position", Vector2.Zero, duration);
+            tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 1f, duration);
         }
 
         await ToSignal(tween, Tween.SignalName.Finished);
@@ -1011,89 +1101,101 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 }
 
     private void ShowRoundIntro()
-{
+    {
         /*
          * Plays the animated banner intro for the current round title.
          */
-    if (_roundIntroAnchor == null || _roundIntroLabel == null)
-    {
-        return;
-    }
-
-    _roundIntroTween?.Kill();
-
-    double holdDuration = Math.Max(0.0, RoundIntroDuration - RoundIntroFadeInDuration - RoundIntroFadeOutDuration);
-
-    SetRoundIntroTextStyled(GetRoundIntroText());
-
-    _roundIntroLabel.Visible = true;
-    _roundIntroLabel.Modulate = new Color(1f, 1f, 1f, 0f);
-
-    _roundIntroAnchor.Position = _roundIntroBasePosition + new Vector2(0f, 12f);
-    _roundIntroAnchor.Scale = new Vector2(1.02f, 1.02f);
-
-    Tween tween = CreateTween();
-    _roundIntroTween = tween;
-
-    tween.SetParallel();
-
-    tween.TweenProperty(_roundIntroLabel, "modulate:a", 1f, RoundIntroFadeInDuration)
-        .SetEase(Tween.EaseType.Out)
-        .SetTrans(Tween.TransitionType.Cubic);
-
-    tween.TweenProperty(_roundIntroAnchor, "position:y", _roundIntroBasePosition.Y, 0.30)
-        .SetEase(Tween.EaseType.Out)
-        .SetTrans(Tween.TransitionType.Circ);
-
-    tween.TweenProperty(_roundIntroAnchor, "scale", Vector2.One, 0.30)
-        .SetEase(Tween.EaseType.Out)
-        .SetTrans(Tween.TransitionType.Circ);
-
-    if (_roundIntroBannerEffect != null)
-    {
-        tween.TweenMethod(
-                Callable.From<float>(value => _roundIntroBannerEffect.Rotation = value),
-                _roundIntroBannerEffect.Rotation,
-                1f,
-                0.75f)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Spring);
-
-        tween.TweenMethod(
-                Callable.From<float>(value => _roundIntroBannerEffect.Spacing = value),
-                _roundIntroBannerEffect.Spacing,
-                0f,
-                0.75f)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Expo);
-    }
-
-    tween.Chain();
-    tween.TweenInterval(holdDuration);
-
-    tween.Chain();
-    tween.TweenProperty(_roundIntroLabel, "modulate:a", 0f, RoundIntroFadeOutDuration)
-        .SetEase(Tween.EaseType.In)
-        .SetTrans(Tween.TransitionType.Cubic);
-
-    tween.Parallel().TweenProperty(_roundIntroAnchor, "position:y", _roundIntroBasePosition.Y - 10f, RoundIntroFadeOutDuration)
-        .SetEase(Tween.EaseType.In)
-        .SetTrans(Tween.TransitionType.Circ);
-
-    tween.Chain();
-    tween.TweenCallback(Callable.From(() =>
-    {
-        if (_roundIntroLabel == null || _roundIntroAnchor == null)
+        if (_roundIntroAnchor == null || _roundIntroLabel == null)
         {
             return;
         }
 
-        _roundIntroLabel.Visible = false;
-        _roundIntroLabel.Modulate = Colors.White;
-        _roundIntroAnchor.Position = _roundIntroBasePosition;
-        _roundIntroAnchor.Scale = Vector2.One;
-    }));
-}
+        _roundIntroTween?.Kill();
+
+        double holdDuration = GetPresentationDuration(RoundIntroDuration, RoundIntroHoldDurationFast);
+        double fadeInDuration = GetPresentationDuration(RoundIntroFadeInDurationNormal, RoundIntroFadeInDurationFast);
+        double anchorTweenDuration = GetPresentationDuration(RoundIntroAnchorTweenDurationNormal, RoundIntroAnchorTweenDurationFast);
+        double bannerEffectDuration = GetPresentationDuration(RoundIntroBannerEffectDurationNormal, RoundIntroBannerEffectDurationFast);
+
+        SetRoundIntroTextStyled(GetRoundIntroText());
+
+        if (IsInstantMode())
+        {
+            _roundIntroLabel.Visible = false;
+            _roundIntroLabel.Modulate = Colors.White;
+            _roundIntroAnchor.Position = _roundIntroBasePosition;
+            _roundIntroAnchor.Scale = Vector2.One;
+            return;
+        }
+
+        _roundIntroLabel.Visible = true;
+        _roundIntroLabel.Modulate = new Color(1f, 1f, 1f, 0f);
+
+        _roundIntroAnchor.Position = _roundIntroBasePosition + new Vector2(0f, 12f);
+        _roundIntroAnchor.Scale = new Vector2(1.02f, 1.02f);
+
+        Tween tween = CreateTween();
+        _roundIntroTween = tween;
+
+        tween.SetParallel();
+
+        tween.TweenProperty(_roundIntroLabel, "modulate:a", 1f, fadeInDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Cubic);
+
+        tween.TweenProperty(_roundIntroAnchor, "position:y", _roundIntroBasePosition.Y, anchorTweenDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Circ);
+
+        tween.TweenProperty(_roundIntroAnchor, "scale", Vector2.One, anchorTweenDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Circ);
+
+        if (_roundIntroBannerEffect != null)
+        {
+            tween.TweenMethod(
+                    Callable.From<float>(value => _roundIntroBannerEffect.Rotation = value),
+                    _roundIntroBannerEffect.Rotation,
+                    1f,
+                    bannerEffectDuration)
+                .SetEase(Tween.EaseType.Out)
+                .SetTrans(Tween.TransitionType.Spring);
+
+            tween.TweenMethod(
+                    Callable.From<float>(value => _roundIntroBannerEffect.Spacing = value),
+                    _roundIntroBannerEffect.Spacing,
+                    0f,
+                    bannerEffectDuration)
+                .SetEase(Tween.EaseType.Out)
+                .SetTrans(Tween.TransitionType.Expo);
+        }
+
+        tween.Chain();
+        tween.TweenInterval(Math.Max(0.0, holdDuration));
+
+        tween.Chain();
+        tween.TweenProperty(_roundIntroLabel, "modulate:a", 0f, RoundIntroFadeOutDuration)
+            .SetEase(Tween.EaseType.In)
+            .SetTrans(Tween.TransitionType.Cubic);
+
+        tween.Parallel().TweenProperty(_roundIntroAnchor, "position:y", _roundIntroBasePosition.Y - 10f, RoundIntroFadeOutDuration)
+            .SetEase(Tween.EaseType.In)
+            .SetTrans(Tween.TransitionType.Circ);
+
+        tween.Chain();
+        tween.TweenCallback(Callable.From(() =>
+        {
+            if (_roundIntroLabel == null || _roundIntroAnchor == null)
+            {
+                return;
+            }
+
+            _roundIntroLabel.Visible = false;
+            _roundIntroLabel.Modulate = Colors.White;
+            _roundIntroAnchor.Position = _roundIntroBasePosition;
+            _roundIntroAnchor.Scale = Vector2.One;
+        }));
+    }
 
     private void SetRoundIntroTextStyled(string text)
     {
@@ -1216,17 +1318,71 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
     }
 
+    private void CompleteFinalRoundElementAnimationInstantly()
+    {
+        foreach (SlotRefs refs in _slots)
+        {
+            if (refs.ReactionBubble != null)
+            {
+                refs.ReactionBubble.Modulate = Colors.White;
+                refs.ReactionBubble.Position += new Vector2(0f, -ReactionEntranceOffset);
+                refs.ReactionBubble.Scale /= new Vector2(0.975f, 0.975f);
+
+                Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
+                if (icon != null)
+                {
+                    icon.Modulate = Colors.White;
+                    icon.Position += new Vector2(0f, -8f);
+                }
+
+                Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
+                if (text != null)
+                {
+                    text.Modulate = Colors.White;
+                    text.Position += new Vector2(0f, -8f);
+                }
+
+                StartReactionWave(refs.ReactionBubble);
+            }
+
+            if (refs.PreviewAnchor.Visible)
+            {
+                foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
+                {
+                    widget.Wrapper.Modulate = Colors.White;
+                    widget.Wrapper.Position += new Vector2(0f, -PreviewEntranceOffset);
+                    widget.Wrapper.Scale /= new Vector2(0.982f, 0.982f);
+                }
+            }
+        }
+    }
+
     private void StartFinalRoundElementAnimation()
     {
         /*
          * Runs the staggered entrance animation for preview widgets and reaction bubbles in the final round.
          */
-        /* animation the ancient preview animation */   
+        /* animation the ancient preview animation */
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
             return;
         }
 
+        if (IsInstantMode())
+        {
+            CompleteFinalRoundElementAnimationInstantly();
+            return;
+        }
+
+        double reactionEntranceDuration = GetPresentationDuration(ReactionEntranceDurationNormal, ReactionEntranceDurationFast);
+        double reactionTextDuration = GetPresentationDuration(ReactionTextDurationNormal, ReactionTextDurationFast);
+        double previewEntranceDuration = GetPresentationDuration(PreviewEntranceDurationNormal, PreviewEntranceDurationFast);
+        double previewEntranceInitialDelay = GetPresentationDuration(PreviewEntranceInitialDelayNormal, PreviewEntranceInitialDelayFast);
+        double finalRoundStagger = GetPresentationDuration(FinalRoundStaggerNormal, FinalRoundStaggerFast);
+        double reactionEntranceInitialDelay = GetPresentationDuration(ReactionEntranceInitialDelayNormal, ReactionEntranceInitialDelayFast);
+        double reactionIconDelay = GetPresentationDuration(ReactionIconDelayNormal, ReactionIconDelayFast);
+        double reactionIconDuration = GetPresentationDuration(ReactionIconDurationNormal, ReactionIconDurationFast);
+        double reactionTextDelay = GetPresentationDuration(ReactionTextDelayNormal, ReactionTextDelayFast);
         double delay = 0.0;
 
         foreach (SlotRefs refs in _slots)
@@ -1236,19 +1392,19 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 Control bubble = refs.ReactionBubble;
                 Tween bubbleTween = CreateTween();
                 bubbleTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                bubbleTween.TweenInterval(delay);
-                bubbleTween.TweenProperty(bubble, "modulate:a", 1f, ReactionEntranceDuration);
-                bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, -ReactionEntranceOffset), ReactionEntranceDuration);
-                bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.975f, 0.975f), ReactionEntranceDuration);
+                bubbleTween.TweenInterval(delay + reactionEntranceInitialDelay);
+                bubbleTween.TweenProperty(bubble, "modulate:a", 1f, reactionEntranceDuration);
+                bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, -ReactionEntranceOffset), reactionEntranceDuration);
+                bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.975f, 0.975f), reactionEntranceDuration);
 
                 Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
                 if (icon != null)
                 {
                     Tween iconTween = CreateTween();
                     iconTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                    iconTween.TweenInterval(delay + 0.18);
-                    iconTween.TweenProperty(icon, "modulate:a", 1f, 0.36f);
-                    iconTween.Parallel().TweenProperty(icon, "position", icon.Position + new Vector2(0f, -8f), 0.36f);
+                    iconTween.TweenInterval(delay + reactionEntranceInitialDelay + reactionIconDelay);
+                    iconTween.TweenProperty(icon, "modulate:a", 1f, reactionIconDuration);
+                    iconTween.Parallel().TweenProperty(icon, "position", icon.Position + new Vector2(0f, -8f), reactionIconDuration);
                 }
 
                 Control? text = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
@@ -1256,13 +1412,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 {
                     Tween textTween = CreateTween();
                     textTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                    textTween.TweenInterval(delay + 0.10);
-                    textTween.TweenProperty(text, "modulate:a", 1f, ReactionTextDuration);
-                    textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(0f, -8f), ReactionTextDuration);
+                    textTween.TweenInterval(delay + reactionEntranceInitialDelay + reactionTextDelay);
+                    textTween.TweenProperty(text, "modulate:a", 1f, reactionTextDuration);
+                    textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(0f, -8f), reactionTextDuration);
                 }
 
                 StartReactionWave(bubble);
-                delay += FinalRoundStagger;
+                delay += finalRoundStagger;
             }
 
             if (refs.PreviewAnchor.Visible)
@@ -1271,11 +1427,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 {
                     Tween tween = CreateTween();
                     tween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                    tween.TweenInterval(delay);
-                    tween.TweenProperty(widget.Wrapper, "modulate:a", 1f, PreviewEntranceDuration);
-                    tween.Parallel().TweenProperty(widget.Wrapper, "position", widget.Wrapper.Position + new Vector2(0f, -PreviewEntranceOffset), PreviewEntranceDuration);
-                    tween.Parallel().TweenProperty(widget.Wrapper, "scale", widget.Wrapper.Scale / new Vector2(0.982f, 0.982f), PreviewEntranceDuration);
-                    delay += FinalRoundStagger;
+                    tween.TweenInterval(delay + previewEntranceInitialDelay);
+                    tween.TweenProperty(widget.Wrapper, "modulate:a", 1f, previewEntranceDuration);
+                    tween.Parallel().TweenProperty(widget.Wrapper, "position", widget.Wrapper.Position + new Vector2(0f, -PreviewEntranceOffset), previewEntranceDuration);
+                    tween.Parallel().TweenProperty(widget.Wrapper, "scale", widget.Wrapper.Scale / new Vector2(0.982f, 0.982f), previewEntranceDuration);
+                    delay += finalRoundStagger;
                 }
             }
         }
@@ -3984,6 +4140,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         RefreshVoteDisplays(animate: false, highlightLocalPlayer: false);
 
+        if (IsInstantMode())
+        {
+            HighlightVotePlayer(null);
+            return;
+        }
+
         List<(Player player, int poolIndex)> recordedVotes = new();
         for (int i = 0; i < Math.Min(_orderedPlayers.Count, votesByPlayerSlotOrder.Count); i++)
         {
@@ -4016,14 +4178,20 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             {
                 int seed = BuildVoteResolutionSeed(votesByPlayerSlotOrder, chosenPoolIndex);
                 int ticks = 12 + PositiveMod(seed, 6);
-                float settleDelay = Mathf.Lerp(
-                    VoteResolutionSettleDelayMin,
-                    VoteResolutionSettleDelayMax,
-                    PositiveMod(seed >> 4, 256) / 255f);
+                float settleBlend = PositiveMod(seed >> 4, 256) / 255f;
+                float settleDelayNormal = Mathf.Lerp(
+                    VoteResolutionSettleDelayMinNormal,
+                    VoteResolutionSettleDelayMaxNormal,
+                    settleBlend);
+                float settleDelayFast = Mathf.Lerp(
+                    VoteResolutionSettleDelayMinFast,
+                    VoteResolutionSettleDelayMaxFast,
+                    settleBlend);
 
                 Player winningPlayer = chosenPlayers[PositiveMod(seed >> 8, chosenPlayers.Count)];
                 int winnerIndex = sortedPlayers.IndexOf(winningPlayer);
-                double tickDelay = VoteResolutionSpinDuration / Math.Max(1, ticks);
+                float tickDelayNormal = (float)(VoteResolutionSpinDurationNormal / Math.Max(1, ticks));
+                float tickDelayFast = (float)(VoteResolutionSpinDurationFast / Math.Max(1, ticks));
 
                 for (int step = 0; step <= ticks; step++)
                 {
@@ -4039,10 +4207,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                     {
                     }
 
-                    await Cmd.Wait((float)tickDelay, ignoreCombatEnd: true);
+                    await WaitPresentationAsync(tickDelayNormal, tickDelayFast, ignoreCombatEnd: true);
                 }
 
-                await Cmd.Wait(settleDelay, ignoreCombatEnd: true);
+                await WaitPresentationAsync(settleDelayNormal, settleDelayFast, ignoreCombatEnd: true);
             }
         }
 
@@ -4081,7 +4249,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
         }
 
-        await Cmd.Wait(0.45f, ignoreCombatEnd: true);
+        await WaitPresentationAsync(VoteResolutionPostSelectPauseNormal, VoteResolutionPostSelectPauseFast, ignoreCombatEnd: true);
     }
 
     public async Task PlayInitialVoteResolutionAsync(
@@ -4117,7 +4285,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
         }
 
-        await Cmd.Wait(0.45f, ignoreCombatEnd: true);
+        await WaitPresentationAsync(VoteResolutionPostSelectPauseNormal, VoteResolutionPostSelectPauseFast, ignoreCombatEnd: true);
     }
 
     private int BuildVoteResolutionSeed(IReadOnlyList<int> finalVotesByPlayerSlotOrder, int chosenPoolIndex)

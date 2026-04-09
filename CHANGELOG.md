@@ -2,6 +2,15 @@
 
 ## Unrelesaed
 
+## [v1.1.1] - Added fast mode and fixes
+
+### Features
+- Added fast mode support
+
+### Fixes
+- Each Base Game Ancient has their own accent color
+- Cleaned up Controller tooltips
+
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 
 ### Features

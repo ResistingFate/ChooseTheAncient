@@ -58,9 +58,6 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
 ## New features Roadma
-- Slowdown animations when not in fast mode
-- Complete Base Ancient's Colour highlights
-- Fix controller tooltips for only 1 vote button at a time
 - I still need to fix the randomnes for the 2nd ancient spawning in.
 - Ask help for good zhs translation
 - Language localizing for mod config option texts
