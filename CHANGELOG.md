@@ -2,7 +2,7 @@
 
 ## Unrelesaed
 
-## [v1.2.0] - Added Game Modes, fast mode and fixes
+## [v1.2.0] - Added Game Modes, Ancient Pool Options, fast mode and fixes
 
 ### Features
 - GameModes
@@ -10,6 +10,9 @@
   - Fair Fight
   - I Want To Know Everything
   - Simple Picker
+- Ancient Pool
+  - Whether Act 2 has Act 1, 2, or 3 Ancients
+  - Whether Act 3 has Act 1, 2, or 3 Ancients
 - Added fast mode support
 
 ### Fixes

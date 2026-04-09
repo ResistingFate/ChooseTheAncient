@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using ChooseTheAncient.Scripts;
 using Godot;
@@ -199,6 +201,22 @@ internal static class ChooseTheAncientConfig
     public static SelectionGameMode GameMode { get; private set; } = DefaultSelectionGameMode;
     public static LogLevel CurrentLogLevel { get; private set; } = ModLog.CurrentLevel;
 
+    private const int AncientPoolSourceActCount = 3;
+
+    private static readonly Dictionary<int, bool[]> AncientPoolSourceActsByTargetAct = new()
+    {
+        // Act 1 ancients are not supported yet.
+        // Leave this commented row in place so it is easy to restore once the
+        // mod starts intercepting the Act 1 ancient selection flow.
+        // { 0, new[] { true, true, true } },
+
+        // Act 2 ancients.
+        { 1, new[] { true, true, true } },
+
+        // Act 3 ancients.
+        { 2, new[] { true, true, true } },
+    };
+
     public static void RefreshFromModConfig()
     {
         AncientCount = NormalizeAncientCount(
@@ -235,6 +253,8 @@ internal static class ChooseTheAncientConfig
         {
             ModConfigBridge.SetValue("gameMode", SelectionGameModeToOption(GameMode));
         }
+
+        RefreshAncientPoolSourceActsFromModConfig();
 
         if (ModConfigBridge.IsAvailable)
         {
@@ -287,6 +307,119 @@ internal static class ChooseTheAncientConfig
         GameMode = NormalizeSelectionGameMode(value);
     }
 
+    public static bool HasAncientPoolSourceActConfig(int targetActIndex)
+    {
+        return AncientPoolSourceActsByTargetAct.ContainsKey(targetActIndex);
+    }
+
+    public static IReadOnlyList<int> GetEnabledAncientPoolSourceActs(int targetActIndex)
+    {
+        if (!AncientPoolSourceActsByTargetAct.TryGetValue(targetActIndex, out bool[]? sourceActFlags))
+            return Array.Empty<int>();
+
+        return GetEnabledAncientPoolSourceActs(sourceActFlags);
+    }
+
+    public static IReadOnlyList<int> GetEnabledAncientPoolSourceActsFromMask(int targetActIndex, int sourceActMask)
+    {
+        if (!HasAncientPoolSourceActConfig(targetActIndex))
+            return Array.Empty<int>();
+
+        bool[] decodedFlags = DecodeAncientPoolSourceActMask(sourceActMask);
+        return GetEnabledAncientPoolSourceActs(decodedFlags);
+    }
+
+    public static int GetAncientPoolSourceActMask(int targetActIndex)
+    {
+        if (!AncientPoolSourceActsByTargetAct.TryGetValue(targetActIndex, out bool[]? sourceActFlags))
+            return GetDefaultAncientPoolSourceActMask();
+
+        return EncodeAncientPoolSourceActMask(sourceActFlags);
+    }
+
+    public static string DescribeAncientPoolSourceActs(IEnumerable<int> enabledSourceActs)
+    {
+        List<int> enabledSourceActList = enabledSourceActs
+            .Distinct()
+            .OrderBy(sourceActIndex => sourceActIndex)
+            .ToList();
+
+        if (enabledSourceActList.Count == 0)
+            return "(none)";
+
+        return string.Join(", ", enabledSourceActList.Select(sourceActIndex => GetAncientPoolSourceActLabel(sourceActIndex)));
+    }
+
+    public static void ApplyAncientPoolSourceActToggle(int targetActIndex, int sourceActIndex, object value)
+    {
+        if (!AncientPoolSourceActsByTargetAct.TryGetValue(targetActIndex, out bool[]? sourceActFlags))
+            return;
+
+        if (sourceActIndex < 0 || sourceActIndex >= sourceActFlags.Length)
+            return;
+
+        sourceActFlags[sourceActIndex] = Convert.ToBoolean(value);
+    }
+
+    public static string GetAncientPoolSourceActConfigKey(int targetActIndex, int sourceActIndex)
+    {
+        return $"act{targetActIndex + 1}AncientsFromAct{sourceActIndex + 1}";
+    }
+
+    public static string GetAncientPoolTargetActLabel(int targetActIndex)
+    {
+        return $"Act {targetActIndex + 1} Ancients";
+    }
+
+    public static string GetAncientPoolSourceActLabel(int sourceActIndex)
+    {
+        return $"From Act {sourceActIndex + 1}";
+    }
+
+    public static int GetDefaultAncientPoolSourceActMask()
+    {
+        return (1 << AncientPoolSourceActCount) - 1;
+    }
+
+    private static List<int> GetEnabledAncientPoolSourceActs(IReadOnlyList<bool> sourceActFlags)
+    {
+        List<int> enabledSourceActs = new(sourceActFlags.Count);
+        for (int sourceActIndex = 0; sourceActIndex < sourceActFlags.Count; sourceActIndex++)
+        {
+            if (sourceActFlags[sourceActIndex])
+                enabledSourceActs.Add(sourceActIndex);
+        }
+
+        return enabledSourceActs;
+    }
+
+    private static int EncodeAncientPoolSourceActMask(IReadOnlyList<bool> sourceActFlags)
+    {
+        int encodedMask = 0;
+
+        int sourceActCount = Math.Min(sourceActFlags.Count, AncientPoolSourceActCount);
+        for (int sourceActIndex = 0; sourceActIndex < sourceActCount; sourceActIndex++)
+        {
+            if (sourceActFlags[sourceActIndex])
+                encodedMask |= 1 << sourceActIndex;
+        }
+
+        return encodedMask;
+    }
+
+    private static bool[] DecodeAncientPoolSourceActMask(int sourceActMask)
+    {
+        int normalizedMask = sourceActMask & GetDefaultAncientPoolSourceActMask();
+        bool[] decodedFlags = new bool[AncientPoolSourceActCount];
+
+        for (int sourceActIndex = 0; sourceActIndex < AncientPoolSourceActCount; sourceActIndex++)
+        {
+            decodedFlags[sourceActIndex] = (normalizedMask & (1 << sourceActIndex)) != 0;
+        }
+
+        return decodedFlags;
+    }
+
     public static void ApplyLogLevel(object value)
     {
         CurrentLogLevel = NormalizeLogLevel(value);
@@ -327,6 +460,18 @@ internal static class ChooseTheAncientConfig
             SelectionGameMode.SimplePicker => SelectionGameModeOptions[3],
             _ => SelectionGameModeOptions[0]
         };
+    }
+
+    private static void RefreshAncientPoolSourceActsFromModConfig()
+    {
+        foreach ((int targetActIndex, bool[] sourceActFlags) in AncientPoolSourceActsByTargetAct)
+        {
+            for (int sourceActIndex = 0; sourceActIndex < sourceActFlags.Length; sourceActIndex++)
+            {
+                string key = GetAncientPoolSourceActConfigKey(targetActIndex, sourceActIndex);
+                sourceActFlags[sourceActIndex] = ModConfigBridge.GetValue(key, true);
+            }
+        }
     }
 
     internal static SelectionGameMode NormalizeSelectionGameMode(object value)

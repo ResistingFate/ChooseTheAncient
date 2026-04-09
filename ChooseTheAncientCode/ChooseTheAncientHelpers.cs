@@ -69,27 +69,119 @@ public static class ChooseTheAncientHelpers
         }
     }
 
-    public static List<AncientEventModel> BuildCandidatePool(ActModel act, RunState runState)
+
+
+    public static List<AncientEventModel> BuildCandidatePool(
+        ActModel act,
+        RunState runState,
+        int targetActIndex,
+        IReadOnlyList<int>? enabledSourceActsOverride = null)
     {
-        if (!runState.UnlockState.SharedAncients.Any())
-            ModLog.Debug("runState.UnlockState.SharedAncients is empty");
+        List<AncientEventModel> defaultPool = BuildDefaultCandidatePool(act, runState);
 
-        List<AncientEventModel> sharedSubset = runState.UnlockState.SharedAncients
-            .Where(ancient => IsAncientValidForAct(ancient, act))
-            .ToList();
+        if (!ChooseTheAncientConfig.HasAncientPoolSourceActConfig(targetActIndex))
+            return defaultPool;
 
-        if (ModLog.IsDebugEnabled)
+        IReadOnlyList<int> enabledSourceActs = enabledSourceActsOverride
+            ?? ChooseTheAncientConfig.GetEnabledAncientPoolSourceActs(targetActIndex);
+
+        if (enabledSourceActs.Count == 0)
         {
-            string sharedPool = string.Join(",", sharedSubset.Select(ancient => ancient.Id.Entry));
-            ModLog.Debug($"Shared ancients valid for {act.Id.Entry}: {sharedPool}");
+            ModLog.Warn(
+                $"No ancient source acts are enabled for act {targetActIndex + 1}; " +
+                $"falling back to the default pool for {act.Id.Entry}.");
+            return defaultPool;
         }
 
-        return act
+        List<AncientEventModel> filteredPool = BuildConfiguredCandidatePool(
+            act,
+            runState,
+            targetActIndex,
+            enabledSourceActs);
+
+        if (filteredPool.Count == 0)
+        {
+            ModLog.Warn(
+                $"Ancient source filters removed every candidate for act {targetActIndex + 1}; " +
+                $"falling back to the default pool for {act.Id.Entry}.");
+            return defaultPool;
+        }
+
+        LogPool(
+            $"Act {targetActIndex + 1} configured source pool " +
+            $"[{ChooseTheAncientConfig.DescribeAncientPoolSourceActs(enabledSourceActs)}]",
+            filteredPool);
+
+        return filteredPool;
+    }
+
+    private static List<AncientEventModel> BuildDefaultCandidatePool(ActModel targetAct, RunState runState)
+    {
+        List<AncientEventModel> sharedSubset = GetSharedAncientsValidForTargetAct(targetAct, runState);
+
+        return targetAct
             .GetUnlockedAncients(runState.UnlockState)
             .Concat(sharedSubset)
             .DistinctBy(a => a.Id)
             .OrderBy(a => a.Id.Entry)
             .ToList();
+    }
+
+    private static List<AncientEventModel> BuildConfiguredCandidatePool(
+        ActModel targetAct,
+        RunState runState,
+        int targetActIndex,
+        IReadOnlyList<int> enabledSourceActs)
+    {
+        List<AncientEventModel> configuredPool = new();
+
+        foreach (int sourceActIndex in enabledSourceActs)
+        {
+            if (sourceActIndex < 0 || sourceActIndex >= runState.Acts.Count)
+            {
+                ModLog.Warn(
+                    $"Configured ancient source act {sourceActIndex + 1} is out of range for run state " +
+                    $"while building act {targetActIndex + 1}'s pool.");
+                continue;
+            }
+
+            ActModel sourceAct = runState.Acts[sourceActIndex];
+            List<AncientEventModel> sourceActAncients = sourceAct
+                .GetUnlockedAncients(runState.UnlockState)
+                .Where(ancient => IsAncientValidForAct(ancient, targetAct))
+                .ToList();
+
+            LogPool(
+                $"Act {targetActIndex + 1} source act {sourceActIndex + 1} candidates",
+                sourceActAncients);
+
+            configuredPool.AddRange(sourceActAncients);
+        }
+
+        configuredPool.AddRange(GetSharedAncientsValidForTargetAct(targetAct, runState));
+
+        return configuredPool
+            .DistinctBy(a => a.Id)
+            .OrderBy(a => a.Id.Entry)
+            .ToList();
+    }
+
+    private static List<AncientEventModel> GetSharedAncientsValidForTargetAct(ActModel targetAct, RunState runState)
+    {
+        if (!runState.UnlockState.SharedAncients.Any())
+            ModLog.Debug("runState.UnlockState.SharedAncients is empty");
+
+        List<AncientEventModel> sharedSubset = runState.UnlockState.SharedAncients
+            .Where(ancient => IsAncientValidForAct(ancient, targetAct))
+            .ToList();
+
+        if (ModLog.IsDebugEnabled)
+        {
+            string sharedPool = string.Join(",", sharedSubset.Select(ancient => ancient.Id.Entry));
+            ModLog.Debug($"Shared ancients valid for {targetAct.Id.Entry}: {sharedPool}");
+        }
+
+        return sharedSubset;
     }
     
     public static List<AncientEventModel> LimitCandidatePoolForVote(

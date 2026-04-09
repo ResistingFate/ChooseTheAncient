@@ -32,9 +32,15 @@ public static class ChooseTheAncientCoordinator
                 .ToList();
             int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
             ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
+            IReadOnlyList<int>? effectiveAncientPoolSourceActs =
+                await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, nextActIndex);
 
             ActModel nextAct = runState.Acts[nextActIndex];
-            List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(nextAct, runState);
+            List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
+                nextAct,
+                runState,
+                nextActIndex,
+                effectiveAncientPoolSourceActs);
             if (ModLog.IsDebugEnabled)
             {
                 string ancientPool = string.Join(",", pool.Select(ancient => ancient.Id.Entry));
@@ -527,6 +533,64 @@ public static class ChooseTheAncientCoordinator
         }
 
         return orderedPlayers[0];
+    }
+
+    private static async Task<IReadOnlyList<int>?> GetEffectiveAncientPoolSourceActsAsync(
+        IReadOnlyList<Player> orderedPlayers,
+        int targetActIndex)
+    {
+        ChooseTheAncientConfig.RefreshFromModConfig();
+
+        if (!ChooseTheAncientConfig.HasAncientPoolSourceActConfig(targetActIndex))
+        {
+            return null;
+        }
+
+        if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
+        {
+            IReadOnlyList<int> localEnabledSourceActs =
+                ChooseTheAncientConfig.GetEnabledAncientPoolSourceActs(targetActIndex);
+            ModLog.Debug(
+                $"Using local ancient pool source acts for act {targetActIndex + 1}: " +
+                $"{ChooseTheAncientConfig.DescribeAncientPoolSourceActs(localEnabledSourceActs)}");
+            return localEnabledSourceActs;
+        }
+
+        Player hostPlayer = GetHostPlayer(orderedPlayers);
+        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+
+        if (LocalContext.IsMe(hostPlayer))
+        {
+            int hostSourceActMask = ChooseTheAncientConfig.GetAncientPoolSourceActMask(targetActIndex);
+            IReadOnlyList<int> hostEnabledSourceActs =
+                ChooseTheAncientConfig.GetEnabledAncientPoolSourceActsFromMask(targetActIndex, hostSourceActMask);
+
+            RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+                hostPlayer,
+                choiceId,
+                PlayerChoiceResult.FromIndex(hostSourceActMask));
+
+            ModLog.Debug(
+                $"Broadcasting host ancient pool source acts for act {targetActIndex + 1}: " +
+                $"mask={hostSourceActMask}, " +
+                $"{ChooseTheAncientConfig.DescribeAncientPoolSourceActs(hostEnabledSourceActs)}");
+
+            return hostEnabledSourceActs;
+        }
+
+        int syncedSourceActMask = (await RunManager.Instance.PlayerChoiceSynchronizer
+                .WaitForRemoteChoice(hostPlayer, choiceId))
+            .AsIndex();
+
+        IReadOnlyList<int> syncedEnabledSourceActs =
+            ChooseTheAncientConfig.GetEnabledAncientPoolSourceActsFromMask(targetActIndex, syncedSourceActMask);
+
+        ModLog.Debug(
+            $"Received host ancient pool source acts for act {targetActIndex + 1}: " +
+            $"mask={syncedSourceActMask}, " +
+            $"{ChooseTheAncientConfig.DescribeAncientPoolSourceActs(syncedEnabledSourceActs)}");
+
+        return syncedEnabledSourceActs;
     }
 
     private static async Task<ChooseTheAncientConfig.SelectionGameMode> GetEffectiveGameModeAsync(

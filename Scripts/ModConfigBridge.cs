@@ -35,21 +35,36 @@ internal static class ModConfigBridge
     // ModConfig may load AFTER your mod (alphabetical order).
     // Deferring to the next frame ensures ModConfig is ready.
 
+    private static int _deferredFramesRemaining;
+
     internal static void DeferredRegister()
     {
+        _deferredFramesRemaining = 2;
         var tree = (SceneTree)Engine.GetMainLoop();
+        tree.ProcessFrame -= OnNextFrame;
         tree.ProcessFrame += OnNextFrame;
     }
 
     private static void OnNextFrame()
     {
         var tree = (SceneTree)Engine.GetMainLoop();
+
+        if (_deferredFramesRemaining > 0)
+        {
+            _deferredFramesRemaining--;
+            return;
+        }
+
         tree.ProcessFrame -= OnNextFrame;
         Detect();
         if (_available)
         {
             Register();
             ChooseTheAncientConfig.RefreshFromModConfig();
+        }
+        else
+        {
+            ModLog.Warn("ModConfig was not detected after deferred registration; using built-in defaults.");
         }
     }
 
@@ -221,6 +236,24 @@ internal static class ModConfigBridge
 
         list.Add(Entry(cfg =>
         {
+            Set(cfg, "Type", EnumVal("Separator"));
+        }));
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Label", "Ancient Pool Sources");
+            Set(cfg, "Type", EnumVal("Header"));
+        }));
+
+        // Act 1 ancients are not supported yet.
+        // Leave this line commented so it is easy to restore later.
+        // AddAncientPoolSourceEntryGroup(list, targetActIndex: 0);
+
+        AddAncientPoolSourceEntryGroup(list, targetActIndex: 1);
+        AddAncientPoolSourceEntryGroup(list, targetActIndex: 2);
+
+        list.Add(Entry(cfg =>
+        {
             Set(cfg, "Key", "showControllerHotkeys");
             Set(cfg, "Label", "Show controller hotkeys");
             Set(cfg, "Type", EnumVal("Toggle"));
@@ -289,6 +322,44 @@ internal static class ModConfigBridge
 
         return result;
     } 
+
+    private static void AddAncientPoolSourceEntryGroup(List<object> list, int targetActIndex)
+    {
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Label", ChooseTheAncientConfig.GetAncientPoolTargetActLabel(targetActIndex));
+            Set(cfg, "Type", EnumVal("Header"));
+        }));
+
+        for (int sourceActIndex = 0; sourceActIndex < 3; sourceActIndex++)
+        {
+            int capturedTargetActIndex = targetActIndex;
+            int capturedSourceActIndex = sourceActIndex;
+
+            list.Add(Entry(cfg =>
+            {
+                Set(cfg, "Key", ChooseTheAncientConfig.GetAncientPoolSourceActConfigKey(capturedTargetActIndex, capturedSourceActIndex));
+                Set(cfg, "Label", ChooseTheAncientConfig.GetAncientPoolSourceActLabel(capturedSourceActIndex));
+                Set(cfg, "Type", EnumVal("Toggle"));
+                Set(cfg, "DefaultValue", (object)true);
+                Set(cfg, "Description",
+                    $"Allow ancients that normally come from Act {capturedSourceActIndex + 1} to appear in the Act {capturedTargetActIndex + 1} Choose The Ancient pool.");
+
+                Set(cfg, "OnChanged", new Action<object>(v =>
+                {
+                    ChooseTheAncientConfig.ApplyAncientPoolSourceActToggle(capturedTargetActIndex, capturedSourceActIndex, v);
+                    ModLog.Info(
+                        $"{ChooseTheAncientConfig.GetAncientPoolTargetActLabel(capturedTargetActIndex)} / " +
+                        $"{ChooseTheAncientConfig.GetAncientPoolSourceActLabel(capturedSourceActIndex)} changed to {v}");
+                }));
+            }));
+        }
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Type", EnumVal("Separator"));
+        }));
+    }
 
     // ═════════════════════════════════════════════════════════════
     //  Reflection helpers (don't need to modify these)

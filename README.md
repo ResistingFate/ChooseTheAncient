@@ -27,6 +27,9 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
     - Fair Fight
     - I Want To Know Everything
     - Simple Picker
+  - Ancient Pool
+    - Whether Act 2 has Act 1, 2, or 3 Ancients
+    - Whether Act 3 has Act 1, 2, or 3 Ancients
   - Controller tooltips 
   - Invisible vote buttons 
   - Vote happens whe clicking 
@@ -63,6 +66,8 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
 ## New features Roadmap
+- Support Custom Ancient Options not matching Custom Ancient's actual options in hovertips for cards
+- Fix {suppressedAnicent} formating defaulting when it shouldn't
 - Ask help for good zhs translation
 - Language localizing for mod config option texts
 - Update mod description for zhs too in ChooseTheAncient.json or wherever translations for that go.
