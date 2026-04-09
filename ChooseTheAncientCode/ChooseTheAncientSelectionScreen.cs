@@ -47,7 +47,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const float CardBottomInset = 18f;
     private const float CardHeightRatio = 0.275f;
     private const float PortalRimThickness = 6f;
-    private const float ReactionBubbleHeight = 96f;
+    private const float ReactionBubbleHeight = 112f;
     private const float ReactionBubbleGap = 10f;
     private const float TopUiCutoffExtraPxAt1080 = 18f;
     private const float TopUiFallbackBottomPxAt1080 = 86f;
@@ -2120,7 +2120,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         bubble.Modulate = new Color(1f, 1f, 1f, 0f);
         ModLog.Trace($"Showing custom reaction bubble for {refs.Ancient.Id.Entry}: {dialogueText}");
     }
-
+    
     private Control BuildReactionBubble(AncientEventModel ancient, string dialogueText)
     {
         /*
@@ -2159,7 +2159,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             Name = "LineRoot",
             MouseFilter = MouseFilterEnum.Ignore,
             FocusMode = FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(0f, 68f),
+            CustomMinimumSize = new Vector2(0f, 78f),
         };
         line.LayoutMode = 1;
         line.AnchorLeft = 0f;
@@ -2169,7 +2169,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         line.OffsetLeft = 0f;
         line.OffsetTop = 0f;
         line.OffsetRight = 0f;
-        line.OffsetBottom = 68f;
+        line.OffsetBottom = 78f;
         root.AddChild(line);
 
         Control iconRoot = new()
@@ -2220,7 +2220,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         MarginContainer dialogueContainer = new()
         {
             Name = "DialogueContainer",
-            CustomMinimumSize = new Vector2(0f, 68f),
+            CustomMinimumSize = new Vector2(0f, 78f),
             MouseFilter = MouseFilterEnum.Ignore,
             FocusMode = FocusModeEnum.None,
         };
@@ -2330,10 +2330,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         textContainer.AnchorTop = 0f;
         textContainer.AnchorRight = 1f;
         textContainer.AnchorBottom = 1f;
-        textContainer.AddThemeConstantOverride("margin_left", 20);
-        textContainer.AddThemeConstantOverride("margin_top", 8);
+        textContainer.AddThemeConstantOverride("margin_left", 60);
+        textContainer.AddThemeConstantOverride("margin_top", 10);
         textContainer.AddThemeConstantOverride("margin_right", 18);
-        textContainer.AddThemeConstantOverride("margin_bottom", 10);
+        textContainer.AddThemeConstantOverride("margin_bottom", 12);
         dialogueContainer.AddChild(textContainer);
 
         VBoxContainer textBox = new()
@@ -2344,7 +2344,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
         };
         textBox.LayoutMode = 2;
-        textBox.AddThemeConstantOverride("separation", 0);
+        textBox.AddThemeConstantOverride("separation", 4);
         textContainer.AddChild(textBox);
 
         RichTextLabel speakerLabel = new()
@@ -2355,6 +2355,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             FitContent = true,
             ScrollActive = false,
             MouseFilter = MouseFilterEnum.Ignore,
+            CustomMinimumSize = new Vector2(0f, 18f),
         };
         speakerLabel.AddThemeColorOverride("default_color", new Color(1f, 0.964706f, 0.886275f, 1f));
         speakerLabel.AddThemeFontOverride("normal_font", regularFont);
@@ -2363,8 +2364,18 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         speakerLabel.AddThemeFontSizeOverride("normal_font_size", 14);
         speakerLabel.AddThemeFontSizeOverride("bold_font_size", 14);
         speakerLabel.AddThemeFontSizeOverride("italics_font_size", 14);
-        speakerLabel.AddThemeConstantOverride("line_separation", -2);
+        speakerLabel.AddThemeConstantOverride("line_separation", 0);
         textBox.AddChild(speakerLabel);
+
+        MarginContainer lineIndent = new()
+        {
+            Name = "LineIndent",
+            MouseFilter = MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        lineIndent.AddThemeConstantOverride("margin_left", 16);
+        textBox.AddChild(lineIndent);
 
         RichTextLabel lineText = new()
         {
@@ -2375,31 +2386,32 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             ScrollActive = false,
             MouseFilter = MouseFilterEnum.Ignore,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0f, 34f),
         };
         lineText.AddThemeColorOverride("default_color", new Color(1f, 0.964706f, 0.886275f, 1f));
         lineText.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.25098f));
         lineText.AddThemeConstantOverride("shadow_offset_x", 3);
         lineText.AddThemeConstantOverride("shadow_offset_y", 2);
-        lineText.AddThemeConstantOverride("line_separation", -2);
+        lineText.AddThemeConstantOverride("line_separation", 0);
         lineText.AddThemeFontOverride("normal_font", regularFont);
         lineText.AddThemeFontOverride("bold_font", boldFont);
         lineText.AddThemeFontOverride("italics_font", italicFont);
         lineText.AddThemeFontSizeOverride("normal_font_size", 24);
         lineText.AddThemeFontSizeOverride("bold_font_size", 24);
         lineText.AddThemeFontSizeOverride("italics_font_size", 24);
-        textBox.AddChild(lineText);
+        lineIndent.AddChild(lineText);
 
         return root;
     }
-
+    
     private void StartReactionWave(Control bubble)
     {
         /*
          * Applies the animated dialogue wave shader to the reaction bubble text.
          */
         RichTextLabel? speakerLabel = bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/SpeakerLabel");
-        RichTextLabel? lineText = bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
-
+        RichTextLabel? lineText = bubble.GetNodeOrNull<RichTextLabel>("LineRoot/DialogueContainer/TextContainer/TextBox/LineIndent/LineText");
+        
         if (_dialogueWaveShader == null)
         {
             _dialogueWaveShader = new Shader
