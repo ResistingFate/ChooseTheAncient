@@ -54,7 +54,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private static readonly string DialogueTailTexturePath = "res://images/ui/dialogue_tail.png";
     private static readonly string DialogueRegularFontPath = "res://themes/kreon_regular_glyph_space_one.tres";
     private static readonly string DialogueBoldFontPath = "res://themes/kreon_bold_glyph_space_one.tres";
+
     private static readonly string DialogueItalicFontPath = "res://themes/bitter_medium_italic_glyph_space_one.tres";
+
     // Animation tuning:
     // Increase the duration values or offsets below if you want a slower, floatier final-vote entrance.
     private const float ReactionEntranceOffset = 40f;
@@ -68,17 +70,21 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const float VoteIconOverlap = 10f;
     private const double VoteResolutionSpinDuration = 1.20;
     private const float VoteResolutionSettleDelayMin = 0.05f;
+
     private const float VoteResolutionSettleDelayMax = 0.30f;
+
     // Slot visual timing:
     // Increase CardOutlineFadeDuration for a slower outline fade when focus/emphasis changes.
     private const double SlotVisualFadeDuration = 0.12;
+
     private const double CardOutlineFadeDuration = 0.20;
+
     // Second-round initial winner emphasis fade tuning:
     // Raise the duration or change the transition/ease below for a slower, softer fade after focus moves away.
     private const double InitialSecondRoundWinnerEmphasisFadeDuration = 0.58;
     private const Tween.TransitionType InitialSecondRoundWinnerEmphasisFadeTransition = Tween.TransitionType.Quint;
     private const Tween.EaseType InitialSecondRoundWinnerEmphasisFadeEase = Tween.EaseType.InOut;
-    
+
     #endregion
 
     #region Round contracts and nested reference models
@@ -106,6 +112,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         float Scale,
         Vector2 SourceAnchor01,
         Vector2 ExtraOffset01);
+
+    private readonly record struct AncientSceneColor(
+        List<Color> Accents);
 
     private readonly record struct SceneTransform(
         Vector2 Size,
@@ -199,14 +208,90 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private static readonly Dictionary<string, AncientSceneConfig> AncientSceneConfigs = new()
     {
         ["DARV"] = DefaultAncientSceneConfig,
-        ["OROBAS"] = new AncientSceneConfig(Vector2.Zero, 1.24f, new Vector2(0.39f, 0.08f), new Vector2(-0.06f, -0.01f)),
+        ["OROBAS"] =
+            new AncientSceneConfig(Vector2.Zero, 1.24f, new Vector2(0.39f, 0.08f), new Vector2(-0.06f, -0.01f)),
         ["PAEL"] = new AncientSceneConfig(Vector2.Zero, 1.52f, new Vector2(0.50f, 0.03f), new Vector2(0f, -0.01f)),
-        ["TEZCATARA"] = new AncientSceneConfig(Vector2.Zero, 1.22f, new Vector2(0.58f, 0.06f), new Vector2(0.06f, -0.01f)),
+        ["TEZCATARA"] =
+            new AncientSceneConfig(Vector2.Zero, 1.22f, new Vector2(0.58f, 0.06f), new Vector2(0.06f, -0.01f)),
         ["NONUPEIPE"] = DefaultAncientSceneConfig,
         ["TANX"] = DefaultAncientSceneConfig,
         ["VAKUU"] = DefaultAncientSceneConfig,
         ["NEOW"] = DefaultAncientSceneConfig,
     };
+
+    // Dialouge and Event Options Colors are defined in the Ancient Class alerady
+    
+    private static readonly Dictionary<string, AncientSceneColor> DefaultAncientSceneColors = new()
+    {
+        ["Left"] = new(new List<Color>
+        {
+            new Color(0.47f, 0.86f, 0.98f, 1f)
+        }),
+        ["Middle"] = new(new List<Color>
+        {
+            new Color(0.93f, 0.82f, 0.56f, 1f)
+        }),
+        ["Right"] = new(new List<Color>
+        {
+            new Color(0.98f, 0.55f, 0.22f, 1f)
+        })
+    };
+
+    // Still experimenting with colors, list even only using one value is so I can switch during debugging\
+    // Goes manual, ancient button color, ancient dialogue color 
+    // Found out button is black, and ancient dialogue is weird for most ancents, like Pael is grey
+    private static readonly Dictionary<string, AncientSceneColor> AncientSceneColors = new()
+    {
+        ["DARV"] = new(
+            new List<Color>
+            {
+                new Color("9C3298"), // purple
+                new Color("512E66")
+            }),
+        ["OROBAS"] = new(
+            new List<Color>
+            {
+                new Color("#78DBFA"), // turquoise
+                new Color("5C5F7A")
+            }),
+        ["PAEL"] = new(
+            new List<Color>
+            {
+                new Color("D8BE97"), // soft pael brown
+                new Color("332C29")
+            }),
+        ["TEZCATARA"] = new(
+            new List<Color>
+            {
+                new Color("FF9A36"), // fire orange
+                new Color("33251E")
+            }),
+        ["NONUPEIPE"] = new(
+            new List<Color>
+            {
+                new Color("68CBBE"), // teal
+                new Color("0A494D")
+            }),
+        ["TANX"] = new(
+            new List<Color>
+            {
+                new Color("D9A34B"), // gold
+                new Color("731717")
+            }),
+        ["VAKUU"] = new(
+            new List<Color>
+            {
+                new Color("5B4D7A"), // blue purple
+                new Color("3C1931")
+            }),
+        ["NEOW"] = new(
+            new List<Color>
+            {
+                new Color("5AD7FF"), // luminous
+                new Color("28454F")
+            }),
+    };
+
 
     private static readonly string VoteButtonTexturePath = "res://images/packed/common_ui/event_button.png";
     private static readonly string VoteButtonOutlineTexturePath = "res://images/packed/common_ui/event_button_outline.png";
@@ -2825,20 +2910,20 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Returns the accent color associated with an ancient, with a fallback by slot order.
          */
-        return ancientId switch
-        {
-            "OROBAS" => new Color(0.47f, 0.86f, 0.98f, 1f),
-            "PAEL" => new Color(0.93f, 0.82f, 0.56f, 1f),
-            "TEZCATARA" => new Color(0.98f, 0.55f, 0.22f, 1f),
-            _ => fallbackIndex switch
+        
+        if (AncientSceneColors.TryGetValue(ancientId, out var color)) {
+            return color.Accents[0];
+        } else {
+            // Want unique accent color per slot for the default Choose 3 Ancient Selection menu
+            return fallbackIndex switch
             {
-                0 => new Color(0.47f, 0.86f, 0.98f, 1f),
-                1 => new Color(0.93f, 0.82f, 0.56f, 1f),
-                _ => new Color(0.98f, 0.55f, 0.22f, 1f),
-            },
-        };
+                0 => DefaultAncientSceneColors["Left"].Accents[0],
+                1 => DefaultAncientSceneColors["Middle"].Accents[0],
+                _ => DefaultAncientSceneColors["Right"].Accents[0],
+            };
+        }
     }
-
+    
     private static Vector2[] BuildLineQuad(Vector2 a, Vector2 b, float thickness)
     {
         /*

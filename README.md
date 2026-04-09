@@ -52,30 +52,35 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 ## Any issuses
 - Create an issue in the github with your log after you've turned on the Trace debug setting in ModConfig
 - https://github.com/ResistingFate/ChooseTheAncient
+- Also go to your Slay The Spire 2 game in your steam library, right click, click properties, in the Launch Options add:
+- `-log generic verdebug`
+- Log locations on Windows:
+- C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
-## New features Roadmap:
-- Implement Log switcher when game in VeryDebug state
+## New features Roadma
 - Slowdown animations when not in fast mode
 - Complete Base Ancient's Colour highlights
-- Touch up Ancient Dialouge in English
-- Ask help for good zhs translations
 - Fix controller tooltips for only 1 vote button at a time
-- Support for Ancients in Ritsulib (Might work already. Looks promising)
+- I still need to fix the randomnes for the 2nd ancient spawning in.
+- Ask help for good zhs translation
+- Language localizing for mod config option texts
 - Setting to set 1 round only
 - Setting to enable previews for both options in round 2
 - Setting to enable previews to all ancients in first round
-- Compatability with Slay the Player
-- Compatability with local multiplayer
-- Compatability with infinate acts
-- Add Override for sets of ancients mods to pool from only that class
-  - With priority system between mods
-  - maybe picking from modconfig
 - Gameplay modes
   - All previews, only 1 round
   - Both previews in second round
-  - No previews, only 1 round
+  - No previews, only 1 round:
+- Implement Log switcher when game in VeryDebug state
+- Touch up Ancient Dialouge in Englis
+- Add Override for sets of ancients mods to pool from only that class
+  - With priority system between mods
+  - maybe picking from modconfigh
+- Support for Ancients in Ritsulib (Might work already. Looks promising)
+- Compatability with Slay the Player
+- Compatability with local multiplayer
+- Compatability with infinate acts
 - Ancient menu themes
-- Language localizing for mod config option text
 - Add mod settings to BsaeLib's mod config version
 - Look up split path mod in multiplayer, might need new mod for new path and more ancient nodes in the map
 - Add support for custom ancient dialouges
@@ -83,15 +88,3 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Load improvements
 - Add testing
 - Bugfixes when needed
-
-Try out Publizer by adding the following to my .csproj file:
-you add this to your dependencies `ItemGroup` (where the `PackageReference` to baselib is):
-```xml
-<PackageReference Include="Krafs.Publicizer" Version="2.3.0" PrivateAssets="All"/>
-```
-and then add this `ItemGroup` somewhere nearby:
-```xml
-<ItemGroup> <!--Allows access to originally private/protected members but may (unlikely to) cause errors.-->
-    <Publicize Include="sts2" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false" />
-</ItemGroup>
-```
