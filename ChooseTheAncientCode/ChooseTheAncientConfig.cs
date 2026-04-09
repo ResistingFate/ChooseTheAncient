@@ -155,7 +155,7 @@ internal static class ChooseTheAncientConfig
 
     public const int DefaultAncientCount = 3;
     public const bool DefaultShowControllerHotkeys = false;
-    public const bool DefaultShowOnlyButtonOutline = true;
+    public const bool DefaultShowOnlyButtonOutline = false;
     public const VoteClickTargetMode DefaultVoteClickTarget = VoteClickTargetMode.ButtonOnly;
     public const LogLevel DefaultLogLevel = LogLevel.Info;
 
