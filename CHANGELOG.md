@@ -10,6 +10,7 @@
 ### Fixes
 - Each Base Game Ancient has their own accent color
 - Cleaned up Controller tooltips
+- Randomness of Second Place Ancient is based on the Most Voted Ancient
 
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 

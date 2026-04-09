@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Godot;
+using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
@@ -88,24 +90,12 @@ public static class ChooseTheAncientCoordinator
                     pool.Count,
                     firstVotes);
 
-                // Map reduced-pool indices back to original-pool indices
-                List<int> remainingIndices = Enumerable.Range(0, pool.Count)
-                    .Where(i => i != firstPlaceIndex)
-                    .ToList();
-
-                // Remove votes for the first-place ancient, then reindex the rest
-                List<int> secondPlaceVotes = firstVotes
-                    .Where(voteIndex => voteIndex != firstPlaceIndex)
-                    .Select(voteIndex => voteIndex > firstPlaceIndex ? voteIndex - 1 : voteIndex)
-                    .ToList();
-
-                int secondPlaceReducedIndex = ResolveMostVotedIndex(
+                int secondPlaceIndex = ResolveSecondPlaceIndex(
                     runState,
                     nextActIndex,
-                    remainingIndices.Count,
-                    secondPlaceVotes);
-
-                int secondPlaceIndex = remainingIndices[secondPlaceReducedIndex];
+                    pool.Count,
+                    firstPlaceIndex,
+                    firstVotes);
 
                 AncientEventModel firstAncient = pool[firstPlaceIndex];
                 AncientEventModel secondAncient = pool[secondPlaceIndex];
@@ -330,6 +320,87 @@ public static class ChooseTheAncientCoordinator
         return (suppressedPreviewAncient, reactionAncient, suppressedPreviewAncient.Id.Entry, reactionAncient.Id.Entry);
     }
     
+    private static int ResolveSecondPlaceIndex(
+        RunState runState,
+        int nextActIndex,
+        int optionCount,
+        int firstPlaceIndex,
+        IReadOnlyList<int> votesInPlayerSlotOrder)
+    {
+        if (optionCount <= 1)
+        {
+            throw new InvalidOperationException("Cannot resolve second place from fewer than two options.");
+        }
+
+        if (firstPlaceIndex < 0 || firstPlaceIndex >= optionCount)
+        {
+            throw new InvalidOperationException(
+                $"First-place index {firstPlaceIndex} is out of range for option count {optionCount}.");
+        }
+
+        Dictionary<int, int> nonWinnerCounts = Enumerable.Range(0, optionCount)
+            .Where(index => index != firstPlaceIndex)
+            .ToDictionary(index => index, _ => 0);
+
+        foreach (int vote in votesInPlayerSlotOrder)
+        {
+            if (vote >= 0 && vote < optionCount && vote != firstPlaceIndex)
+            {
+                nonWinnerCounts[vote]++;
+            }
+        }
+
+        int maxVotes = nonWinnerCounts.Values.Max();
+
+        List<int> leaders = nonWinnerCounts
+            .Where(kvp => kvp.Value == maxVotes)
+            .Select(kvp => kvp.Key)
+            .OrderBy(index => index)
+            .ToList();
+
+        if (leaders.Count == 1)
+        {
+            return leaders[0];
+        }
+
+        var rng = CreateSecondPlaceTieBreakRng(
+            runState,
+            nextActIndex,
+            firstPlaceIndex,
+            votesInPlayerSlotOrder);
+
+        int chosenLeader = leaders[rng.NextInt(leaders.Count)];
+
+        if (ModLog.IsDebugEnabled)
+        {
+            string countSummary = string.Join(
+                ", ",
+                nonWinnerCounts
+                    .OrderBy(kvp => kvp.Key)
+                    .Select(kvp => $"{kvp.Key}:{kvp.Value}"));
+
+            string tiedLeaders = string.Join(",", leaders);
+            ModLog.Debug(
+                $"Second-place tie for act {nextActIndex + 1} after excluding first-place index {firstPlaceIndex}. " +
+                $"Counts={countSummary}; tied leaders=[{tiedLeaders}]; selected={chosenLeader}.");
+        }
+
+        return chosenLeader;
+    }
+
+    private static Rng CreateSecondPlaceTieBreakRng(
+        RunState runState,
+        int nextActIndex,
+        int firstPlaceIndex,
+        IReadOnlyList<int> votesInPlayerSlotOrder)
+    {
+        // Change the seed based on who was the first picked winner
+        Rng baseRng = ChooseTheAncientHelpers.CreateFinalVoteResolutionRng(runState, nextActIndex);
+        string voteSignature = $"{firstPlaceIndex}|{string.Join(",", votesInPlayerSlotOrder)}";
+        uint voteHash = unchecked((uint)StringHelper.GetDeterministicHashCode($"SecondPlace|{voteSignature}"));
+        return new Rng(unchecked(baseRng.Seed + voteHash));
+    }
+
     private static int ResolveMostVotedIndex(
         RunState runState,
         int nextActIndex,

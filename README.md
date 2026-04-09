@@ -58,7 +58,6 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
 ## New features Roadma
-- I still need to fix the randomnes for the 2nd ancient spawning in.
 - Ask help for good zhs translation
 - Language localizing for mod config option texts
 - Setting to set 1 round only
@@ -69,7 +68,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
   - Both previews in second round
   - No previews, only 1 round:
 - Implement Log switcher when game in VeryDebug state
-- Touch up Ancient Dialouge in Englis
+- Touch up Ancient Dialouge in English
 - Add Override for sets of ancients mods to pool from only that class
   - With priority system between mods
   - maybe picking from modconfigh

@@ -2330,7 +2330,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         textContainer.AnchorTop = 0f;
         textContainer.AnchorRight = 1f;
         textContainer.AnchorBottom = 1f;
-        textContainer.AddThemeConstantOverride("margin_left", 60);
+        textContainer.AddThemeConstantOverride("margin_left", 30);
         textContainer.AddThemeConstantOverride("margin_top", 10);
         textContainer.AddThemeConstantOverride("margin_right", 18);
         textContainer.AddThemeConstantOverride("margin_bottom", 12);
@@ -2374,7 +2374,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             FocusMode = FocusModeEnum.None,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
         };
-        lineIndent.AddThemeConstantOverride("margin_left", 16);
+        lineIndent.AddThemeConstantOverride("margin_left", 30);
         textBox.AddChild(lineIndent);
 
         RichTextLabel lineText = new()
