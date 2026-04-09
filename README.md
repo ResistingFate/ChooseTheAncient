@@ -22,6 +22,11 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Resizes for different resolutions
 - Optional Settings 
   - Number of ancients
+  - GameModes
+    - Monty hall (default)
+    - Fair Fight
+    - I Want To Know Everything
+    - Simple Picker
   - Controller tooltips 
   - Invisible vote buttons 
   - Vote happens whe clicking 
@@ -60,6 +65,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 ## New features Roadmap
 - Ask help for good zhs translation
 - Language localizing for mod config option texts
+- Update mod description for zhs too in ChooseTheAncient.json or wherever translations for that go.
 - Gameplay Options
   - Support for Pre Act 1, for the inevitable Act 1 Ancient mods
     - Compatability with other mods is annoying.

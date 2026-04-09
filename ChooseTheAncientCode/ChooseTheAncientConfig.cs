@@ -153,10 +153,19 @@ internal static class ChooseTheAncientConfig
         WholeSlot = 2,
     }
 
+    public enum SelectionGameMode
+    {
+        MontyHall = 0,
+        FairFight = 1,
+        WantToKnowEverything = 2,
+        SimplePicker = 3,
+    }
+
     public const int DefaultAncientCount = 3;
     public const bool DefaultShowControllerHotkeys = false;
     public const bool DefaultShowOnlyButtonOutline = false;
     public const VoteClickTargetMode DefaultVoteClickTarget = VoteClickTargetMode.ButtonOnly;
+    public const SelectionGameMode DefaultSelectionGameMode = SelectionGameMode.MontyHall;
     public const LogLevel DefaultLogLevel = LogLevel.Info;
 
     public static readonly string[] VoteClickTargetOptions =
@@ -175,17 +184,26 @@ internal static class ChooseTheAncientConfig
         nameof(LogLevel.Trace)
     };
 
+    public static readonly string[] SelectionGameModeOptions =
+    {
+        "Monty Hall",
+        "Fair Fight",
+        "I Want To Know Everything",
+        "Simple Picker"
+    };
+
     public static int AncientCount { get; private set; } = DefaultAncientCount;
     public static bool ShowControllerHotkeys { get; private set; } = DefaultShowControllerHotkeys;
     public static bool ShowOnlyButtonOutline { get; private set; } = DefaultShowOnlyButtonOutline;
     public static VoteClickTargetMode VoteClickTarget { get; private set; } = DefaultVoteClickTarget;
+    public static SelectionGameMode GameMode { get; private set; } = DefaultSelectionGameMode;
     public static LogLevel CurrentLogLevel { get; private set; } = ModLog.CurrentLevel;
 
     public static void RefreshFromModConfig()
     {
         AncientCount = NormalizeAncientCount(
             ModConfigBridge.GetValue("ancientCount", (float)DefaultAncientCount));
-
+        
         ShowControllerHotkeys =
             ModConfigBridge.GetValue("showControllerHotkeys", DefaultShowControllerHotkeys);
 
@@ -203,6 +221,19 @@ internal static class ChooseTheAncientConfig
                 StringComparison.Ordinal))
         {
             ModConfigBridge.SetValue("voteClickTarget", VoteClickTargetToOption(VoteClickTarget));
+        }
+
+        object gameModeValue = ModConfigBridge.GetValue<object>(
+            "gameMode",
+            SelectionGameModeToOption(DefaultSelectionGameMode));
+        GameMode = NormalizeSelectionGameMode(gameModeValue);
+
+        if (ModConfigBridge.IsAvailable && !string.Equals(
+                Convert.ToString(gameModeValue),
+                SelectionGameModeToOption(GameMode),
+                StringComparison.Ordinal))
+        {
+            ModConfigBridge.SetValue("gameMode", SelectionGameModeToOption(GameMode));
         }
 
         if (ModConfigBridge.IsAvailable)
@@ -251,6 +282,11 @@ internal static class ChooseTheAncientConfig
         ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
     }
 
+    public static void ApplySelectionGameMode(object value)
+    {
+        GameMode = NormalizeSelectionGameMode(value);
+    }
+
     public static void ApplyLogLevel(object value)
     {
         CurrentLogLevel = NormalizeLogLevel(value);
@@ -279,6 +315,66 @@ internal static class ChooseTheAncientConfig
             LogLevel.Trace => LogLevelOptions[4],
             _ => LogLevelOptions[2]
         };
+    }
+
+    public static string SelectionGameModeToOption(SelectionGameMode mode)
+    {
+        return mode switch
+        {
+            SelectionGameMode.MontyHall => SelectionGameModeOptions[0],
+            SelectionGameMode.FairFight => SelectionGameModeOptions[1],
+            SelectionGameMode.WantToKnowEverything => SelectionGameModeOptions[2],
+            SelectionGameMode.SimplePicker => SelectionGameModeOptions[3],
+            _ => SelectionGameModeOptions[0]
+        };
+    }
+
+    internal static SelectionGameMode NormalizeSelectionGameMode(object value)
+    {
+        if (value is SelectionGameMode mode)
+            return mode;
+
+        if (value is string rawString)
+        {
+            if (string.Equals(rawString, SelectionGameModeOptions[0], StringComparison.OrdinalIgnoreCase)
+                || string.Equals(rawString, nameof(SelectionGameMode.MontyHall), StringComparison.OrdinalIgnoreCase))
+            {
+                return SelectionGameMode.MontyHall;
+            }
+
+            if (string.Equals(rawString, SelectionGameModeOptions[1], StringComparison.OrdinalIgnoreCase)
+                || string.Equals(rawString, nameof(SelectionGameMode.FairFight), StringComparison.OrdinalIgnoreCase))
+            {
+                return SelectionGameMode.FairFight;
+            }
+
+            if (string.Equals(rawString, SelectionGameModeOptions[2], StringComparison.OrdinalIgnoreCase)
+                || string.Equals(rawString, nameof(SelectionGameMode.WantToKnowEverything), StringComparison.OrdinalIgnoreCase))
+            {
+                return SelectionGameMode.WantToKnowEverything;
+            }
+
+            if (string.Equals(rawString, SelectionGameModeOptions[3], StringComparison.OrdinalIgnoreCase)
+                || string.Equals(rawString, nameof(SelectionGameMode.SimplePicker), StringComparison.OrdinalIgnoreCase))
+            {
+                return SelectionGameMode.SimplePicker;
+            }
+
+            if (int.TryParse(rawString, out int parsedInt))
+                return NormalizeSelectionGameMode(parsedInt);
+        }
+
+        int rawValue = value switch
+        {
+            int i => i,
+            long l => (int)l,
+            float f => Mathf.RoundToInt(f),
+            double d => (int)Math.Round(d),
+            _ => (int)DefaultSelectionGameMode
+        };
+
+        rawValue = Math.Clamp(rawValue, (int)SelectionGameMode.MontyHall, (int)SelectionGameMode.SimplePicker);
+        return (SelectionGameMode)rawValue;
     }
 
     private static int NormalizeAncientCount(object value)

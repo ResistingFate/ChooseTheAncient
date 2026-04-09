@@ -31,6 +31,7 @@ public static class ChooseTheAncientCoordinator
                 .OrderBy(runState.GetPlayerSlotIndex)
                 .ToList();
             int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
+            ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
 
             ActModel nextAct = runState.Acts[nextActIndex];
             List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(nextAct, runState);
@@ -42,6 +43,7 @@ public static class ChooseTheAncientCoordinator
             pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
 
             ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
+            ModLog.Info($"Using game mode {gameMode} for act {nextActIndex + 1}.");
 
             if (pool.Count <= 1)
             {
@@ -64,11 +66,65 @@ public static class ChooseTheAncientCoordinator
                 localScreen = ChooseTheAncientSelectionScreen.Show(nextActIndex, orderedPlayers);
             }
 
-            List<AncientEventModel> finalists = pool;
-            List<int> firstVotes = new();
+            bool useSecondRound = gameMode is
+                ChooseTheAncientConfig.SelectionGameMode.MontyHall or
+                ChooseTheAncientConfig.SelectionGameMode.FairFight;
 
-            if (pool.Count >= 2)
+            AncientEventModel chosen;
+            if (!useSecondRound)
             {
+                bool enablePreviews = gameMode == ChooseTheAncientConfig.SelectionGameMode.WantToKnowEverything;
+
+                Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
+                if (enablePreviews && localPlayer != null)
+                {
+                    localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
+                        localPlayer,
+                        pool,
+                        nextActIndex);
+                }
+
+                var singleRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
+                    pool,
+                    enablePreviews
+                        ? ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote
+                        : ChooseTheAncientSelectionScreen.VoteRoundType.InitialKeepVote,
+                    localPreviewData,
+                    null,
+                    null,
+                    null,
+                    null);
+
+                List<int> singleRoundVotes = await CollectVotes(
+                    orderedPlayers,
+                    singleRound,
+                    localScreen);
+
+                int chosenIndex = ResolveMostVotedIndex(
+                    runState,
+                    nextActIndex,
+                    pool.Count,
+                    singleRoundVotes);
+
+                if (localScreen != null)
+                {
+                    if (enablePreviews)
+                    {
+                        await localScreen.PlayFinalVoteResolutionAsync(singleRoundVotes, chosenIndex);
+                    }
+                    else
+                    {
+                        await localScreen.PlayInitialVoteResolutionAsync(singleRoundVotes, chosenIndex);
+                    }
+                }
+
+                chosen = pool[chosenIndex];
+            }
+            else
+            {
+                List<AncientEventModel> finalists = pool;
+                List<int> firstVotes = new();
+
                 var firstRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
                     pool,
                     ChooseTheAncientSelectionScreen.VoteRoundType.InitialKeepVote,
@@ -78,7 +134,6 @@ public static class ChooseTheAncientCoordinator
                     null,
                     null);
 
-                // firstVotes is a list of voted ancient indices in the original pool
                 firstVotes = await CollectVotes(
                     orderedPlayers,
                     firstRound,
@@ -104,44 +159,40 @@ public static class ChooseTheAncientCoordinator
                 {
                     await localScreen.PlayInitialVoteResolutionAsync(firstVotes, firstPlaceIndex);
                 }
-                
-                // Build finalists directly instead of filtering the whole pool
+
                 finalists = [firstAncient, secondAncient];
 
                 ModLog.Info($"First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
                 ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} finalists", finalists);
-            }
 
-            AncientEventModel chosen;
-            if (finalists.Count == 1)
-            {
-                chosen = finalists[0];
-            }
-            else
-            {
                 Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
                 if (localPlayer != null)
                 {
-                    // Builds for each ancient in case I want to allow all ancients to show relics
                     localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
                         localPlayer,
                         finalists,
                         nextActIndex);
                 }
 
-                (AncientEventModel? suppressedPreviewAnceint, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
+                (AncientEventModel? suppressedPreviewAncient, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
                     runState,
                     nextActIndex,
                     pool,
                     finalists,
                     firstVotes);
 
+                if (gameMode == ChooseTheAncientConfig.SelectionGameMode.FairFight)
+                {
+                    suppressedPreviewAncient = null;
+                    suppressedPreviewAncientId = null;
+                }
+
                 var secondRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
                     finalists,
                     ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote,
                     localPreviewData,
                     suppressedPreviewAncientId,
-                    suppressedPreviewAnceint,
+                    suppressedPreviewAncient,
                     reactionAncientId,
                     reactionAncient);
 
@@ -476,6 +527,43 @@ public static class ChooseTheAncientCoordinator
         }
 
         return orderedPlayers[0];
+    }
+
+    private static async Task<ChooseTheAncientConfig.SelectionGameMode> GetEffectiveGameModeAsync(
+        IReadOnlyList<Player> orderedPlayers)
+    {
+        ChooseTheAncientConfig.RefreshFromModConfig();
+
+        if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
+        {
+            return ChooseTheAncientConfig.GameMode;
+        }
+
+        Player hostPlayer = GetHostPlayer(orderedPlayers);
+        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+
+        if (LocalContext.IsMe(hostPlayer))
+        {
+            int hostGameMode = (int)ChooseTheAncientConfig.GameMode;
+
+            RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+                hostPlayer,
+                choiceId,
+                PlayerChoiceResult.FromIndex(hostGameMode));
+
+            ModLog.Debug($"Broadcasting host GameMode={ChooseTheAncientConfig.GameMode}");
+            return ChooseTheAncientConfig.GameMode;
+        }
+
+        int syncedMode = (await RunManager.Instance.PlayerChoiceSynchronizer
+                .WaitForRemoteChoice(hostPlayer, choiceId))
+            .AsIndex();
+
+        ChooseTheAncientConfig.SelectionGameMode normalizedMode =
+            ChooseTheAncientConfig.NormalizeSelectionGameMode(syncedMode);
+
+        ModLog.Debug($"Received host GameMode={normalizedMode}");
+        return normalizedMode;
     }
 
     private static async Task<int> GetEffectiveAncientCountAsync(IReadOnlyList<Player> orderedPlayers)

@@ -2,9 +2,14 @@
 
 ## Unrelesaed
 
-## [v1.1.1] - Added fast mode and fixes
+## [v1.2.0] - Added Game Modes, fast mode and fixes
 
 ### Features
+- GameModes
+  - Monty hall (default)
+  - Fair Fight
+  - I Want To Know Everything
+  - Simple Picker
 - Added fast mode support
 
 ### Fixes

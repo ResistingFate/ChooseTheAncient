@@ -3,7 +3,7 @@
   "name": "ChooseTheAncient",
   "author": "xyzlewis",
   "description": "After each act lets you pick 1 the next Ancient.",
-  "version": "v1.1.0",
+  "version": "v1.2.0",
   "has_pck": true,
   "has_dll": true,
   "dependencies": [],

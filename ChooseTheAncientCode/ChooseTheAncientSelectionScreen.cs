@@ -1087,17 +1087,18 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return ChooseTheAncientBaseAncientText.GetInitialRoundBannerText(_nextActIndex);
         }
 
-        string reactionAncientId = _reactionAncientId
-            ?? _pool.FirstOrDefault()?.Id.Entry
-            ?? "UNKNOWN_ANCIENT";
+        if (string.IsNullOrEmpty(_reactionAncientId) || _reactionAncient == null)
+        {
+            return ChooseTheAncientBaseAncientText.GetInitialRoundBannerText(_nextActIndex);
+        }
 
         return ChooseTheAncientBaseAncientText.GetSecondRoundBannerText(
             new AncientTextContext(
                 _nextActIndex,
-                reactionAncientId, 
+                _reactionAncientId,
                 _reactionAncient.Title.GetFormattedText(),
                 _suppressedPreviewAncientId,
-                null)
+                _suppressedPreviewAncient?.Title.GetFormattedText())
             );
 }
 

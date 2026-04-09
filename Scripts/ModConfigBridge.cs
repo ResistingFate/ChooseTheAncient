@@ -200,6 +200,27 @@ internal static class ModConfigBridge
 
         list.Add(Entry(cfg =>
         {
+            Set(cfg, "Key", "gameMode");
+            Set(cfg, "Label", "Game mode");
+            Set(cfg, "Type", EnumVal("Dropdown"));
+            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.DefaultSelectionGameMode));
+            Set(cfg, "Options", ChooseTheAncientConfig.SelectionGameModeOptions);
+
+            Set(cfg, "Description", "" +
+                                    "\n     Monty Hall: 2 rounds, only the reaction ancient previews in round: 2." +
+                                    "\n     Fair Fight: 2 rounds, both finalists preview in round 2." +
+                                    "\n     I Want To Know Everything: 1 round, previews for every ancient, no dialogue." +
+                                    "\n     Simple Picker: 1 round, no previews.");
+
+            Set(cfg, "OnChanged", new Action<object>(v =>
+            {
+                ChooseTheAncientConfig.ApplySelectionGameMode(v);
+                ModLog.Info($"gameMode changed to {ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode)}");
+            }));
+        }));
+
+        list.Add(Entry(cfg =>
+        {
             Set(cfg, "Key", "showControllerHotkeys");
             Set(cfg, "Label", "Show controller hotkeys");
             Set(cfg, "Type", EnumVal("Toggle"));
