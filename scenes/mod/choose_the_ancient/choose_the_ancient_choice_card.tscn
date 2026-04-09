@@ -180,6 +180,7 @@ theme_override_constants/separation = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.960784, 0.878431, 1)
+theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 22
 text = "Orobas"
 
@@ -187,6 +188,7 @@ text = "Orobas"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.82)
+theme_override_constants/outline_size = 2
 theme_override_font_sizes/font_size = 15
 text = "Living Rainbow"
 autowrap_mode = 3
@@ -229,7 +231,6 @@ theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 24
 text = "Vote For This Ancient"
 
-
 [node name="ControllerIcon" type="TextureRect" parent="Padding/VBox/ChooseButtonWrap"]
 visible = false
 z_index = 4
@@ -248,6 +249,8 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="CardOutline" type="Panel" parent="."]
+modulate = Color(1, 1, 1, 0)
+z_index = 5
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -256,8 +259,6 @@ offset_left = -6.0
 offset_top = -6.0
 offset_right = 6.0
 offset_bottom = 6.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-focus_mode = 0
-clip_contents = false
-z_index = 5
-modulate = Color(1, 1, 1, 0)

@@ -57,16 +57,18 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Log locations on Windows:
 - C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
-## New features Roadma
+## New features Roadmap
 - Ask help for good zhs translation
 - Language localizing for mod config option texts
-- Setting to set 1 round only
-- Setting to enable previews for both options in round 2
-- Setting to enable previews to all ancients in first round
-- Gameplay modes
-  - All previews, only 1 round
-  - Both previews in second round
-  - No previews, only 1 round:
+- Gameplay Options
+  - Support for Pre Act 1, for the inevitable Act 1 Ancient mods
+    - Compatability with other mods is annoying.
+      - Wouldn't make it a Neow Option. Could Do Extra UI.
+      - Changing before Neow is annoying, however Custom Ancient's might replace him.
+        - OnModifierOptions for Custom Games doesn't work in other mods that do this yet
+      - I'd wait for BaseLib and RitsuLib to work out what they are doing with forcestart ancient
+  - Add Neow to Rotation
+- Add shadow to Ancient Icon on card
 - Implement Log switcher when game in VeryDebug state
 - Touch up Ancient Dialouge in English
 - Add Override for sets of ancients mods to pool from only that class

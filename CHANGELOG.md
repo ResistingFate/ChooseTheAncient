@@ -11,6 +11,7 @@
 - Each Base Game Ancient has their own accent color
 - Cleaned up Controller tooltips
 - Randomness of Second Place Ancient is based on the Most Voted Ancient
+- Increased the font outline thickness of the card title and text
 
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 
