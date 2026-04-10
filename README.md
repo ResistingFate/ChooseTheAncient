@@ -78,7 +78,6 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
       - Changing before Neow is annoying, however Custom Ancient's might replace him.
         - OnModifierOptions for Custom Games doesn't work in other mods that do this yet
       - I'd wait for BaseLib and RitsuLib to work out what they are doing with forcestart ancient
-  - Add Neow to Rotation
 - Add shadow to Ancient Icon on card
 - Implement Log switcher when game in VeryDebug state
 - Touch up Ancient Dialouge in English

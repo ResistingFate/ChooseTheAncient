@@ -20,6 +20,8 @@
 - Cleaned up Controller tooltips
 - Randomness of Second Place Ancient is based on the Most Voted Ancient
 - Increased the font outline thickness of the card title and text
+- Preview Options scale slightly better for more than 3 ancients
+- I Want to Know Everything for greater than 3 ancients now uses vertical columns for Ancients.
 
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 

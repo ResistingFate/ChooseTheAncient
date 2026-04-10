@@ -51,6 +51,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const float ReactionBubbleGap = 10f;
     private const float TopUiCutoffExtraPxAt1080 = 18f;
     private const float TopUiFallbackBottomPxAt1080 = 86f;
+    private const float PreviewAnchorTopGapAt1080 = 12f;
+    private const float PreviewAnchorBottomGapAt1080 = 12f;
+    private const float PreviewAnchorSidePaddingAt1080 = 18f;
+    private const float PreviewAnchorMinHeightAt1080 = 148f;
+    private const float PreviewWidgetGapAt1080 = 8f;
+    private const float PreviewWidgetGapCompactAt1080 = 6f;
+    private const float PreviewWidgetMinScale = 0.46f;
     private const bool ShowTopUiCutoffDebugLine = false;
     private static readonly string DialogueBubbleTexturePath = "res://images/ui/dialogue_nine_patch.png";
     private static readonly string DialogueTailTexturePath = "res://images/ui/dialogue_tail.png";
@@ -181,6 +188,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public required Control VoteIconsAnchor { get; init; }
         public required Control PreviewAnchor { get; init; }
         public required Control ReactionAnchor { get; init; }
+        public required ControlLayoutSnapshot PreviewAnchorDefaultLayout { get; init; }
+        public required ControlLayoutSnapshot ReactionAnchorDefaultLayout { get; init; }
         public required Color AccentColor { get; init; }
 
         public Node? SceneRoot { get; set; }
@@ -207,6 +216,28 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public Vector2 BasePosition { get; set; }
         public Vector2 BaseScale { get; set; }
     }
+
+    private readonly record struct ControlLayoutSnapshot(
+        int LayoutMode,
+        float AnchorLeft,
+        float AnchorTop,
+        float AnchorRight,
+        float AnchorBottom,
+        float OffsetLeft,
+        float OffsetTop,
+        float OffsetRight,
+        float OffsetBottom,
+        Vector2 CustomMinimumSize,
+        bool ClipContents);
+
+    private readonly record struct PreviewLayoutMetrics(
+        float DisplayWidth,
+        float DisplayHeight,
+        float Gap,
+        float ScaleX,
+        float ScaleY,
+        float StartX,
+        float StartY);
 
     #endregion
 
@@ -1078,7 +1109,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
      */
 
     private string GetRoundIntroText()
-    {
+{
         /*
          * Returns the banner text shown for the current round.
          */
@@ -1107,12 +1138,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         string reactionAncientId = reactionAncient?.Id.Entry
-                                   ?? _reactionAncientId
-                                   ?? _pool.FirstOrDefault()?.Id.Entry
-                                   ?? "UNKNOWN_ANCIENT";
+            ?? _reactionAncientId
+            ?? _pool.FirstOrDefault()?.Id.Entry
+            ?? "UNKNOWN_ANCIENT";
 
         string reactionAncientTitle = reactionAncient?.Title?.GetFormattedText()
-                                      ?? reactionAncientId;
+            ?? reactionAncientId;
 
         return ChooseTheAncientBaseAncientText.GetSecondRoundBannerText(
             new AncientTextContext(
@@ -1121,8 +1152,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 reactionAncientTitle,
                 _suppressedPreviewAncientId,
                 null)
-        );
-    }
+            );
+}
 
     private void ShowRoundIntro()
     {
@@ -1734,6 +1765,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             VoteIconsAnchor = voteIconsAnchor,
             PreviewAnchor = previewAnchor,
             ReactionAnchor = reactionAnchor,
+            PreviewAnchorDefaultLayout = CaptureControlLayout(previewAnchor),
+            ReactionAnchorDefaultLayout = CaptureControlLayout(reactionAnchor),
             AccentColor = accentColor,
             VoteContainer = voteContainer,
             Shape = default,
@@ -2471,29 +2504,228 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
      * Calculates slot geometry, positions preview and reaction content, and fits each ancient scene into its portal.
      */
 
-    private float GetPreviewListStartY(SlotRefs refs, Vector2 anchorSize)
+    private float GetReactionBubbleHeight()
     {
         /*
-         * Calculates where the preview list should start so it clears any reaction bubble and fits inside the anchor.
+         * Returns the current reaction bubble height in stage-scaled pixels.
          */
-        if (refs.PreviewWidgets.Count == 0)
-        {
-            return 0f;
-        }
-
-        float displayHeight = 70f;
-        float gap = 8f;
-        float totalHeight = (refs.PreviewWidgets.Count * displayHeight) + (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap);
-
-        float reserveTop = 0f;
-        if (refs.ReactionBubble != null)
-        {
-            reserveTop = ReactionBubbleHeight + ReactionBubbleGap;
-        }
-
-        return MathF.Max(reserveTop, anchorSize.Y - totalHeight);
+        return ScaleFrom1080(ReactionBubbleHeight);
     }
-    
+
+    private Vector2 GetPreviewWidgetNaturalSize(PreviewWidgetRefs widget)
+    {
+        /*
+         * Resolves the natural size of a preview widget before any responsive scaling is applied.
+         */
+        Vector2 size = widget.Button.GetCombinedMinimumSize();
+        if (size.X <= 1f || size.Y <= 1f)
+        {
+            size = widget.Button.Size;
+        }
+
+        if (size.X <= 1f || size.Y <= 1f)
+        {
+            size = widget.Wrapper.GetCombinedMinimumSize();
+        }
+
+        if (size.X <= 1f || size.Y <= 1f)
+        {
+            size = widget.Wrapper.Size;
+        }
+
+        if (size.X <= 1f || size.Y <= 1f)
+        {
+            size = new Vector2(560f, 118f);
+        }
+
+        return size;
+    }
+
+
+    private void LayoutPreviewButtonContent(PreviewWidgetRefs widget, Vector2 wrapperSize, float scaleX, float scaleY)
+    {
+        Vector2 naturalSize = GetPreviewWidgetNaturalSize(widget);
+        Vector2 contentScale = new(MathF.Max(0.01f, scaleX), MathF.Max(0.01f, scaleY));
+        Vector2 scaledSize = new(naturalSize.X * contentScale.X, naturalSize.Y * contentScale.Y);
+
+        Control button = widget.Button;
+        button.LayoutMode = 1;
+        button.AnchorLeft = 0f;
+        button.AnchorTop = 0f;
+        button.AnchorRight = 0f;
+        button.AnchorBottom = 0f;
+        button.Position = new Vector2(
+            MathF.Max(0f, (wrapperSize.X - scaledSize.X) * 0.5f),
+            MathF.Max(0f, (wrapperSize.Y - scaledSize.Y) * 0.5f));
+        button.Size = naturalSize;
+        button.Scale = contentScale;
+        button.PivotOffset = Vector2.Zero;
+    }
+
+    private static ControlLayoutSnapshot CaptureControlLayout(Control control)
+    {
+        return new ControlLayoutSnapshot(
+            control.LayoutMode,
+            control.AnchorLeft,
+            control.AnchorTop,
+            control.AnchorRight,
+            control.AnchorBottom,
+            control.OffsetLeft,
+            control.OffsetTop,
+            control.OffsetRight,
+            control.OffsetBottom,
+            control.CustomMinimumSize,
+            control.ClipContents);
+    }
+
+    private static void ApplyControlLayout(Control control, ControlLayoutSnapshot snapshot)
+    {
+        control.LayoutMode = snapshot.LayoutMode;
+        control.AnchorLeft = snapshot.AnchorLeft;
+        control.AnchorTop = snapshot.AnchorTop;
+        control.AnchorRight = snapshot.AnchorRight;
+        control.AnchorBottom = snapshot.AnchorBottom;
+        control.OffsetLeft = snapshot.OffsetLeft;
+        control.OffsetTop = snapshot.OffsetTop;
+        control.OffsetRight = snapshot.OffsetRight;
+        control.OffsetBottom = snapshot.OffsetBottom;
+        control.CustomMinimumSize = snapshot.CustomMinimumSize;
+        control.ClipContents = snapshot.ClipContents;
+    }
+
+    private PreviewLayoutMetrics GetPreviewLayoutMetrics(SlotRefs refs, Vector2 anchorSize)
+    {
+        float bubbleReserve = refs.ReactionBubble != null
+            ? GetReactionBubbleHeight() + ScaleFrom1080(ReactionBubbleGap)
+            : 0f;
+        float availableHeight = MathF.Max(1f, anchorSize.Y - bubbleReserve);
+
+        float displayWidth = anchorSize.X;
+        float displayHeight;
+        float gap;
+        float scaleX;
+        float scaleY;
+        float horizontalPadding = 0f;
+
+        switch (_slots.Count)
+        {
+            case <= 2:
+                displayHeight = 70f;
+                gap = ScaleFrom1080(PreviewWidgetGapAt1080);
+                scaleX = 0.8f;
+                scaleY = 0.8f;
+                break;
+
+            case 3:
+                displayWidth = MathF.Min(anchorSize.X, refs.CardRoot.Size.X * 0.78f);
+                displayHeight = 50f;
+                gap = ScaleFrom1080(4f);
+                scaleX = 0.60f;
+                scaleY = 0.60f;
+                horizontalPadding = ScaleFrom1080(10f);
+                break;
+
+            case 4:
+                displayWidth = MathF.Min(anchorSize.X, refs.CardRoot.Size.X * 0.66f);
+                displayHeight = 44f;
+                gap = ScaleFrom1080(3f);
+                scaleX = 0.46f;
+                scaleY = 0.54f;
+                horizontalPadding = ScaleFrom1080(12f);
+                break;
+
+            default:
+                displayWidth = MathF.Min(anchorSize.X, refs.CardRoot.Size.X * 0.56f);
+                displayHeight = 39f;
+                gap = ScaleFrom1080(2f);
+                scaleX = 0.46f*4f/(float)_slots.Count;
+                scaleY = 0.46f;
+                horizontalPadding = ScaleFrom1080(14f);
+                break;
+        }
+
+        displayWidth = MathF.Max(1f, displayWidth - (horizontalPadding * 2f));
+        displayWidth = MathF.Min(displayWidth, anchorSize.X);
+
+        float totalHeight = (refs.PreviewWidgets.Count * displayHeight)
+            + (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap);
+
+        if (totalHeight > availableHeight && totalHeight > 0f)
+        {
+            float fit = availableHeight / totalHeight;
+            displayHeight *= fit;
+            gap *= fit;
+            totalHeight = availableHeight;
+        }
+
+        float startX = MathF.Max(0f, (anchorSize.X - displayWidth) * 0.5f);
+        float startY = bubbleReserve + MathF.Max(0f, availableHeight - totalHeight);
+
+        return new PreviewLayoutMetrics(
+            ScaleFrom1080(displayWidth),
+            ScaleFrom1080(displayHeight),
+            gap,
+            scaleX,
+            scaleY,
+            startX,
+            startY);
+    }
+
+    private void LayoutPreviewAnchors(SlotRefs refs)
+    {
+        /*
+         * Uses the original scene-authored preview anchor layout for 1-2 slots,
+         * and expands the preview anchors into the stage-safe area for 3+ slots.
+         */
+        if (_slots.Count <= 2)
+        {
+            ApplyControlLayout(refs.PreviewAnchor, refs.PreviewAnchorDefaultLayout);
+            ApplyControlLayout(refs.ReactionAnchor, refs.ReactionAnchorDefaultLayout);
+            return;
+        }
+
+        float sidePadding = ScaleFrom1080(PreviewAnchorSidePaddingAt1080);
+        float topPadding = ScaleFrom1080(PreviewAnchorTopGapAt1080);
+        float bottomPadding = ScaleFrom1080(PreviewAnchorBottomGapAt1080);
+        float minHeight = ScaleFrom1080(PreviewAnchorMinHeightAt1080);
+
+        float previewTopStageY = _topUiCutoffYInStageSpace + topPadding;
+        float previewBottomStageY = refs.CardRoot.Position.Y - bottomPadding;
+        float availableHeight = previewBottomStageY - previewTopStageY;
+
+        if (availableHeight < minHeight)
+        {
+            previewTopStageY = previewBottomStageY - minHeight;
+        }
+
+        float localTop = previewTopStageY - refs.CardRoot.Position.Y;
+        float localBottom = previewBottomStageY - refs.CardRoot.Position.Y;
+
+        refs.PreviewAnchor.LayoutMode = 1;
+        refs.PreviewAnchor.AnchorLeft = 0f;
+        refs.PreviewAnchor.AnchorTop = 0f;
+        refs.PreviewAnchor.AnchorRight = 1f;
+        refs.PreviewAnchor.AnchorBottom = 0f;
+        refs.PreviewAnchor.OffsetLeft = sidePadding;
+        refs.PreviewAnchor.OffsetTop = localTop;
+        refs.PreviewAnchor.OffsetRight = -sidePadding;
+        refs.PreviewAnchor.OffsetBottom = localBottom;
+        refs.PreviewAnchor.CustomMinimumSize = new Vector2(0f, MathF.Max(0f, localBottom - localTop));
+        refs.PreviewAnchor.ClipContents = false;
+
+        refs.ReactionAnchor.LayoutMode = 1;
+        refs.ReactionAnchor.AnchorLeft = 0f;
+        refs.ReactionAnchor.AnchorTop = 0f;
+        refs.ReactionAnchor.AnchorRight = 1f;
+        refs.ReactionAnchor.AnchorBottom = 0f;
+        refs.ReactionAnchor.OffsetLeft = sidePadding;
+        refs.ReactionAnchor.OffsetTop = localTop;
+        refs.ReactionAnchor.OffsetRight = -sidePadding;
+        refs.ReactionAnchor.OffsetBottom = localBottom;
+        refs.ReactionAnchor.CustomMinimumSize = refs.PreviewAnchor.CustomMinimumSize;
+        refs.ReactionAnchor.ClipContents = false;
+    }
+
     /*
      * Code to add a Node to account for the Top Menu from the Base Game
      */
@@ -2615,6 +2847,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             refs.SlotClickTarget.Position = shape.PortalRect.Position;
             refs.SlotClickTarget.Size = shape.PortalRect.Size;
 
+            LayoutPreviewAnchors(refs);
             ApplyPortalGeometry(shape, refs, _topUiCutoffYInStageSpace);
             ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
             LayoutVoteButtonControllerIcon(refs);
@@ -2658,6 +2891,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     {
         /*
          * Positions and sizes each preview widget within its preview anchor.
+         * Two-slot rounds keep the older authored wrapper-scaling behavior.
+         * Crowded ballots (3+) now also use wrapper scaling, but without anchor/wrapper clipping,
+         * so preview buttons do not get boxed in by intermediate Control clip rects.
          */
         if (!refs.PreviewAnchor.Visible || refs.PreviewWidgets.Count == 0)
         {
@@ -2670,14 +2906,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 24f), 280f);
         }
 
-        float scaleX = _slots.Count == 2 ? 0.82f : 0.78f;
-        float scaleY = _slots.Count == 2 ? 0.72f : 0.68f;
-        float displayWidth = anchorSize.X;
-        float displayHeight = 70f;
-        float gap = 8f;
-        float startY = GetPreviewListStartY(refs, anchorSize);
+        PreviewLayoutMetrics metrics = GetPreviewLayoutMetrics(refs, anchorSize);
 
-        ModLog.Trace($"Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWidgets.Count}, startY={startY}");
+        ModLog.Trace(
+            $"Layout preview for {refs.Ancient.Id.Entry}: anchor={anchorSize}, wrappers={refs.PreviewWidgets.Count}, " +
+            $"displayHeight={metrics.DisplayHeight}, startY={metrics.StartY}, scale=({metrics.ScaleX}, {metrics.ScaleY})");
 
         for (int i = 0; i < refs.PreviewWidgets.Count; i++)
         {
@@ -2688,10 +2921,17 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             wrapper.AnchorTop = 0f;
             wrapper.AnchorRight = 0f;
             wrapper.AnchorBottom = 0f;
-            wrapper.Position = new Vector2(0f, startY + (i * (displayHeight + gap)));
-            wrapper.Size = new Vector2(displayWidth / scaleX, displayHeight / scaleY);
-            wrapper.Scale = new Vector2(scaleX, scaleY);
+            wrapper.Position = new Vector2(metrics.StartX, metrics.StartY + (i * (metrics.DisplayHeight + metrics.Gap)));
             wrapper.PivotOffset = Vector2.Zero;
+            wrapper.ClipContents = false;
+            wrapper.Size = new Vector2(metrics.DisplayWidth / metrics.ScaleX, metrics.DisplayHeight / metrics.ScaleY);
+            wrapper.Scale = new Vector2(metrics.ScaleX, metrics.ScaleY);
+
+            Control button = widget.Button;
+            SetFullRect(button);
+            button.Scale = Vector2.One;
+            button.PivotOffset = Vector2.Zero;
+
             widget.BasePosition = wrapper.Position;
             widget.BaseScale = wrapper.Scale;
         }
@@ -2700,7 +2940,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void LayoutReaction(SlotRefs refs)
     {
         /*
-         * Places the reaction bubble above the preview list inside the slot preview area.
+         * Places the reaction bubble immediately above the preview list.
          */
         if (refs.ReactionBubble == null)
         {
@@ -2713,18 +2953,23 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             anchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 24f), 280f);
         }
 
-        float startY = GetPreviewListStartY(refs, anchorSize);
-        float bubbleY = MathF.Max(0f, startY - ReactionBubbleHeight - ReactionBubbleGap);
+        PreviewLayoutMetrics metrics = GetPreviewLayoutMetrics(refs, anchorSize);
+        float bubbleHeight = GetReactionBubbleHeight();
+        float bubbleY = MathF.Max(0f, metrics.StartY - bubbleHeight - ScaleFrom1080(ReactionBubbleGap));
 
         refs.ReactionBubble.LayoutMode = 1;
         refs.ReactionBubble.AnchorLeft = 0f;
         refs.ReactionBubble.AnchorTop = 0f;
         refs.ReactionBubble.AnchorRight = 1f;
         refs.ReactionBubble.AnchorBottom = 0f;
-        refs.ReactionBubble.OffsetLeft = 0f;
+
+        float bubbleLeft = _slots.Count <= 2 ? 0f : metrics.StartX;
+        float bubbleRightInset = _slots.Count <= 2 ? 0f : MathF.Max(0f, anchorSize.X - (metrics.StartX + metrics.DisplayWidth));
+
+        refs.ReactionBubble.OffsetLeft = bubbleLeft;
         refs.ReactionBubble.OffsetTop = bubbleY;
-        refs.ReactionBubble.OffsetRight = 0f;
-        refs.ReactionBubble.OffsetBottom = bubbleY + ReactionBubbleHeight;
+        refs.ReactionBubble.OffsetRight = -bubbleRightInset;
+        refs.ReactionBubble.OffsetBottom = bubbleY + bubbleHeight;
     }
 
     private static PortalShape[] BuildThreePortalShapes(Vector2 area, float cardWidth, float cardHeight)
@@ -2853,9 +3098,21 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     // Internal seam positions are midway between neighboring cards, like the 3-portal layout.
     float[] seamTopX = new float[count - 1];
     float[] seamBottomX = new float[count - 1];
-
-    // Same leftward lean as BuildThreePortalShapes: bottom is shifted left by ~6% of screen width.
-    float seamShift = area.X * 0.06f;
+    float seamShift;
+    
+        
+    // I Want to Know Everything Mode clips with slanted portal lines so instead we make the lines straight
+    if (ChooseTheAncientConfig.GameMode ==
+            ChooseTheAncientConfig.SelectionGameMode.WantToKnowEverything)
+    {
+        seamShift = 0f;
+    }
+    else
+    {
+        
+        // Same leftward lean as BuildThreePortalShapes: bottom is shifted left by ~6% of screen width.
+        seamShift = area.X * 0.06f;
+    }
 
     for (int i = 0; i < count - 1; i++)
     {
@@ -2956,7 +3213,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         refs.ScenePolygon.Set("uv", fullPolygon);
         refs.GlowPolygon.Polygon = fullPolygon;
         refs.HoverFlashPolygon.Polygon = hoverPolygon;
-
+        
         refs.LeftRim.Polygon = BuildLineQuad(shape.TopLeft, shape.BottomLeft, PortalRimThickness);
         refs.RightRim.Polygon = BuildLineQuad(shape.TopRight, shape.BottomRight, PortalRimThickness);
         refs.LeftRim.ZIndex = 0;
