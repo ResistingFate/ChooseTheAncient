@@ -1078,7 +1078,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
      */
 
     private string GetRoundIntroText()
-{
+    {
         /*
          * Returns the banner text shown for the current round.
          */
@@ -1087,20 +1087,42 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return ChooseTheAncientBaseAncientText.GetInitialRoundBannerText(_nextActIndex);
         }
 
-        if (string.IsNullOrEmpty(_reactionAncientId) || _reactionAncient == null)
+        bool hasSecondRoundPresentation =
+            !string.IsNullOrEmpty(_reactionAncientId)
+            || !string.IsNullOrEmpty(_suppressedPreviewAncientId)
+            || _reactionAncient != null
+            || _suppressedPreviewAncient != null;
+
+        if (!hasSecondRoundPresentation)
         {
+            ModLog.Debug(
+                $"Using initial round banner fallback for {_roundType} because no reaction/suppressed presentation was configured.");
             return ChooseTheAncientBaseAncientText.GetInitialRoundBannerText(_nextActIndex);
         }
+
+        AncientEventModel? reactionAncient = _reactionAncient;
+        if (reactionAncient == null && !string.IsNullOrEmpty(_reactionAncientId))
+        {
+            reactionAncient = _pool.FirstOrDefault(ancient => ancient.Id.Entry == _reactionAncientId);
+        }
+
+        string reactionAncientId = reactionAncient?.Id.Entry
+                                   ?? _reactionAncientId
+                                   ?? _pool.FirstOrDefault()?.Id.Entry
+                                   ?? "UNKNOWN_ANCIENT";
+
+        string reactionAncientTitle = reactionAncient?.Title?.GetFormattedText()
+                                      ?? reactionAncientId;
 
         return ChooseTheAncientBaseAncientText.GetSecondRoundBannerText(
             new AncientTextContext(
                 _nextActIndex,
-                _reactionAncientId,
-                _reactionAncient.Title.GetFormattedText(),
+                reactionAncientId,
+                reactionAncientTitle,
                 _suppressedPreviewAncientId,
-                _suppressedPreviewAncient?.Title.GetFormattedText())
-            );
-}
+                null)
+        );
+    }
 
     private void ShowRoundIntro()
     {
