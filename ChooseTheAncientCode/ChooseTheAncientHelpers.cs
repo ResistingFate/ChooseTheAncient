@@ -315,6 +315,10 @@ public static class ChooseTheAncientHelpers
             RunState runState = player.RunState as RunState;
             int originalActIndex = runState.CurrentActIndex;
 
+            var playerRngSnapshot = player.PlayerRng.ToSerializable();
+            var playerOddsSnapshot = player.PlayerOdds.ToSerializable();
+            var runRngSnapshot = runState.Rng.ToSerializable();
+            var runOddsSnapshot = runState.Odds.ToSerializable();
             try
             {
                 runState.CurrentActIndex = nextActIndex;
@@ -350,6 +354,15 @@ public static class ChooseTheAncientHelpers
             }
             finally
             {
+                player.PlayerRng.LoadFromSerializable(playerRngSnapshot);
+                player.PlayerOdds.LoadFromSerializable(playerOddsSnapshot);
+                runState.Rng.LoadFromSerializable(runRngSnapshot);
+
+                runState.Odds.UnknownMapPoint.MonsterOdds = runOddsSnapshot.UnknownMapPointMonsterOddsValue;
+                runState.Odds.UnknownMapPoint.EliteOdds = runOddsSnapshot.UnknownMapPointEliteOddsValue;
+                runState.Odds.UnknownMapPoint.TreasureOdds = runOddsSnapshot.UnknownMapPointTreasureOddsValue;
+                runState.Odds.UnknownMapPoint.ShopOdds = runOddsSnapshot.UnknownMapPointShopOddsValue;
+
                 runState.CurrentActIndex = originalActIndex;
             }
         }
