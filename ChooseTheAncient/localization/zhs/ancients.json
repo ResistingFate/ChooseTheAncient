@@ -1,0 +1,21 @@
+{
+  "choose_the_ancient.round_intro.final_reveal.default": "{ReactionAncientId} 展示供品",
+  "choose_the_ancient.round_intro.final_reveal.DARV": "达尔夫提出绕路条件",
+  "choose_the_ancient.round_intro.final_reveal.OROBAS": "奥罗巴斯想伸出援手",
+  "choose_the_ancient.round_intro.final_reveal.PAEL": "帕艾尔困了",
+  "choose_the_ancient.round_intro.final_reveal.TEZCATARA": "特兹卡塔拉仍在燃烧",
+  "choose_the_ancient.round_intro.final_reveal.NONUPEIPE": "凡人不得违逆诺努佩佩",
+  "choose_the_ancient.round_intro.final_reveal.TANX": "坦克斯不会轻易放弃",
+  "choose_the_ancient.round_intro.final_reveal.VAKUU": "瓦库带着条件滑了出来",
+  "choose_the_ancient.round_intro.final_reveal.NEOW": "尼欧再次现身",
+  "choose_the_ancient.second_round.dialogue.default.0": "你必须了解我的供品。",
+  "choose_the_ancient.second_round.dialogue.DARV.0": "这些饰物在千年前就曾令尖塔倾覆。",
+  "choose_the_ancient.second_round.dialogue.OROBAS.0": "可奥罗巴斯不是带来了这么多好礼物吗？",
+  "choose_the_ancient.second_round.dialogue.PAEL.0": "拿走我的一部分吧，好让我继续睡去。",
+  "choose_the_ancient.second_round.dialogue.TEZCATARA.0": "有了这些，你会燃烧得无比耀眼。",
+  "choose_the_ancient.second_round.dialogue.NONUPEIPE.0": "这有什么不喜欢的？",
+  "choose_the_ancient.second_round.dialogue.NONUPEIPE.1": "就连 {SuppressedAncientId} 也拿不出这样的条件。",
+  "choose_the_ancient.second_round.dialogue.TANX.0": "来吧，我们狠狠干一场。",
+  "choose_the_ancient.second_round.dialogue.VAKUU.0": "我们来做笔交易吧。",
+  "choose_the_ancient.second_round.dialogue.NEOW.0": "我会一如既往地向你伸出援手。"
+}

@@ -936,6 +936,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _suppressedPreviewAncient = round.SuppressedPreviewAncient;
         _reactionAncientId = round.ReactionAncientId;
         _reactionAncient = round.ReactionAncient;
+
+        ModLog.Debug(
+            $"RunRoundAsync start: roundType={_roundType}, " +
+            $"incomingPreviewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}, " +
+            $"suppressed={_suppressedPreviewAncientId ?? "<none>"}, " +
+            $"reaction={_reactionAncientId ?? "<none>"}, " +
+            $"pool={string.Join(", ", _pool.Select(ancient => ancient.Id.Entry))}");
         _pendingPoolIndex = null;
         _selectedPoolIndex = null;
         _finalChosenPoolIndex = null;
@@ -974,6 +981,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         if (!_hasLoadedRound)
         {
             BuildUi();
+            ModLog.Debug($"ApplyRoundAsync initial build complete: roundType={_roundType}, slotCount={_slots.Count}, previewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}");
             _hasLoadedRound = true;
             ShowRoundIntro();
 
@@ -988,6 +996,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         await AnimateOutSlotsAsync();
         BuildUi();
+        ModLog.Debug($"ApplyRoundAsync rebuilt UI after animate-out: roundType={_roundType}, slotCount={_slots.Count}, previewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}");
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            SlotRefs refs = _slots[i];
+            ModLog.Trace(
+                $"ApplyRoundAsync slot {i}: ancient={refs.Ancient?.Id?.Entry ?? "<null>"}, " +
+                $"previewAnchorValid={GodotObject.IsInstanceValid(refs.PreviewAnchor)}, " +
+                $"reactionAnchorValid={GodotObject.IsInstanceValid(refs.ReactionAnchor)}");
+        }
         PrimeSlotsForTransitionIn();
         ShowRoundIntro();
 
@@ -1541,6 +1558,19 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             }
             DefaultFocusedControl ??= refs.ChooseButtonWrap;
             LoadAncientScene(refs);
+            string populatePreviewAncientId = refs.Ancient?.Id?.Entry ?? "<null>";
+            bool populatePreviewHasKey = refs.Ancient != null && _previewDataByAncientId.ContainsKey(populatePreviewAncientId);
+            bool populatePreviewIsSuppressed = !string.IsNullOrEmpty(_suppressedPreviewAncientId)
+                && populatePreviewAncientId == _suppressedPreviewAncientId;
+            bool populatePreviewIsReaction = !string.IsNullOrEmpty(_reactionAncientId)
+                && populatePreviewAncientId == _reactionAncientId;
+
+            ModLog.Trace(
+                $"BuildUi before PopulatePreview slot {i}: ancient={populatePreviewAncientId}, " +
+                $"hasPreviewKey={populatePreviewHasKey}, " +
+                $"isSuppressed={populatePreviewIsSuppressed}, " +
+                $"isReaction={populatePreviewIsReaction}, " +
+                $"availableKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}");
             PopulatePreview(refs);
         }
 
@@ -2014,14 +2044,27 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
-        if (!_previewDataByAncientId.TryGetValue(refs.Ancient.Id.Entry, out ChooseTheAncientHelpers.AncientPreviewData? preview))
+        string requestedAncientId = refs.Ancient.Id.Entry;
+        bool hasPreview = _previewDataByAncientId.TryGetValue(requestedAncientId, out ChooseTheAncientHelpers.AncientPreviewData? preview);
+
+        ModLog.Trace(
+            $"PopulatePreview lookup: requested={requestedAncientId}, " +
+            $"found={hasPreview}, " +
+            $"availableKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}, " +
+            $"isSuppressed={(!string.IsNullOrEmpty(_suppressedPreviewAncientId) && requestedAncientId == _suppressedPreviewAncientId)}, " +
+            $"isReaction={(!string.IsNullOrEmpty(_reactionAncientId) && requestedAncientId == _reactionAncientId)}");
+
+        if (!hasPreview)
         {
-            ModLog.Warn($"No preview data found for {refs.Ancient.Id.Entry}.");
+            ModLog.Warn(
+                $"No preview data found for requested={requestedAncientId}; " +
+                $"availableKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}; " +
+                $"roundType={_roundType}");
             refs.PreviewAnchor.Visible = false;
             return;
         }
 
-        ModLog.Debug($"Building preview UI for {refs.Ancient.Id.Entry} with {preview.Options.Count} option(s).");
+        ModLog.Debug($"Building preview UI for {requestedAncientId} with {preview.Options.Count} option(s).");
 
         if (preview.Options.Count == 0)
         {
@@ -2122,20 +2165,34 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
-        foreach (SlotRefs refs in _slots)
+        for (int i = 0; i < _slots.Count; i++)
         {
+            SlotRefs refs = _slots[i];
             bool suppressPreview = !string.IsNullOrEmpty(_suppressedPreviewAncientId)
                 && refs.Ancient.Id.Entry == _suppressedPreviewAncientId;
+            bool isReactionSlot = !string.IsNullOrEmpty(_reactionAncientId)
+                && refs.Ancient.Id.Entry == _reactionAncientId;
 
             refs.PreviewAnchor.Visible = refs.PreviewWidgets.Count > 0 && !suppressPreview;
 
-            if (!string.IsNullOrEmpty(_reactionAncientId) && refs.Ancient.Id.Entry == _reactionAncientId)
+            ModLog.Trace(
+                $"ApplySecondVotePresentation slot {i}: ancient={refs.Ancient.Id.Entry}, " +
+                $"hasPreviewKey={_previewDataByAncientId.ContainsKey(refs.Ancient.Id.Entry)}, " +
+                $"previewWidgetCount={refs.PreviewWidgets.Count}, " +
+                $"suppressPreview={suppressPreview}, " +
+                $"isReactionSlot={isReactionSlot}, " +
+                $"previewVisible={refs.PreviewAnchor.Visible}");
+
+            if (isReactionSlot)
             {
                 TryShowReactionBubble(refs, animate);
             }
         }
 
-        ModLog.Debug($"Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, reaction={_reactionAncientId ?? "<none>"}");
+        ModLog.Debug(
+            $"Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, " +
+            $"reaction={_reactionAncientId ?? "<none>"}, " +
+            $"previewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}");
     }
 
     private void TryShowReactionBubble(SlotRefs refs, bool animate)
@@ -2175,6 +2232,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         bubble.Modulate = new Color(1f, 1f, 1f, 0f);
         ModLog.Trace($"Showing custom reaction bubble for {refs.Ancient.Id.Entry}: {dialogueText}");
+        ModLog.Debug(
+            $"Reaction bubble attached for {refs.Ancient.Id.Entry}: " +
+            $"parent={bubble.GetParent()?.Name ?? "<null>"}, " +
+            $"bubbleVisible={bubble.Visible}, " +
+            $"previewAnchorVisible={refs.PreviewAnchor.Visible}, " +
+            $"reactionAnchorVisible={refs.ReactionAnchor.Visible}, " +
+            $"previewChildren={refs.PreviewAnchor.GetChildCount()}, " +
+            $"reactionChildren={refs.ReactionAnchor.GetChildCount()}");
     }
     
     private Control BuildReactionBubble(AncientEventModel ancient, string dialogueText)

@@ -180,6 +180,10 @@ public static class ChooseTheAncientCoordinator
                         nextActIndex);
                 }
 
+                ModLog.Debug(
+                    $"Second-round build: finalists={string.Join(", ", finalists.Select(ancient => ancient.Id.Entry))}, " +
+                    $"previewKeys={(localPreviewData == null ? "<null>" : (localPreviewData.Count == 0 ? "<empty>" : string.Join(", ", localPreviewData.Keys)))}");
+
                 (AncientEventModel? suppressedPreviewAncient, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
                     runState,
                     nextActIndex,
@@ -201,6 +205,12 @@ public static class ChooseTheAncientCoordinator
                     suppressedPreviewAncient,
                     reactionAncientId,
                     reactionAncient);
+
+                ModLog.Debug(
+                    $"RoundDefinition created: roundType={secondRound.RoundType}, " +
+                    $"previewKeys={(secondRound.PreviewDataByAncientId == null ? "<null>" : (secondRound.PreviewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", secondRound.PreviewDataByAncientId.Keys)))}, " +
+                    $"suppressed={secondRound.SuppressedPreviewAncientId ?? "<none>"}, " +
+                    $"reaction={secondRound.ReactionAncientId ?? "<none>"}");
 
                 List<int> finalVotes = await CollectVotes(
                     orderedPlayers,
@@ -373,6 +383,10 @@ public static class ChooseTheAncientCoordinator
             .First(ancient => ancient.Id.Entry != suppressedPreviewAncient.Id.Entry);
 
         ModLog.Debug($"Second vote presentation decided from round-one votes: suppress={suppressedPreviewAncient.Id.Entry}, reaction={reactionAncient.Id.Entry}, voteCounts={leftCount}/{rightCount}");
+        ModLog.Trace(
+            $"ResolveSecondRoundPresentation finalists={string.Join(", ", finalists.Select(ancient => ancient.Id.Entry))}, " +
+            $"firstRoundPool={string.Join(", ", firstRoundPool.Select(ancient => ancient.Id.Entry))}, " +
+            $"firstVotes={(firstVotes.Count == 0 ? "<empty>" : string.Join(", ", firstVotes))}");
         // return SuppressedPreviewAncient to pass on to the selection screen
         return (suppressedPreviewAncient, reactionAncient, suppressedPreviewAncient.Id.Entry, reactionAncient.Id.Entry);
     }

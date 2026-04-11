@@ -287,8 +287,18 @@ public static class ChooseTheAncientHelpers
             if (preview != null)
             {
                 previews[ancient.Id.Entry] = preview;
+                ModLog.Trace($"BuildPreviewDataByAncientId added {ancient.Id.Entry} with {preview.Options.Count} option(s).");
+            }
+            else
+            {
+                ModLog.Trace($"BuildPreviewDataByAncientId produced no preview for {ancient.Id.Entry}.");
             }
         }
+
+        ModLog.Debug(
+            $"BuildPreviewDataByAncientId complete: nextAct={nextActIndex}, " +
+            $"player={player.NetId}, " +
+            $"keys={(previews.Count == 0 ? "<empty>" : string.Join(", ", previews.Keys))}");
 
         return previews;
     }

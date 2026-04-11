@@ -1,0 +1,10 @@
+{
+  "choose_the_ancient.act_label.2": "第二幕",
+  "choose_the_ancient.act_label.3": "第三幕",
+  "choose_the_ancient.round_intro.initial_keep_vote": "选择 {ActLabel} 的远古者",
+  "choose_the_ancient.button.vote_for_this_ancient": "投票给这位远古者",
+  "choose_the_ancient.button.selected_ancient": "已选定远古者",
+  "choose_the_ancient.button.voting_closed": "投票已结束",
+  "choose_the_ancient.button.vote_locked": "投票已锁定",
+  "choose_the_ancient.button.unavailable": "不可用"
+}
