@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Godot;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Context;
@@ -10,12 +11,181 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
+using MegaCrit.Sts2.Core.Map;
+using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using ChooseTheAncient.ChooseTheAncientCode.Rooms;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
 public static class ChooseTheAncientCoordinator
 {
+
+    private static readonly System.Reflection.MethodInfo ClearScreensMethod =
+        AccessTools.Method(typeof(RunManager), "ClearScreens")
+        ?? throw new InvalidOperationException("Could not locate RunManager.ClearScreens.");
+
+    private static readonly System.Reflection.MethodInfo ExitCurrentRoomsMethod =
+        AccessTools.Method(typeof(RunManager), "ExitCurrentRooms")
+        ?? throw new InvalidOperationException("Could not locate RunManager.ExitCurrentRooms.");
+
+    private static readonly System.Reflection.MethodInfo FadeInMethod =
+        AccessTools.Method(typeof(RunManager), "FadeIn")
+        ?? throw new InvalidOperationException("Could not locate RunManager.FadeIn.");
+
+    private static async Task PrepareAct1SelectionUiAsync(RunManager runManager)
+    {
+        ModLog.Info("Preparing Act 1 selection UI by mirroring RunManager.EnterAct screen cleanup.");
+
+        ClearScreensMethod.Invoke(runManager, null);
+
+        object? exitRoomsTask = ExitCurrentRoomsMethod.Invoke(runManager, null);
+        if (exitRoomsTask is Task task)
+        {
+            await task;
+        }
+
+        await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+    }
+
+    public static async Task RunAct1StartingRoomFlowAsync(
+        RunState runState,
+        ChooseTheAncientFlowState flow)
+    {
+        ChooseTheAncientSelectionScreen? localScreen = null;
+
+        try
+        {
+            if (!ChooseTheAncientHelpers.IsAct1StartingMapPoint(runState))
+            {
+                ModLog.Debug("Act 1 starting-room flow aborted because the player was no longer at the starting map point.");
+                return;
+            }
+
+            if (runState.CurrentRoom is not ChooseTheAncientStartRoom)
+            {
+                ModLog.Warn("Act 1 starting-room flow expected the current room to be the ChooseTheAncient custom shell room.");
+                return;
+            }
+
+            List<Player> orderedPlayers = runState.Players
+                .OrderBy(runState.GetPlayerSlotIndex)
+                .ToList();
+
+            int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
+            ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
+            IReadOnlyList<int>? effectiveAncientPoolSourceActs =
+                await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0);
+
+            ActModel firstAct = runState.Acts[0];
+            List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
+                firstAct,
+                runState,
+                targetActIndex: 0,
+                enabledSourceActsOverride: effectiveAncientPoolSourceActs);
+
+            pool = ChooseTheAncientHelpers.PreferNonNeowAncientsForActOne(pool);
+            pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, 0, pool, ancientCount);
+            pool = ChooseTheAncientHelpers.PreferNonNeowAncientsForActOne(pool);
+
+            if (pool.Count == 0)
+            {
+                ModLog.Warn("Act 1 starting ancient ballot is empty in the starting-room flow. Leaving the vanilla starting room in place.");
+                flow.ResolvedActs.Add(0);
+                return;
+            }
+
+            ChooseTheAncientHelpers.LogPool("Act 1 starting-room ballot", pool);
+            ModLog.Info($"Using game mode {gameMode} for the Act 1 starting-room flow.");
+
+            AncientEventModel chosen;
+            if (pool.Count == 1)
+            {
+                chosen = pool[0];
+                ModLog.Info($"Only one starting ancient is available for Act 1: {chosen.Id.Entry}");
+            }
+            else
+            {
+                Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+                if (localPlayer != null)
+                {
+                    ModLog.Info("Warming Act 1 ancient ballot visuals before opening the starting-room selection screen.");
+                    await ChooseTheAncientHelpers.WarmAncientVisualAssetsAsync(pool);
+                    await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+                }
+
+                (chosen, localScreen) = await RunAncientSelectionBallotAsync(
+                    runState,
+                    0,
+                    orderedPlayers,
+                    pool,
+                    gameMode);
+            }
+
+            ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
+            ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
+
+            await RunModifierBootstrapAsync(orderedPlayers);
+            flow.ModifierBootstrapCompleted = true;
+
+            flow.ResolvedActs.Add(0);
+
+            ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, chosen);
+
+            localScreen?.CloseScreen();
+            localScreen = null;
+
+            await TransitionToAncientRoomAsync(chosen);
+
+            ModLog.Info($"Act 1 starting-room flow transitioned into chosen ancient {chosen.Id.Entry}.");
+        }
+        catch (OperationCanceledException ex)
+        {
+            ModLog.Warn(
+                $"Act 1 starting-room flow canceled: {ex.GetType().Name}. " +
+                "Leaving the current starting room in place.");
+        }
+        catch (Exception ex)
+        {
+            ModLog.Error($"Act 1 starting-room flow failed: {ex}");
+        }
+        finally
+        {
+            localScreen?.CloseScreen();
+            flow.FlowInProgress = false;
+            if (!flow.ResolvedActs.Contains(0))
+            {
+                flow.Act1StartingRoomFlowTriggered = false;
+            }
+            ModLog.Info(
+                $"Act 1 starting-room flow cleanup. " +
+                $"InProgress={flow.FlowInProgress}, Triggered={flow.Act1StartingRoomFlowTriggered}, " +
+                $"ModifierBootstrapCompleted={flow.ModifierBootstrapCompleted}");
+        }
+    }
+
+    private static async Task TransitionToAncientRoomAsync(AncientEventModel chosenAncient)
+    {
+        RunManager runManager = RunManager.Instance;
+
+        if (NGame.Instance?.Transition != null)
+        {
+            await NGame.Instance.Transition.RoomFadeOut();
+        }
+
+        ClearScreensMethod.Invoke(runManager, null);
+        await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+
+        await runManager.EnterRoom(new EventRoom(chosenAncient));
+
+        object? fadeInTask = FadeInMethod.Invoke(runManager, new object?[] { true });
+        if (fadeInTask is Task task)
+        {
+            await task;
+        }
+    }
+
     public static async Task RunAsync(
         RunManager runManager,
         RunState runState,
@@ -26,10 +196,10 @@ public static class ChooseTheAncientCoordinator
 
         try
         {
-            // Handle Host's AncientCount if the client
             List<Player> orderedPlayers = runState.Players
                 .OrderBy(runState.GetPlayerSlotIndex)
                 .ToList();
+
             int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
             ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
             IReadOnlyList<int>? effectiveAncientPoolSourceActs =
@@ -41,198 +211,40 @@ public static class ChooseTheAncientCoordinator
                 runState,
                 nextActIndex,
                 effectiveAncientPoolSourceActs);
+
             if (ModLog.IsDebugEnabled)
             {
                 string ancientPool = string.Join(",", pool.Select(ancient => ancient.Id.Entry));
-                ModLog.Debug($"Available ancients to draw {ancientCount} from: {ancientPool}");
+                ModLog.Debug($"Available ancients to draw {ancientCount} from for act {nextActIndex + 1}: {ancientPool}");
             }
-            pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
 
+            pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
             ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
             ModLog.Info($"Using game mode {gameMode} for act {nextActIndex + 1}.");
 
-            if (pool.Count <= 1)
+            AncientEventModel? chosen = null;
+            if (pool.Count == 0)
             {
-                if (pool.Count == 1)
-                {
-                    ChooseTheAncientHelpers.SetChosenAncient(nextAct, pool[0]);
-                    ModLog.Info($"Only one ancient available for act {nextActIndex + 1}: {pool[0].Id.Entry}");
-                }
-
-                flow.ResolvedActs.Add(nextActIndex);
-                flow.ContinueEnterNextAct = true;
-                await runManager.EnterNextAct();
-                return;
+                ModLog.Warn($"No ancient candidates remained for act {nextActIndex + 1}. Falling back to vanilla EnterNextAct().");
             }
-
-            // Copied code to get localPlayer from Megacrit
-            Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
-            if (localPlayer != null)
+            else if (pool.Count == 1)
             {
-                localScreen = ChooseTheAncientSelectionScreen.Show(nextActIndex, orderedPlayers);
-            }
-
-            bool useSecondRound = gameMode is
-                ChooseTheAncientConfig.SelectionGameMode.MontyHall or
-                ChooseTheAncientConfig.SelectionGameMode.FairFight;
-
-            AncientEventModel chosen;
-            if (!useSecondRound)
-            {
-                bool enablePreviews = gameMode == ChooseTheAncientConfig.SelectionGameMode.WantToKnowEverything;
-
-                Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
-                if (enablePreviews && localPlayer != null)
-                {
-                    localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
-                        localPlayer,
-                        pool,
-                        nextActIndex);
-                }
-
-                var singleRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
-                    pool,
-                    enablePreviews
-                        ? ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote
-                        : ChooseTheAncientSelectionScreen.VoteRoundType.InitialKeepVote,
-                    localPreviewData,
-                    null,
-                    null,
-                    null,
-                    null);
-
-                List<int> singleRoundVotes = await CollectVotes(
-                    orderedPlayers,
-                    singleRound,
-                    localScreen);
-
-                int chosenIndex = ResolveMostVotedIndex(
-                    runState,
-                    nextActIndex,
-                    pool.Count,
-                    singleRoundVotes);
-
-                if (localScreen != null)
-                {
-                    if (enablePreviews)
-                    {
-                        await localScreen.PlayFinalVoteResolutionAsync(singleRoundVotes, chosenIndex);
-                    }
-                    else
-                    {
-                        await localScreen.PlayInitialVoteResolutionAsync(singleRoundVotes, chosenIndex);
-                    }
-                }
-
-                chosen = pool[chosenIndex];
+                chosen = pool[0];
+                ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
+                ModLog.Info($"Only one ancient available for act {nextActIndex + 1}: {chosen.Id.Entry}");
             }
             else
             {
-                List<AncientEventModel> finalists = pool;
-                List<int> firstVotes = new();
-
-                var firstRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
-                    pool,
-                    ChooseTheAncientSelectionScreen.VoteRoundType.InitialKeepVote,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null);
-
-                firstVotes = await CollectVotes(
+                (chosen, localScreen) = await RunAncientSelectionBallotAsync(
+                    runState,
+                    nextActIndex,
                     orderedPlayers,
-                    firstRound,
-                    localScreen);
-
-                int firstPlaceIndex = ResolveMostVotedIndex(
-                    runState,
-                    nextActIndex,
-                    pool.Count,
-                    firstVotes);
-
-                int secondPlaceIndex = ResolveSecondPlaceIndex(
-                    runState,
-                    nextActIndex,
-                    pool.Count,
-                    firstPlaceIndex,
-                    firstVotes);
-
-                AncientEventModel firstAncient = pool[firstPlaceIndex];
-                AncientEventModel secondAncient = pool[secondPlaceIndex];
-
-                if (localScreen != null)
-                {
-                    await localScreen.PlayInitialVoteResolutionAsync(firstVotes, firstPlaceIndex);
-                }
-
-                finalists = [firstAncient, secondAncient];
-
-                ModLog.Info($"First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
-                ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} finalists", finalists);
-
-                Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
-                if (localPlayer != null)
-                {
-                    localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
-                        localPlayer,
-                        finalists,
-                        nextActIndex);
-                }
-
-                ModLog.Debug(
-                    $"Second-round build: finalists={string.Join(", ", finalists.Select(ancient => ancient.Id.Entry))}, " +
-                    $"previewKeys={(localPreviewData == null ? "<null>" : (localPreviewData.Count == 0 ? "<empty>" : string.Join(", ", localPreviewData.Keys)))}");
-
-                (AncientEventModel? suppressedPreviewAncient, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
-                    runState,
-                    nextActIndex,
                     pool,
-                    finalists,
-                    firstVotes);
+                    gameMode);
 
-                if (gameMode == ChooseTheAncientConfig.SelectionGameMode.FairFight)
-                {
-                    suppressedPreviewAncient = null;
-                    suppressedPreviewAncientId = null;
-                }
-
-                var secondRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
-                    finalists,
-                    ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote,
-                    localPreviewData,
-                    suppressedPreviewAncientId,
-                    suppressedPreviewAncient,
-                    reactionAncientId,
-                    reactionAncient);
-
-                ModLog.Debug(
-                    $"RoundDefinition created: roundType={secondRound.RoundType}, " +
-                    $"previewKeys={(secondRound.PreviewDataByAncientId == null ? "<null>" : (secondRound.PreviewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", secondRound.PreviewDataByAncientId.Keys)))}, " +
-                    $"suppressed={secondRound.SuppressedPreviewAncientId ?? "<none>"}, " +
-                    $"reaction={secondRound.ReactionAncientId ?? "<none>"}");
-
-                List<int> finalVotes = await CollectVotes(
-                    orderedPlayers,
-                    secondRound,
-                    localScreen);
-
-                int chosenIndex = ResolveMostVotedIndex(
-                    runState,
-                    nextActIndex,
-                    finalists.Count,
-                    finalVotes);
-
-                if (localScreen != null)
-                {
-                    await localScreen.PlayFinalVoteResolutionAsync(finalVotes, chosenIndex);
-                }
-
-                chosen = finalists[chosenIndex];
+                ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
+                ModLog.Info($"Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}");
             }
-
-            ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
-            ModLog.Info($"Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}");
 
             flow.ResolvedActs.Add(nextActIndex);
             flow.ContinueEnterNextAct = true;
@@ -242,7 +254,7 @@ public static class ChooseTheAncientCoordinator
         {
             ModLog.Warn(
                 $"Ancient selection flow canceled for act {nextActIndex + 1}: " +
-                $"{ex.GetType().Name}. Skipping forced act progression."); 
+                $"{ex.GetType().Name}. Skipping forced act progression.");
         }
         catch (Exception ex)
         {
@@ -253,16 +265,208 @@ public static class ChooseTheAncientCoordinator
         finally
         {
             localScreen?.CloseScreen();
-            flow.FlowInProgress = false; 
-            flow.ContinueEnterNextAct = false;;
-            ModLog.Info($"Ancient flow cleanup. InProgress={flow.FlowInProgress}, Continue={flow.ContinueEnterNextAct}");
+            flow.FlowInProgress = false;
+            flow.ContinueEnterNextAct = false;
+            ModLog.Info($"Ancient flow cleanup. InProgress={flow.FlowInProgress}, ContinueNext={flow.ContinueEnterNextAct}");
         }
     }
 
-    private static async Task<List<int>> CollectVotes(
+private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionScreen? LocalScreen)> RunAncientSelectionBallotAsync(
+        RunState runState,
+        int targetActIndex,
         IReadOnlyList<Player> orderedPlayers,
-        ChooseTheAncientSelectionScreen.RoundDefinition round,
-        ChooseTheAncientSelectionScreen? localScreen)
+        List<AncientEventModel> pool,
+        ChooseTheAncientConfig.SelectionGameMode gameMode)
+    {
+        Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+        ChooseTheAncientSelectionScreen? localScreen = null;
+
+        if (localPlayer != null)
+        {
+            localScreen = await ChooseTheAncientSelectionScreen.ShowWhenOverlayReadyAsync(targetActIndex, orderedPlayers);
+        }
+
+        bool useSecondRound = gameMode is
+            ChooseTheAncientConfig.SelectionGameMode.MontyHall or
+            ChooseTheAncientConfig.SelectionGameMode.FairFight;
+
+        AncientEventModel chosen;
+        if (!useSecondRound)
+        {
+            bool enablePreviews = gameMode == ChooseTheAncientConfig.SelectionGameMode.WantToKnowEverything;
+
+            Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
+            if (enablePreviews && localPlayer != null)
+            {
+                localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
+                    localPlayer,
+                    pool,
+                    targetActIndex);
+            }
+
+            var singleRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
+                pool,
+                enablePreviews
+                    ? ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote
+                    : ChooseTheAncientSelectionScreen.VoteRoundType.InitialKeepVote,
+                localPreviewData,
+                null,
+                null,
+                null,
+                null);
+
+            List<int> singleRoundVotes = await CollectVotes(
+                orderedPlayers,
+                singleRound,
+                localScreen);
+
+            int chosenIndex = ResolveMostVotedIndex(
+                runState,
+                targetActIndex,
+                pool.Count,
+                singleRoundVotes);
+
+            if (localScreen != null)
+            {
+                if (enablePreviews)
+                {
+                    await localScreen.PlayFinalVoteResolutionAsync(singleRoundVotes, chosenIndex);
+                }
+                else
+                {
+                    await localScreen.PlayInitialVoteResolutionAsync(singleRoundVotes, chosenIndex);
+                }
+            }
+
+            chosen = pool[chosenIndex];
+        }
+        else
+        {
+            List<AncientEventModel> finalists = pool;
+
+            var firstRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
+                pool,
+                ChooseTheAncientSelectionScreen.VoteRoundType.InitialKeepVote,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+            List<int> firstVotes = await CollectVotes(
+                orderedPlayers,
+                firstRound,
+                localScreen);
+
+            int firstPlaceIndex = ResolveMostVotedIndex(
+                runState,
+                targetActIndex,
+                pool.Count,
+                firstVotes);
+
+            int secondPlaceIndex = ResolveSecondPlaceIndex(
+                runState,
+                targetActIndex,
+                pool.Count,
+                firstPlaceIndex,
+                firstVotes);
+
+            AncientEventModel firstAncient = pool[firstPlaceIndex];
+            AncientEventModel secondAncient = pool[secondPlaceIndex];
+
+            if (localScreen != null)
+            {
+                await localScreen.PlayInitialVoteResolutionAsync(firstVotes, firstPlaceIndex);
+            }
+
+            finalists = [firstAncient, secondAncient];
+
+            ModLog.Info($"First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
+            ChooseTheAncientHelpers.LogPool($"Act {targetActIndex + 1} finalists", finalists);
+
+            Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
+            if (localPlayer != null)
+            {
+                localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
+                    localPlayer,
+                    finalists,
+                    targetActIndex);
+            }
+
+            (AncientEventModel? suppressedPreviewAncient, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
+                runState,
+                targetActIndex,
+                pool,
+                finalists,
+                firstVotes);
+
+            if (gameMode == ChooseTheAncientConfig.SelectionGameMode.FairFight)
+            {
+                suppressedPreviewAncient = null;
+                suppressedPreviewAncientId = null;
+            }
+
+            var secondRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
+                finalists,
+                ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote,
+                localPreviewData,
+                suppressedPreviewAncientId,
+                suppressedPreviewAncient,
+                reactionAncientId,
+                reactionAncient);
+
+            List<int> finalVotes = await CollectVotes(
+                orderedPlayers,
+                secondRound,
+                localScreen);
+
+            int chosenIndex = ResolveMostVotedIndex(
+                runState,
+                targetActIndex,
+                finalists.Count,
+                finalVotes);
+
+            if (localScreen != null)
+            {
+                await localScreen.PlayFinalVoteResolutionAsync(finalVotes, chosenIndex);
+            }
+
+            chosen = finalists[chosenIndex];
+        }
+
+        return (chosen, localScreen);
+    }
+
+    private static async Task RunModifierBootstrapAsync(IReadOnlyList<Player> orderedPlayers)
+    {
+        Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+        if (localPlayer != null)
+        {
+            IReadOnlyList<ChooseTheAncientHelpers.ModifierBootstrapAction> bootstrapActions =
+                ChooseTheAncientHelpers.BuildModifierBootstrapActions(localPlayer);
+
+            if (bootstrapActions.Count > 0)
+            {
+                ModLog.Info(
+                    $"Running {bootstrapActions.Count} start-of-run modifier bootstrap action(s) " +
+                    $"for local player {localPlayer.NetId}.");
+
+                foreach (ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction in bootstrapActions)
+                {
+                    ModLog.Info($"Running modifier bootstrap for {bootstrapAction.Modifier.Id.Entry}.");
+                    await bootstrapAction.ApplyAsync();
+                }
+            }
+            else
+            {
+                ModLog.Info($"No start-of-run modifier bootstrap actions were found for local player {localPlayer.NetId}.");
+            }
+        }
+
+        await WaitForModifierBootstrapBarrierAsync(orderedPlayers);
+    }
+
+    private static async Task WaitForModifierBootstrapBarrierAsync(IReadOnlyList<Player> orderedPlayers)
     {
         Dictionary<ulong, uint> choiceIdsByPlayer = new();
 
@@ -272,57 +476,118 @@ public static class ChooseTheAncientCoordinator
             choiceIdsByPlayer[player.NetId] = choiceId;
         }
 
-        Task<int>[] voteTasks = orderedPlayers
-            .Select(player => GetVoteForPlayer(
+        Task[] waitTasks = orderedPlayers
+            .Select(player => SyncOrWaitForModifierBootstrapCompletionAsync(
                 player,
-                choiceIdsByPlayer[player.NetId],
-                round,
-                localScreen))
+                choiceIdsByPlayer[player.NetId]))
             .ToArray();
 
-        int[] votes = await Task.WhenAll(voteTasks);
-
-        for (int i = 0; i < orderedPlayers.Count; i++)
-        {
-            ModLog.Debug($"Vote received for player {orderedPlayers[i].NetId}: {votes[i]}");
-        }
-
-        return votes.ToList();
+        await Task.WhenAll(waitTasks);
+        ModLog.Debug("All players finished the start-of-run modifier bootstrap barrier.");
     }
 
-    private static async Task<int> GetVoteForPlayer(
-        Player player,
-        uint choiceId,
-        ChooseTheAncientSelectionScreen.RoundDefinition round,
-        ChooseTheAncientSelectionScreen? localScreen)
+    private static async Task SyncOrWaitForModifierBootstrapCompletionAsync(Player player, uint choiceId)
     {
         if (ShouldSelectLocally(player))
         {
-            if (localScreen == null)
-            {
-                throw new InvalidOperationException("Local ancient selection screen was not created.");
-            }
+            RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+                player,
+                choiceId,
+                PlayerChoiceResult.FromIndex(1));
+            return;
+        }
 
-            int localVote = await localScreen.RunRoundAsync(round);
+        _ = (await RunManager.Instance.PlayerChoiceSynchronizer
+                .WaitForRemoteChoice(player, choiceId))
+            .AsIndex();
+    }
 
-            localScreen.RecordVote(player, localVote);
+    
+private static async Task<List<int>> CollectVotes(
+    IReadOnlyList<Player> orderedPlayers,
+    ChooseTheAncientSelectionScreen.RoundDefinition round,
+    ChooseTheAncientSelectionScreen? localScreen)
+{
+    if (orderedPlayers.Count == 0)
+        throw new InvalidOperationException("No players available for vote collection.");
 
-            // It seems choice synchronizer needs localVote as they are done separately compared to remoteVote
+    RunState? runState = orderedPlayers[0].RunState as RunState;
+    if (runState != null && RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
+    {
+        if (localScreen == null)
+            throw new InvalidOperationException("Local ancient selection screen was not created.");
+
+        int localVote = await localScreen.RunRoundAsync(round);
+        localScreen.RecordVote(orderedPlayers[0], localVote);
+        ModLog.Debug($"Vote received for player {orderedPlayers[0].NetId}: {localVote}");
+        return [localVote];
+    }
+
+    Dictionary<ulong, uint> choiceIdsByPlayer = new();
+
+    foreach (Player player in orderedPlayers)
+    {
+        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
+        choiceIdsByPlayer[player.NetId] = choiceId;
+    }
+
+    Task<int>[] voteTasks = orderedPlayers
+        .Select(player => GetVoteForPlayer(
+            player,
+            choiceIdsByPlayer[player.NetId],
+            round,
+            localScreen))
+        .ToArray();
+
+    int[] votes = await Task.WhenAll(voteTasks);
+
+    for (int i = 0; i < orderedPlayers.Count; i++)
+    {
+        ModLog.Debug($"Vote received for player {orderedPlayers[i].NetId}: {votes[i]}");
+    }
+
+    return votes.ToList();
+}
+
+    
+private static async Task<int> GetVoteForPlayer(
+    Player player,
+    uint choiceId,
+    ChooseTheAncientSelectionScreen.RoundDefinition round,
+    ChooseTheAncientSelectionScreen? localScreen)
+{
+    RunState? runState = player.RunState as RunState;
+    bool isSinglePlayer = runState != null && RunManager.Instance.NetService.Type == NetGameType.Singleplayer;
+
+    if (isSinglePlayer || ShouldSelectLocally(player))
+    {
+        if (localScreen == null)
+        {
+            throw new InvalidOperationException("Local ancient selection screen was not created.");
+        }
+
+        int localVote = await localScreen.RunRoundAsync(round);
+
+        localScreen.RecordVote(player, localVote);
+
+        if (!isSinglePlayer)
+        {
             RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
                 player,
                 choiceId,
                 PlayerChoiceResult.FromIndex(localVote));
-
-            return localVote;
         }
 
-        int remoteVote = (await RunManager.Instance.PlayerChoiceSynchronizer
-                .WaitForRemoteChoice(player, choiceId))
-            .AsIndex();
-
-        localScreen?.RecordVote(player, remoteVote);
-        return remoteVote;
+        return localVote;
     }
+
+    int remoteVote = (await RunManager.Instance.PlayerChoiceSynchronizer
+            .WaitForRemoteChoice(player, choiceId))
+        .AsIndex();
+
+    localScreen?.RecordVote(player, remoteVote);
+    return remoteVote;
+}
 
     private static bool ShouldSelectLocally(Player player)
     {
@@ -383,10 +648,6 @@ public static class ChooseTheAncientCoordinator
             .First(ancient => ancient.Id.Entry != suppressedPreviewAncient.Id.Entry);
 
         ModLog.Debug($"Second vote presentation decided from round-one votes: suppress={suppressedPreviewAncient.Id.Entry}, reaction={reactionAncient.Id.Entry}, voteCounts={leftCount}/{rightCount}");
-        ModLog.Trace(
-            $"ResolveSecondRoundPresentation finalists={string.Join(", ", finalists.Select(ancient => ancient.Id.Entry))}, " +
-            $"firstRoundPool={string.Join(", ", firstRoundPool.Select(ancient => ancient.Id.Entry))}, " +
-            $"firstVotes={(firstVotes.Count == 0 ? "<empty>" : string.Join(", ", firstVotes))}");
         // return SuppressedPreviewAncient to pass on to the selection screen
         return (suppressedPreviewAncient, reactionAncient, suppressedPreviewAncient.Id.Entry, reactionAncient.Id.Entry);
     }

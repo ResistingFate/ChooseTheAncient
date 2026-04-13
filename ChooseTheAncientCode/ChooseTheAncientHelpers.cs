@@ -2,17 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Localization;
+using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Events;
+using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Runs.History;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -34,6 +38,12 @@ public static class ChooseTheAncientHelpers
     {
         public required AncientEventModel PreviewEvent { get; init; }
         public required IReadOnlyList<EventOption> Options { get; init; }
+    }
+
+    public sealed class ModifierBootstrapAction
+    {
+        public required ModifierModel Modifier { get; init; }
+        public required Func<Task> ApplyAsync { get; init; }
     }
 
     public static RunState? GetRunState(RunManager runManager)
@@ -80,10 +90,19 @@ public static class ChooseTheAncientHelpers
         List<AncientEventModel> defaultPool = BuildDefaultCandidatePool(act, runState);
 
         if (!ChooseTheAncientConfig.HasAncientPoolSourceActConfig(targetActIndex))
+        {
+            ModLog.Warn(
+                $"Act {targetActIndex + 1} has no configured source-act row. " +
+                $"Using default candidate pool for {act.Id.Entry}.");
             return defaultPool;
+        }
 
         IReadOnlyList<int> enabledSourceActs = enabledSourceActsOverride
             ?? ChooseTheAncientConfig.GetEnabledAncientPoolSourceActs(targetActIndex);
+
+        ModLog.Debug(
+            $"{(enabledSourceActsOverride != null ? "Using override ancient pool source acts" : "Using local ancient pool source acts")} " +
+            $"for act {targetActIndex + 1}: {ChooseTheAncientConfig.DescribeAncientPoolSourceActs(enabledSourceActs)}");
 
         if (enabledSourceActs.Count == 0)
         {
@@ -119,12 +138,15 @@ public static class ChooseTheAncientHelpers
     {
         List<AncientEventModel> sharedSubset = GetSharedAncientsValidForTargetAct(targetAct, runState);
 
-        return targetAct
+        List<AncientEventModel> defaultPool = targetAct
             .GetUnlockedAncients(runState.UnlockState)
             .Concat(sharedSubset)
             .DistinctBy(a => a.Id)
             .OrderBy(a => a.Id.Entry)
             .ToList();
+
+        LogPool($"Act {runState.CurrentActIndex + 1} default pool for target {targetAct.Id.Entry}", defaultPool);
+        return defaultPool;
     }
 
     private static List<AncientEventModel> BuildConfiguredCandidatePool(
@@ -160,10 +182,13 @@ public static class ChooseTheAncientHelpers
 
         configuredPool.AddRange(GetSharedAncientsValidForTargetAct(targetAct, runState));
 
-        return configuredPool
+        List<AncientEventModel> distinctPool = configuredPool
             .DistinctBy(a => a.Id)
             .OrderBy(a => a.Id.Entry)
             .ToList();
+
+        LogPool($"Act {targetActIndex + 1} combined configured pool before limiting", distinctPool);
+        return distinctPool;
     }
 
     private static List<AncientEventModel> GetSharedAncientsValidForTargetAct(ActModel targetAct, RunState runState)
@@ -229,14 +254,88 @@ public static class ChooseTheAncientHelpers
         rooms.Ancient = chosenAncient;
     }
 
+
+    public static void ForceAct1AncientStart(RunState runState)
+    {
+        runState.ExtraFields.StartedWithNeow = true;
+    }
+
+    public static List<AncientEventModel> PreferNonNeowAncientsForActOne(IEnumerable<AncientEventModel> pool)
+    {
+        List<AncientEventModel> originalPool = pool
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        List<AncientEventModel> filteredPool = originalPool
+            .Where(ancient => !IsNeowAncient(ancient))
+            .ToList();
+
+        if (filteredPool.Count > 0)
+        {
+            if (filteredPool.Count != originalPool.Count)
+            {
+                ModLog.Info(
+                    $"Removed Neow from the Act 1 starting ancient pool because separate modifier bootstrap " +
+                    $"should happen before the chosen ancient grants blessings.");
+            }
+
+            return filteredPool;
+        }
+
+        return originalPool;
+    }
+
+    public static List<ModifierBootstrapAction> BuildModifierBootstrapActions(Player player)
+    {
+        RunState runState = player.RunState as RunState
+            ?? throw new InvalidOperationException("Player is not attached to a mutable RunState.");
+
+        EventModel syntheticNeow = CreateSyntheticNeowForModifierBootstrap(player, runState);
+        List<ModifierBootstrapAction> actions = new();
+
+        foreach (ModifierModel modifier in runState.Modifiers)
+        {
+            Func<Task>? applyAsync = modifier.GenerateNeowOption(syntheticNeow);
+            if (applyAsync == null)
+                continue;
+
+            actions.Add(new ModifierBootstrapAction
+            {
+                Modifier = modifier,
+                ApplyAsync = applyAsync
+            });
+        }
+
+        return actions;
+    }
+
+    private static EventModel CreateSyntheticNeowForModifierBootstrap(Player player, RunState runState)
+    {
+        AncientEventModel syntheticNeow = (AncientEventModel)ModelDb.AncientEvent<Neow>().ToMutable();
+        EventOwnerBackingField.SetValue(syntheticNeow, player);
+
+        Rng bootstrapRng = CreatePreviewEventRng(runState, player, syntheticNeow);
+        EventRngBackingField.SetValue(syntheticNeow, bootstrapRng);
+
+        syntheticNeow.CalculateVars();
+
+        ModLog.Debug(
+            $"Created synthetic Neow for modifier bootstrap with seed {bootstrapRng.Seed} " +
+            $"for player {player.NetId}.");
+
+        return syntheticNeow;
+    }
+
+    public static bool IsNeowAncient(AncientEventModel ancient)
+    {
+        return ancient is Neow
+               || string.Equals(ancient.Id.Entry, nameof(Neow), StringComparison.OrdinalIgnoreCase);
+    }
+
     public static Rng CreateDisplayedPoolRng(RunState runState, int nextActIndex)
     {
         return new Rng(runState.Rng.Seed, $"choose_the_ancient_display_pool_act_{nextActIndex}");
-    }
-
-    public static Rng CreateEliminationResolutionRng(RunState runState, int nextActIndex)
-    {
-        return new Rng(runState.Rng.Seed, $"choose_the_ancient_elimination_vote_act_{nextActIndex}");
     }
 
     public static Rng CreateFinalVoteResolutionRng(RunState runState, int nextActIndex)
@@ -287,18 +386,8 @@ public static class ChooseTheAncientHelpers
             if (preview != null)
             {
                 previews[ancient.Id.Entry] = preview;
-                ModLog.Trace($"BuildPreviewDataByAncientId added {ancient.Id.Entry} with {preview.Options.Count} option(s).");
-            }
-            else
-            {
-                ModLog.Trace($"BuildPreviewDataByAncientId produced no preview for {ancient.Id.Entry}.");
             }
         }
-
-        ModLog.Debug(
-            $"BuildPreviewDataByAncientId complete: nextAct={nextActIndex}, " +
-            $"player={player.NetId}, " +
-            $"keys={(previews.Count == 0 ? "<empty>" : string.Join(", ", previews.Keys))}");
 
         return previews;
     }
@@ -315,10 +404,6 @@ public static class ChooseTheAncientHelpers
             RunState runState = player.RunState as RunState;
             int originalActIndex = runState.CurrentActIndex;
 
-            var playerRngSnapshot = player.PlayerRng.ToSerializable();
-            var playerOddsSnapshot = player.PlayerOdds.ToSerializable();
-            var runRngSnapshot = runState.Rng.ToSerializable();
-            var runOddsSnapshot = runState.Odds.ToSerializable();
             try
             {
                 runState.CurrentActIndex = nextActIndex;
@@ -354,15 +439,6 @@ public static class ChooseTheAncientHelpers
             }
             finally
             {
-                player.PlayerRng.LoadFromSerializable(playerRngSnapshot);
-                player.PlayerOdds.LoadFromSerializable(playerOddsSnapshot);
-                runState.Rng.LoadFromSerializable(runRngSnapshot);
-
-                runState.Odds.UnknownMapPoint.MonsterOdds = runOddsSnapshot.UnknownMapPointMonsterOddsValue;
-                runState.Odds.UnknownMapPoint.EliteOdds = runOddsSnapshot.UnknownMapPointEliteOddsValue;
-                runState.Odds.UnknownMapPoint.TreasureOdds = runOddsSnapshot.UnknownMapPointTreasureOddsValue;
-                runState.Odds.UnknownMapPoint.ShopOdds = runOddsSnapshot.UnknownMapPointShopOddsValue;
-
                 runState.CurrentActIndex = originalActIndex;
             }
         }
@@ -372,6 +448,141 @@ public static class ChooseTheAncientHelpers
             return null;
         }
     }
+
+
+    public static async Task WaitForProcessFramesAsync(int frameCount)
+    {
+        SceneTree? tree = Engine.GetMainLoop() as SceneTree;
+        if (tree == null)
+            return;
+
+        int framesToWait = Math.Max(1, frameCount);
+        for (int i = 0; i < framesToWait; i++)
+        {
+            await tree.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+        }
+    }
+
+    public static async Task WarmAncientVisualAssetsAsync(IEnumerable<AncientEventModel> ancients)
+    {
+        foreach (AncientEventModel ancient in ancients
+                     .DistinctBy(candidate => candidate.Id.Entry)
+                     .OrderBy(candidate => candidate.Id.Entry))
+        {
+            TryWarmAncientVisualAssets(ancient);
+            await WaitForProcessFramesAsync(1);
+        }
+    }
+
+    private static void TryWarmAncientVisualAssets(AncientEventModel ancient)
+    {
+        try
+        {
+            _ = ancient.MapIcon;
+            _ = ancient.MapIconOutline;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Failed to warm map icon assets for {ancient.Id.Entry}: {ex.GetType().Name}");
+        }
+
+        try
+        {
+            string? scenePath = Traverse.Create(ancient)
+                .Property("BackgroundScenePath")
+                .GetValue<string?>();
+
+            if (string.IsNullOrWhiteSpace(scenePath) || !scenePath.StartsWith("res://", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            PackedScene? scene = GD.Load<PackedScene>(scenePath);
+            if (scene == null)
+            {
+                ModLog.Warn($"Could not preload ancient scene for {ancient.Id.Entry} at '{scenePath}'.");
+                return;
+            }
+
+            ModLog.Debug($"Preloaded ancient scene for {ancient.Id.Entry} at '{scenePath}'.");
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Failed to warm scene assets for {ancient.Id.Entry}: {ex.GetType().Name}");
+        }
+    }
+
+
+
+public static bool IsAct1StartingMapPoint(RunState runState)
+{
+    if (runState.CurrentActIndex != 0)
+        return false;
+
+    if (!runState.ExtraFields.StartedWithNeow)
+        return false;
+
+    MapCoord? currentCoord = runState.CurrentMapCoord;
+    if (!currentCoord.HasValue)
+        return false;
+
+    return currentCoord.Value == runState.Map.StartingMapPoint.coord;
+}
+
+public static bool ShouldUseAct1StartShell(RunState runState, ChooseTheAncientFlowState flow)
+{
+    if (flow.ResolvedActs.Contains(0))
+        return false;
+
+    if (runState.CurrentActIndex != 0)
+        return false;
+
+    if (!runState.ExtraFields.StartedWithNeow)
+        return false;
+
+    return true;
+}
+
+public static void ConvertAct1StartShellToChosenAncient(
+    RunState runState,
+    AncientEventModel chosenAncient)
+{
+    runState.Map.StartingMapPoint.PointType = MapPointType.Ancient;
+    RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
+    NMapScreen.Instance?.SetMap(runState.Map, runState.Rng.Seed, clearDrawings: true);
+}
+
+public static void RewriteCurrentMapPointHistoryToAncient(
+    RunState runState,
+    AncientEventModel chosenAncient)
+{
+    MapPointHistoryEntry? entry = runState.CurrentMapPointHistoryEntry;
+    if (entry == null)
+        return;
+
+    entry.MapPointType = MapPointType.Ancient;
+
+    if (entry.Rooms.Count == 0)
+    {
+        entry.Rooms.Add(new MapPointRoomHistoryEntry
+        {
+            RoomType = RoomType.Event,
+            ModelId = chosenAncient.Id,
+        });
+        return;
+    }
+
+    MapPointRoomHistoryEntry room = entry.Rooms[0];
+    room.RoomType = RoomType.Event;
+    room.ModelId = chosenAncient.Id;
+    room.MonsterIds.Clear();
+    room.TurnsTaken = 0;
+
+    while (entry.Rooms.Count > 1)
+    {
+        entry.Rooms.RemoveAt(entry.Rooms.Count - 1);
+    }
+}
 
     public static bool GroupAncientOptionsPool { get; set; } = false;
 

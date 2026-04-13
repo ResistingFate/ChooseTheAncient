@@ -205,10 +205,8 @@ internal static class ChooseTheAncientConfig
 
     private static readonly Dictionary<int, bool[]> AncientPoolSourceActsByTargetAct = new()
     {
-        // Act 1 ancients are not supported yet.
-        // Leave this commented row in place so it is easy to restore once the
-        // mod starts intercepting the Act 1 ancient selection flow.
-        // { 0, new[] { true, true, true } },
+        // Act 1 ancients.
+        { 0, new[] { false, true, true } },
 
         // Act 2 ancients.
         { 1, new[] { true, true, true } },
@@ -216,6 +214,26 @@ internal static class ChooseTheAncientConfig
         // Act 3 ancients.
         { 2, new[] { true, true, true } },
     };
+
+    private static bool[] GetDefaultAncientPoolSourceActsForTargetAct(int targetActIndex)
+    {
+        return targetActIndex switch
+        {
+            0 => new[] { false, true, true },
+            1 => new[] { true, true, true },
+            2 => new[] { true, true, true },
+            _ => new[] { true, true, true }
+        };
+    }
+
+    public static bool GetDefaultAncientPoolSourceActEnabled(int targetActIndex, int sourceActIndex)
+    {
+        bool[] defaults = GetDefaultAncientPoolSourceActsForTargetAct(targetActIndex);
+        if (sourceActIndex < 0 || sourceActIndex >= defaults.Length)
+            return true;
+
+        return defaults[sourceActIndex];
+    }
 
     public static void RefreshFromModConfig()
     {
@@ -277,6 +295,13 @@ internal static class ChooseTheAncientConfig
         {
             CurrentLogLevel = ModLog.CurrentLevel;
         }
+
+        ModLog.Info(
+            "Config refresh complete. " +
+            $"AncientCount={AncientCount}, GameMode={GameMode}, " +
+            $"Act1Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(0))}, " +
+            $"Act2Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(1))}, " +
+            $"Act3Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(2))}.");
     }
 
     public static void ApplyAncientCount(object value)
@@ -353,12 +378,21 @@ internal static class ChooseTheAncientConfig
     public static void ApplyAncientPoolSourceActToggle(int targetActIndex, int sourceActIndex, object value)
     {
         if (!AncientPoolSourceActsByTargetAct.TryGetValue(targetActIndex, out bool[]? sourceActFlags))
+        {
+            ModLog.Warn($"Attempted to apply ancient pool toggle for unsupported target act {targetActIndex + 1}.");
             return;
+        }
 
         if (sourceActIndex < 0 || sourceActIndex >= sourceActFlags.Length)
+        {
+            ModLog.Warn($"Attempted to apply ancient pool toggle for invalid source act {sourceActIndex + 1} on target act {targetActIndex + 1}.");
             return;
+        }
 
         sourceActFlags[sourceActIndex] = Convert.ToBoolean(value);
+        ModLog.Info(
+            $"Applied ancient pool toggle: targetAct={targetActIndex + 1}, sourceAct={sourceActIndex + 1}, enabled={sourceActFlags[sourceActIndex]}. " +
+            $"Now enabled: {DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(targetActIndex))}");
     }
 
     public static string GetAncientPoolSourceActConfigKey(int targetActIndex, int sourceActIndex)
@@ -466,11 +500,22 @@ internal static class ChooseTheAncientConfig
     {
         foreach ((int targetActIndex, bool[] sourceActFlags) in AncientPoolSourceActsByTargetAct)
         {
+            bool[] defaults = GetDefaultAncientPoolSourceActsForTargetAct(targetActIndex);
+
             for (int sourceActIndex = 0; sourceActIndex < sourceActFlags.Length; sourceActIndex++)
             {
                 string key = GetAncientPoolSourceActConfigKey(targetActIndex, sourceActIndex);
-                sourceActFlags[sourceActIndex] = ModConfigBridge.GetValue(key, true);
+                bool fallback = sourceActIndex < defaults.Length ? defaults[sourceActIndex] : true;
+                bool loaded = ModConfigBridge.GetValue(key, fallback);
+                sourceActFlags[sourceActIndex] = loaded;
+
+                ModLog.Info(
+                    $"Loaded ModConfig key '{key}' = {loaded} for {GetAncientPoolTargetActLabel(targetActIndex).ToLowerInvariant()} pool.");
             }
+
+            ModLog.Info(
+                $"{GetAncientPoolTargetActLabel(targetActIndex)} sources after refresh: " +
+                $"{DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(targetActIndex))}");
         }
     }
 

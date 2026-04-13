@@ -41,7 +41,8 @@ internal static class ModConfigBridge
     {
         _deferredFramesRemaining = 2;
         var tree = (SceneTree)Engine.GetMainLoop();
-        tree.ProcessFrame -= OnNextFrame;
+        ModLog.Info("Scheduling deferred ModConfig registration for ChooseTheAncient.");
+
         tree.ProcessFrame += OnNextFrame;
     }
 
@@ -51,11 +52,20 @@ internal static class ModConfigBridge
 
         if (_deferredFramesRemaining > 0)
         {
+            ModLog.Debug($"Waiting to register ModConfig. Frames remaining: {_deferredFramesRemaining}");
             _deferredFramesRemaining--;
             return;
         }
 
-        tree.ProcessFrame -= OnNextFrame;
+        try
+        {
+            tree.ProcessFrame -= OnNextFrame;
+        }
+        catch (Exception e)
+        {
+            ModLog.Debug($"Ignoring ProcessFrame disconnect after ModConfig registration wait: {e.Message}");
+        }
+
         Detect();
         if (_available)
         {
@@ -86,10 +96,17 @@ internal static class ModConfigBridge
             _entryType = allTypes.FirstOrDefault(t => t.FullName == "ModConfig.ConfigEntry");
             _configTypeEnum = allTypes.FirstOrDefault(t => t.FullName == "ModConfig.ConfigType");
             _available = _apiType != null && _entryType != null && _configTypeEnum != null;
+
+            ModLog.Info(
+                $"ModConfig detect complete. Available={_available}, " +
+                $"ApiType={_apiType?.FullName ?? "<null>"}, " +
+                $"EntryType={_entryType?.FullName ?? "<null>"}, " +
+                $"ConfigTypeEnum={_configTypeEnum?.FullName ?? "<null>"}");
         }
-        catch
+        catch (Exception e)
         {
             _available = false;
+            ModLog.Error($"ModConfig detection failed: {e}");
         }
     }
 
@@ -97,12 +114,17 @@ internal static class ModConfigBridge
 
     private static void Register()
     {
-        if (_registered) return;
+        if (_registered)
+        {
+            ModLog.Debug("Skipping ModConfig registration because entries are already registered.");
+            return;
+        }
         _registered = true;
 
         try
         {
             var entries = BuildEntries();
+            ModLog.Info($"Registering ChooseTheAncient ModConfig entries. Count={entries.Length}");
 
             // Localized display name (shows in ModConfig's mod list)
             var displayNames = new Dictionary<string, string>
@@ -150,15 +172,27 @@ internal static class ModConfigBridge
     /// <summary>Read a saved config value, with fallback if ModConfig absent.</summary>
     internal static T GetValue<T>(string key, T fallback)
     {
-        if (!_available) return fallback;
+        if (!_available)
+        {
+            ModLog.Debug($"ModConfig GetValue<{typeof(T).Name}>('{key}') unavailable; using fallback '{fallback}'.");
+            return fallback;
+        }
+
         try
         {
             var result = _apiType!.GetMethod("GetValue", BindingFlags.Public | BindingFlags.Static)
                 ?.MakeGenericMethod(typeof(T))
                 ?.Invoke(null, new object[] { "ChooseTheAncient", key });
-            return result != null ? (T)result : fallback;
+
+            T value = result != null ? (T)result : fallback;
+            ModLog.Info($"Loaded ModConfig key '{key}' = {value}.");
+            return value;
         }
-        catch { return fallback; }
+        catch (Exception e)
+        {
+            ModLog.Warn($"Failed to load ModConfig key '{key}'; using fallback '{fallback}'. Error: {e.Message}");
+            return fallback;
+        }
     }
 
     /// <summary>
@@ -168,13 +202,22 @@ internal static class ModConfigBridge
     /// </summary>
     internal static void SetValue(string key, object value)
     {
-        if (!_available) return;
+        if (!_available)
+        {
+            ModLog.Debug($"Skipping ModConfig SetValue('{key}', '{value}') because ModConfig is unavailable.");
+            return;
+        }
+
         try
         {
             _apiType!.GetMethod("SetValue", BindingFlags.Public | BindingFlags.Static)
                 ?.Invoke(null, new object[] { "ChooseTheAncient", key, value });
+            ModLog.Info($"Wrote ModConfig key '{key}' = {value}.");
         }
-        catch { }
+        catch (Exception e)
+        {
+            ModLog.Warn($"Failed to write ModConfig key '{key}' = {value}. Error: {e.Message}");
+        }
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -245,10 +288,7 @@ internal static class ModConfigBridge
             Set(cfg, "Type", EnumVal("Header"));
         }));
 
-        // Act 1 ancients are not supported yet.
-        // Leave this line commented so it is easy to restore later.
-        // AddAncientPoolSourceEntryGroup(list, targetActIndex: 0);
-
+        AddAncientPoolSourceEntryGroup(list, targetActIndex: 0);
         AddAncientPoolSourceEntryGroup(list, targetActIndex: 1);
         AddAncientPoolSourceEntryGroup(list, targetActIndex: 2);
 
@@ -325,6 +365,8 @@ internal static class ModConfigBridge
 
     private static void AddAncientPoolSourceEntryGroup(List<object> list, int targetActIndex)
     {
+        ModLog.Info($"Registering ModConfig ancient pool group for target act {targetActIndex + 1}.");
+
         list.Add(Entry(cfg =>
         {
             Set(cfg, "Label", ChooseTheAncientConfig.GetAncientPoolTargetActLabel(targetActIndex));
@@ -338,10 +380,15 @@ internal static class ModConfigBridge
 
             list.Add(Entry(cfg =>
             {
-                Set(cfg, "Key", ChooseTheAncientConfig.GetAncientPoolSourceActConfigKey(capturedTargetActIndex, capturedSourceActIndex));
+                string key = ChooseTheAncientConfig.GetAncientPoolSourceActConfigKey(capturedTargetActIndex, capturedSourceActIndex);
+                bool defaultValue = ChooseTheAncientConfig.GetDefaultAncientPoolSourceActEnabled(capturedTargetActIndex, capturedSourceActIndex);
+
+                ModLog.Info($"Registering ModConfig key '{key}' with default {defaultValue}.");
+
+                Set(cfg, "Key", key);
                 Set(cfg, "Label", ChooseTheAncientConfig.GetAncientPoolSourceActLabel(capturedSourceActIndex));
                 Set(cfg, "Type", EnumVal("Toggle"));
-                Set(cfg, "DefaultValue", (object)true);
+                Set(cfg, "DefaultValue", (object)defaultValue);
                 Set(cfg, "Description",
                     $"Allow ancients that normally come from Act {capturedSourceActIndex + 1} to appear in the Act {capturedTargetActIndex + 1} Choose The Ancient pool.");
 

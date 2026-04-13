@@ -522,6 +522,25 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         return screen;
     }
 
+    public static async Task<ChooseTheAncientSelectionScreen> ShowWhenOverlayReadyAsync(
+        int nextActIndex,
+        IReadOnlyList<Player> orderedPlayers)
+    {
+        SceneTree? tree = Engine.GetMainLoop() as SceneTree;
+        if (tree == null)
+            throw new InvalidOperationException("SceneTree was unavailable during screen show.");
+
+        for (int i = 0; i < 180 && NOverlayStack.Instance == null; i++)
+        {
+            await tree.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+        }
+
+        if (NOverlayStack.Instance == null)
+            throw new InvalidOperationException("NOverlayStack.Instance was null during screen show.");
+
+        return Show(nextActIndex, orderedPlayers);
+    }
+
     public void Initialize(int nextActIndex, IReadOnlyList<Player> orderedPlayers)
     {
         /*
