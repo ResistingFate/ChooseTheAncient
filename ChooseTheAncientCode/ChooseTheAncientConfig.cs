@@ -202,6 +202,8 @@ internal static class ChooseTheAncientConfig
     public static LogLevel CurrentLogLevel { get; private set; } = ModLog.CurrentLevel;
 
     private const int AncientPoolSourceActCount = 3;
+    private const string NeowAncientId = "NEOW";
+    private const string DarvAncientId = "DARV";
 
     private static readonly Dictionary<int, bool[]> AncientPoolSourceActsByTargetAct = new()
     {
@@ -214,6 +216,13 @@ internal static class ChooseTheAncientConfig
         // Act 3 ancients.
         { 2, new[] { true, true, true } },
     };
+
+    private static readonly Dictionary<string, bool[]> SpecialAncientOverridesByTargetAct =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            { NeowAncientId, new[] { true, false, false } },
+            { DarvAncientId, new[] { false, true, true } },
+        };
 
     private static bool[] GetDefaultAncientPoolSourceActsForTargetAct(int targetActIndex)
     {
@@ -234,6 +243,149 @@ internal static class ChooseTheAncientConfig
 
         return defaults[sourceActIndex];
     }
+
+    private static bool[] GetDefaultSpecialAncientOverridesForAncient(string ancientId)
+    {
+        return ancientId.ToUpperInvariant() switch
+        {
+            NeowAncientId => new[] { true, false, false },
+            DarvAncientId => new[] { false, true, true },
+            _ => new[] { false, false, false }
+        };
+    }
+
+    public static bool GetDefaultSpecialAncientOverrideEnabled(string ancientId, int targetActIndex)
+    {
+        bool[] defaults = GetDefaultSpecialAncientOverridesForAncient(ancientId);
+        if (targetActIndex < 0 || targetActIndex >= defaults.Length)
+            return false;
+
+        return defaults[targetActIndex];
+    }
+
+    public static bool IsSpecialAncientOverrideEnabled(string ancientId, int targetActIndex)
+    {
+        if (!SpecialAncientOverridesByTargetAct.TryGetValue(ancientId, out bool[]? actFlags))
+            return false;
+
+        if (targetActIndex < 0 || targetActIndex >= actFlags.Length)
+            return false;
+
+        return actFlags[targetActIndex];
+    }
+
+    public static void ApplySpecialAncientOverrideToggle(string ancientId, int targetActIndex, object value)
+    {
+        if (!SpecialAncientOverridesByTargetAct.TryGetValue(ancientId, out bool[]? actFlags))
+        {
+            ModLog.Warn($"Attempted to apply unsupported special-ancient override for '{ancientId}'.");
+            return;
+        }
+
+        if (targetActIndex < 0 || targetActIndex >= actFlags.Length)
+        {
+            ModLog.Warn($"Attempted to apply special-ancient override for invalid act {targetActIndex + 1} on '{ancientId}'.");
+            return;
+        }
+
+        actFlags[targetActIndex] = Convert.ToBoolean(value);
+        ModLog.Info(
+            $"Applied special ancient override: ancient={ancientId}, act={targetActIndex + 1}, enabled={actFlags[targetActIndex]}.");
+    }
+
+    public static string GetSpecialAncientOverrideConfigKey(string ancientId, int targetActIndex)
+    {
+        string normalizedAncientId = ancientId.ToUpperInvariant() switch
+        {
+            NeowAncientId => "neow",
+            DarvAncientId => "darv",
+            _ => ancientId.ToLowerInvariant()
+        };
+
+        return $"include{char.ToUpperInvariant(normalizedAncientId[0])}{normalizedAncientId.Substring(1)}InAct{targetActIndex + 1}Selection";
+    }
+
+    public static string GetSpecialAncientOverrideHeaderLabel(string ancientId)
+    {
+        return ancientId.ToUpperInvariant() switch
+        {
+            NeowAncientId => "Neow Overrides",
+            DarvAncientId => "Darv Overrides",
+            _ => $"{ancientId} Overrides"
+        };
+    }
+
+    public static string GetSpecialAncientOverrideToggleLabel(int targetActIndex)
+    {
+        return $"Include in Act {targetActIndex + 1} selection";
+    }
+
+    public static string DescribeSpecialAncientOverrides(string ancientId)
+    {
+        if (!SpecialAncientOverridesByTargetAct.TryGetValue(ancientId, out bool[]? actFlags))
+            return "(unsupported)";
+
+        List<string> enabledActs = new();
+        for (int targetActIndex = 0; targetActIndex < actFlags.Length; targetActIndex++)
+        {
+            if (actFlags[targetActIndex])
+                enabledActs.Add($"Act {targetActIndex + 1}");
+        }
+
+        return enabledActs.Count == 0 ? "(none)" : string.Join(", ", enabledActs);
+    }
+
+public static IReadOnlyDictionary<string, bool> GetSpecialAncientOverridesSnapshot(int targetActIndex)
+{
+    Dictionary<string, bool> snapshot = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [NeowAncientId] = IsSpecialAncientOverrideEnabled(NeowAncientId, targetActIndex),
+        [DarvAncientId] = IsSpecialAncientOverrideEnabled(DarvAncientId, targetActIndex),
+    };
+
+    return snapshot;
+}
+
+public static int GetSpecialAncientOverrideMask(int targetActIndex)
+{
+    int mask = 0;
+
+    if (IsSpecialAncientOverrideEnabled(NeowAncientId, targetActIndex))
+        mask |= 1 << 0;
+
+    if (IsSpecialAncientOverrideEnabled(DarvAncientId, targetActIndex))
+        mask |= 1 << 1;
+
+    return mask;
+}
+
+public static IReadOnlyDictionary<string, bool> GetSpecialAncientOverridesFromMask(int targetActIndex, int mask)
+{
+    Dictionary<string, bool> snapshot = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [NeowAncientId] = (mask & (1 << 0)) != 0,
+        [DarvAncientId] = (mask & (1 << 1)) != 0,
+    };
+
+    return snapshot;
+}
+
+public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string, bool>? overrides)
+{
+    if (overrides == null || overrides.Count == 0)
+        return "(none)";
+
+    List<string> enabledAncients = new();
+
+    if (overrides.TryGetValue(NeowAncientId, out bool neowEnabled) && neowEnabled)
+        enabledAncients.Add(NeowAncientId);
+
+    if (overrides.TryGetValue(DarvAncientId, out bool darvEnabled) && darvEnabled)
+        enabledAncients.Add(DarvAncientId);
+
+    return enabledAncients.Count == 0 ? "(none)" : string.Join(", ", enabledAncients);
+}
+
 
     public static void RefreshFromModConfig()
     {
@@ -273,6 +425,7 @@ internal static class ChooseTheAncientConfig
         }
 
         RefreshAncientPoolSourceActsFromModConfig();
+        RefreshSpecialAncientOverridesFromModConfig();
 
         if (ModConfigBridge.IsAvailable)
         {
@@ -301,7 +454,9 @@ internal static class ChooseTheAncientConfig
             $"AncientCount={AncientCount}, GameMode={GameMode}, " +
             $"Act1Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(0))}, " +
             $"Act2Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(1))}, " +
-            $"Act3Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(2))}.");
+            $"Act3Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(2))}, " +
+            $"NeowOverrides={DescribeSpecialAncientOverrides(NeowAncientId)}, " +
+            $"DarvOverrides={DescribeSpecialAncientOverrides(DarvAncientId)}.");
     }
 
     public static void ApplyAncientCount(object value)
@@ -516,6 +671,28 @@ internal static class ChooseTheAncientConfig
             ModLog.Info(
                 $"{GetAncientPoolTargetActLabel(targetActIndex)} sources after refresh: " +
                 $"{DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(targetActIndex))}");
+        }
+    }
+
+    private static void RefreshSpecialAncientOverridesFromModConfig()
+    {
+        foreach ((string ancientId, bool[] actFlags) in SpecialAncientOverridesByTargetAct)
+        {
+            bool[] defaults = GetDefaultSpecialAncientOverridesForAncient(ancientId);
+
+            for (int targetActIndex = 0; targetActIndex < actFlags.Length; targetActIndex++)
+            {
+                string key = GetSpecialAncientOverrideConfigKey(ancientId, targetActIndex);
+                bool fallback = targetActIndex < defaults.Length && defaults[targetActIndex];
+                bool loaded = ModConfigBridge.GetValue(key, fallback);
+                actFlags[targetActIndex] = loaded;
+
+                ModLog.Info(
+                    $"Loaded ModConfig key '{key}' = {loaded} for {GetSpecialAncientOverrideHeaderLabel(ancientId)}.");
+            }
+
+            ModLog.Info(
+                $"{GetSpecialAncientOverrideHeaderLabel(ancientId)} after refresh: {DescribeSpecialAncientOverrides(ancientId)}");
         }
     }
 

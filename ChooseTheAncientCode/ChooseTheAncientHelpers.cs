@@ -85,9 +85,26 @@ public static class ChooseTheAncientHelpers
         ActModel act,
         RunState runState,
         int targetActIndex,
-        IReadOnlyList<int>? enabledSourceActsOverride = null)
+        IReadOnlyList<int>? enabledSourceActsOverride = null,
+        IReadOnlyDictionary<string, bool>? specialAncientOverridesOverride = null)
     {
-        List<AncientEventModel> defaultPool = BuildDefaultCandidatePool(act, runState);
+        ChooseTheAncientConfig.RefreshFromModConfig();
+
+        IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides = specialAncientOverridesOverride
+            ?? ChooseTheAncientConfig.GetSpecialAncientOverridesSnapshot(targetActIndex);
+
+        ModLog.Debug(
+            $"BuildCandidatePool start: targetActIndex={targetActIndex + 1}, " +
+            $"targetAct={act.Id.Entry}, currentActIndex={runState.CurrentActIndex + 1}, " +
+            $"enabledSourceActsOverride={(enabledSourceActsOverride == null ? "<null>" : ChooseTheAncientConfig.DescribeAncientPoolSourceActs(enabledSourceActsOverride))}, " +
+            $"localSourceActs={ChooseTheAncientConfig.DescribeAncientPoolSourceActs(ChooseTheAncientConfig.GetEnabledAncientPoolSourceActs(targetActIndex))}, " +
+            $"effectiveSpecialAncientOverrides={ChooseTheAncientConfig.DescribeSpecialAncientOverrides(effectiveSpecialAncientOverrides)}");
+
+        List<AncientEventModel> defaultPool = BuildDefaultCandidatePool(
+            act,
+            runState,
+            targetActIndex,
+            effectiveSpecialAncientOverrides);
 
         if (!ChooseTheAncientConfig.HasAncientPoolSourceActConfig(targetActIndex))
         {
@@ -116,7 +133,8 @@ public static class ChooseTheAncientHelpers
             act,
             runState,
             targetActIndex,
-            enabledSourceActs);
+            enabledSourceActs,
+            effectiveSpecialAncientOverrides);
 
         if (filteredPool.Count == 0)
         {
@@ -134,16 +152,36 @@ public static class ChooseTheAncientHelpers
         return filteredPool;
     }
 
-    private static List<AncientEventModel> BuildDefaultCandidatePool(ActModel targetAct, RunState runState)
+    private static List<AncientEventModel> BuildDefaultCandidatePool(
+        ActModel targetAct,
+        RunState runState,
+        int targetActIndex,
+        IReadOnlyDictionary<string, bool> specialAncientOverrides)
     {
+        List<AncientEventModel> targetActUnlockedAncients = targetAct
+            .GetUnlockedAncients(runState.UnlockState)
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        LogPool($"Act {targetActIndex + 1} unlocked ancients from target act {targetAct.Id.Entry}", targetActUnlockedAncients);
+
         List<AncientEventModel> sharedSubset = GetSharedAncientsValidForTargetAct(targetAct, runState);
 
-        List<AncientEventModel> defaultPool = targetAct
-            .GetUnlockedAncients(runState.UnlockState)
+        List<AncientEventModel> defaultPool = targetActUnlockedAncients
             .Concat(sharedSubset)
             .DistinctBy(a => a.Id)
             .OrderBy(a => a.Id.Entry)
             .ToList();
+
+        LogPool($"Act {targetActIndex + 1} default pool before special overrides for target {targetAct.Id.Entry}", defaultPool);
+
+        defaultPool = ApplySpecialAncientOverrides(
+            targetAct,
+            runState,
+            targetActIndex,
+            defaultPool,
+            specialAncientOverrides);
 
         LogPool($"Act {runState.CurrentActIndex + 1} default pool for target {targetAct.Id.Entry}", defaultPool);
         return defaultPool;
@@ -153,7 +191,8 @@ public static class ChooseTheAncientHelpers
         ActModel targetAct,
         RunState runState,
         int targetActIndex,
-        IReadOnlyList<int> enabledSourceActs)
+        IReadOnlyList<int> enabledSourceActs,
+        IReadOnlyDictionary<string, bool> specialAncientOverrides)
     {
         List<AncientEventModel> configuredPool = new();
 
@@ -168,8 +207,17 @@ public static class ChooseTheAncientHelpers
             }
 
             ActModel sourceAct = runState.Acts[sourceActIndex];
-            List<AncientEventModel> sourceActAncients = sourceAct
+            List<AncientEventModel> rawSourceActAncients = sourceAct
                 .GetUnlockedAncients(runState.UnlockState)
+                .DistinctBy(ancient => ancient.Id)
+                .OrderBy(ancient => ancient.Id.Entry)
+                .ToList();
+
+            LogPool(
+                $"Act {targetActIndex + 1} raw source act {sourceActIndex + 1} unlocked ancients",
+                rawSourceActAncients);
+
+            List<AncientEventModel> sourceActAncients = rawSourceActAncients
                 .Where(ancient => IsAncientValidForAct(ancient, targetAct))
                 .ToList();
 
@@ -187,6 +235,15 @@ public static class ChooseTheAncientHelpers
             .OrderBy(a => a.Id.Entry)
             .ToList();
 
+        LogPool($"Act {targetActIndex + 1} combined configured pool before special overrides", distinctPool);
+
+        distinctPool = ApplySpecialAncientOverrides(
+            targetAct,
+            runState,
+            targetActIndex,
+            distinctPool,
+            specialAncientOverrides);
+
         LogPool($"Act {targetActIndex + 1} combined configured pool before limiting", distinctPool);
         return distinctPool;
     }
@@ -196,7 +253,14 @@ public static class ChooseTheAncientHelpers
         if (!runState.UnlockState.SharedAncients.Any())
             ModLog.Debug("runState.UnlockState.SharedAncients is empty");
 
-        List<AncientEventModel> sharedSubset = runState.UnlockState.SharedAncients
+        List<AncientEventModel> allSharedAncients = runState.UnlockState.SharedAncients
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        LogPool($"All shared ancients before validity filtering for {targetAct.Id.Entry}", allSharedAncients);
+
+        List<AncientEventModel> sharedSubset = allSharedAncients
             .Where(ancient => IsAncientValidForAct(ancient, targetAct))
             .ToList();
 
@@ -209,6 +273,157 @@ public static class ChooseTheAncientHelpers
         return sharedSubset;
     }
     
+    private static List<AncientEventModel> ApplySpecialAncientOverrides(
+        ActModel targetAct,
+        RunState runState,
+        int targetActIndex,
+        IEnumerable<AncientEventModel> pool,
+        IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    {
+        List<AncientEventModel> adjustedPool = pool
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        LogPool($"Act {targetActIndex + 1} pool entering special overrides", adjustedPool);
+        ModLog.Debug(
+            $"Act {targetActIndex + 1} special override states before application: " +
+            $"NEOW={ResolveSpecialAncientOverrideValue(specialAncientOverrides, "NEOW")}, " +
+            $"DARV={ResolveSpecialAncientOverrideValue(specialAncientOverrides, "DARV")}");
+
+        adjustedPool = ApplySpecialAncientOverride(
+            targetAct,
+            runState,
+            targetActIndex,
+            adjustedPool,
+            "NEOW",
+            IsNeowAncient,
+            specialAncientOverrides);
+        adjustedPool = ApplySpecialAncientOverride(
+            targetAct,
+            runState,
+            targetActIndex,
+            adjustedPool,
+            "DARV",
+            IsDarvAncient,
+            specialAncientOverrides);
+
+        LogPool($"Act {targetActIndex + 1} pool after special overrides", adjustedPool);
+        return adjustedPool;
+    }
+
+    private static List<AncientEventModel> ApplySpecialAncientOverride(
+        ActModel targetAct,
+        RunState runState,
+        int targetActIndex,
+        List<AncientEventModel> pool,
+        string ancientId,
+        Func<AncientEventModel, bool> matcher,
+        IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    {
+        bool shouldInclude = ResolveSpecialAncientOverrideValue(specialAncientOverrides, ancientId);
+        bool isPresent = pool.Any(matcher);
+
+        ModLog.Debug(
+            $"Evaluating special override for {ancientId} in Act {targetActIndex + 1}: " +
+            $"shouldInclude={shouldInclude}, presentBefore={isPresent}, poolBefore={DescribeAncients(pool)}");
+
+        if (!shouldInclude)
+        {
+            if (isPresent)
+            {
+                pool = pool.Where(ancient => !matcher(ancient)).ToList();
+                ModLog.Info($"Removed {ancientId} from the Act {targetActIndex + 1} CTA pool due to the special override toggle.");
+                LogPool($"Act {targetActIndex + 1} pool after removing {ancientId}", pool);
+            }
+            else
+            {
+                ModLog.Debug($"No removal needed for {ancientId} in Act {targetActIndex + 1}; it was already absent.");
+            }
+
+            return pool;
+        }
+
+        if (isPresent)
+        {
+            ModLog.Debug($"{ancientId} was already present in the Act {targetActIndex + 1} CTA pool. No addition needed.");
+            return pool;
+        }
+
+        AncientEventModel? ancientToAdd = TryFindAncientForOverride(runState, targetAct, ancientId, matcher);
+        if (ancientToAdd == null)
+        {
+            ModLog.Warn($"Could not find {ancientId} while applying the Act {targetActIndex + 1} special override.");
+            return pool;
+        }
+
+        pool.Add(ancientToAdd);
+        pool = pool
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        ModLog.Info($"Added {ancientId} to the Act {targetActIndex + 1} CTA pool due to the special override toggle.");
+        LogPool($"Act {targetActIndex + 1} pool after adding {ancientId}", pool);
+        return pool;
+    }
+
+
+private static bool ResolveSpecialAncientOverrideValue(
+    IReadOnlyDictionary<string, bool> specialAncientOverrides,
+    string ancientId)
+{
+    return specialAncientOverrides.TryGetValue(ancientId, out bool enabled) && enabled;
+}
+
+    private static AncientEventModel? TryFindAncientForOverride(
+        RunState runState,
+        ActModel targetAct,
+        string ancientId,
+        Func<AncientEventModel, bool> matcher)
+    {
+        List<AncientEventModel> allKnownAncients = EnumerateAllKnownAncients(runState)
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        LogPool($"All known ancients while resolving the {ancientId} special override for {targetAct.Id.Entry}", allKnownAncients);
+
+        AncientEventModel? validMatch = allKnownAncients
+            .FirstOrDefault(ancient => matcher(ancient) && IsAncientValidForAct(ancient, targetAct));
+        if (validMatch != null)
+        {
+            ModLog.Debug($"Resolved {ancientId} special override with valid target-act match {validMatch.Id.Entry} for {targetAct.Id.Entry}.");
+            return validMatch;
+        }
+
+        AncientEventModel? anyMatch = allKnownAncients.FirstOrDefault(matcher);
+        if (anyMatch != null)
+        {
+            ModLog.Warn(
+                $"Adding {ancientId} to the CTA pool even though IsValidForAct returned false for target act {targetAct.Id.Entry}, " +
+                "because the special override toggle is enabled.");
+        }
+        else
+        {
+            ModLog.Warn($"Could not find any known ancient matching {ancientId} while resolving the special override.");
+        }
+
+        return anyMatch;
+    }
+
+    private static IEnumerable<AncientEventModel> EnumerateAllKnownAncients(RunState runState)
+    {
+        foreach (AncientEventModel sharedAncient in runState.UnlockState.SharedAncients)
+            yield return sharedAncient;
+
+        foreach (ActModel act in runState.Acts)
+        {
+            foreach (AncientEventModel actAncient in act.GetUnlockedAncients(runState.UnlockState))
+                yield return actAncient;
+        }
+    }
+
     public static List<AncientEventModel> LimitCandidatePoolForVote(
         RunState runState,
         int nextActIndex,
@@ -218,8 +433,13 @@ public static class ChooseTheAncientHelpers
          * Takes runstate, and act index, and available ancients, and number of ancients to return
          * Returns the list of ancients that will be used be the ancient ban selection screen
          */
+        ModLog.Debug(
+            $"LimitCandidatePoolForVote start for act {nextActIndex + 1}: requestedCount={ancientCount}, poolCount={pool.Count}, pool={DescribeAncients(pool)}");
+
         if (pool.Count <= ancientCount)
         {
+            ModLog.Debug(
+                $"Skipping ballot limiting for act {nextActIndex + 1} because poolCount={pool.Count} <= requestedCount={ancientCount}.");
             return pool;
         }
 
@@ -231,6 +451,8 @@ public static class ChooseTheAncientHelpers
         List<AncientEventModel> shuffled = pool.ToList();
         var rng = CreateDisplayedPoolRng(runState, nextActIndex);
         rng.Shuffle(shuffled);
+
+        LogPool($"Act {nextActIndex + 1} shuffled ballot pool", shuffled);
 
         List<AncientEventModel> limited = shuffled
             .Take(ancientCount)
@@ -254,6 +476,70 @@ public static class ChooseTheAncientHelpers
         rooms.Ancient = chosenAncient;
     }
 
+
+    public static AncientEventModel GetChosenAncient(ActModel act)
+    {
+        RoomSet? rooms = Traverse.Create(act)
+            .Field("_rooms")
+            .GetValue<RoomSet>();
+
+        if (rooms?.Ancient == null)
+        {
+            throw new InvalidOperationException("Could not get the act's current ancient.");
+        }
+
+        return rooms.Ancient;
+    }
+
+    public static AncientEventModel ResolveVanillaAct1FallbackAncient(ActModel act, RunState runState)
+    {
+        try
+        {
+            AncientEventModel currentAncient = GetChosenAncient(act);
+            if (currentAncient != null)
+            {
+                ModLog.Info($"Resolved Act 1 vanilla fallback ancient from the act's current ancient: {currentAncient.Id.Entry}");
+                return currentAncient;
+            }
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Could not read the act's current ancient while resolving the Act 1 vanilla fallback: {ex.GetType().Name}");
+        }
+
+        AncientEventModel? unlockedNeow = act
+            .GetUnlockedAncients(runState.UnlockState)
+            .FirstOrDefault(IsNeowAncient);
+
+        if (unlockedNeow != null)
+        {
+            ModLog.Info($"Resolved Act 1 vanilla fallback ancient from the target act's unlocked ancients: {unlockedNeow.Id.Entry}");
+            return unlockedNeow;
+        }
+
+        AncientEventModel? sharedNeow = runState.UnlockState.SharedAncients
+            .FirstOrDefault(IsNeowAncient);
+
+        if (sharedNeow != null)
+        {
+            ModLog.Info($"Resolved Act 1 vanilla fallback ancient from shared ancients: {sharedNeow.Id.Entry}");
+            return sharedNeow;
+        }
+
+        AncientEventModel? firstUnlocked = act
+            .GetUnlockedAncients(runState.UnlockState)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .FirstOrDefault();
+
+        if (firstUnlocked != null)
+        {
+            ModLog.Warn($"Resolved Act 1 vanilla fallback ancient from the first unlocked target-act ancient: {firstUnlocked.Id.Entry}");
+            return firstUnlocked;
+        }
+
+        ModLog.Warn("Resolved Act 1 vanilla fallback ancient from ModelDb.AncientEvent<Neow>().");
+        return ModelDb.AncientEvent<Neow>();
+    }
 
     public static void ForceAct1AncientStart(RunState runState)
     {
@@ -330,7 +616,14 @@ public static class ChooseTheAncientHelpers
     public static bool IsNeowAncient(AncientEventModel ancient)
     {
         return ancient is Neow
-               || string.Equals(ancient.Id.Entry, nameof(Neow), StringComparison.OrdinalIgnoreCase);
+               || string.Equals(ancient.Id.Entry, nameof(Neow), StringComparison.OrdinalIgnoreCase)
+               || string.Equals(ancient.Id.Entry, "NEOW", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsDarvAncient(AncientEventModel ancient)
+    {
+        return string.Equals(ancient.Id.Entry, "DARV", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(ancient.GetType().Name, "Darv", StringComparison.OrdinalIgnoreCase);
     }
 
     public static Rng CreateDisplayedPoolRng(RunState runState, int nextActIndex)

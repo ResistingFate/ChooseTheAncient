@@ -36,13 +36,19 @@ internal static class ModConfigBridge
     // Deferring to the next frame ensures ModConfig is ready.
 
     private static int _deferredFramesRemaining;
+    private static bool _waitingForDeferredRegister;
 
     internal static void DeferredRegister()
     {
+        if (_registered || _waitingForDeferredRegister)
+        {
+            return;
+        }
+
+        _waitingForDeferredRegister = true;
         _deferredFramesRemaining = 2;
         var tree = (SceneTree)Engine.GetMainLoop();
         ModLog.Info("Scheduling deferred ModConfig registration for ChooseTheAncient.");
-
         tree.ProcessFrame += OnNextFrame;
     }
 
@@ -57,14 +63,8 @@ internal static class ModConfigBridge
             return;
         }
 
-        try
-        {
-            tree.ProcessFrame -= OnNextFrame;
-        }
-        catch (Exception e)
-        {
-            ModLog.Debug($"Ignoring ProcessFrame disconnect after ModConfig registration wait: {e.Message}");
-        }
+        tree.ProcessFrame -= OnNextFrame;
+        _waitingForDeferredRegister = false;
 
         Detect();
         if (_available)
@@ -282,6 +282,9 @@ internal static class ModConfigBridge
             Set(cfg, "Type", EnumVal("Separator"));
         }));
 
+        AddSpecialAncientOverrideEntryGroup(list, "NEOW");
+        AddSpecialAncientOverrideEntryGroup(list, "DARV");
+
         list.Add(Entry(cfg =>
         {
             Set(cfg, "Label", "Ancient Pool Sources");
@@ -291,6 +294,11 @@ internal static class ModConfigBridge
         AddAncientPoolSourceEntryGroup(list, targetActIndex: 0);
         AddAncientPoolSourceEntryGroup(list, targetActIndex: 1);
         AddAncientPoolSourceEntryGroup(list, targetActIndex: 2);
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Type", EnumVal("Separator"));
+        }));
 
         list.Add(Entry(cfg =>
         {
@@ -398,6 +406,46 @@ internal static class ModConfigBridge
                     ModLog.Info(
                         $"{ChooseTheAncientConfig.GetAncientPoolTargetActLabel(capturedTargetActIndex)} / " +
                         $"{ChooseTheAncientConfig.GetAncientPoolSourceActLabel(capturedSourceActIndex)} changed to {v}");
+                }));
+            }));
+        }
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Type", EnumVal("Separator"));
+        }));
+    }
+
+    private static void AddSpecialAncientOverrideEntryGroup(List<object> list, string ancientId)
+    {
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Label", ChooseTheAncientConfig.GetSpecialAncientOverrideHeaderLabel(ancientId));
+            Set(cfg, "Type", EnumVal("Header"));
+        }));
+
+        for (int targetActIndex = 0; targetActIndex < 3; targetActIndex++)
+        {
+            int capturedTargetActIndex = targetActIndex;
+            string capturedAncientId = ancientId;
+
+            list.Add(Entry(cfg =>
+            {
+                string key = ChooseTheAncientConfig.GetSpecialAncientOverrideConfigKey(capturedAncientId, capturedTargetActIndex);
+                bool defaultValue = ChooseTheAncientConfig.GetDefaultSpecialAncientOverrideEnabled(capturedAncientId, capturedTargetActIndex);
+
+                Set(cfg, "Key", key);
+                Set(cfg, "Label", ChooseTheAncientConfig.GetSpecialAncientOverrideToggleLabel(capturedTargetActIndex));
+                Set(cfg, "Type", EnumVal("Toggle"));
+                Set(cfg, "DefaultValue", (object)defaultValue);
+                Set(cfg, "Description",
+                    $"Override whether {ChooseTheAncientConfig.GetSpecialAncientOverrideHeaderLabel(capturedAncientId).Replace(" Overrides", string.Empty)} should appear in the Act {capturedTargetActIndex + 1} Choose The Ancient selection.");
+
+                Set(cfg, "OnChanged", new Action<object>(v =>
+                {
+                    ChooseTheAncientConfig.ApplySpecialAncientOverrideToggle(capturedAncientId, capturedTargetActIndex, v);
+                    ModLog.Info(
+                        $"{ChooseTheAncientConfig.GetSpecialAncientOverrideHeaderLabel(capturedAncientId)} / Act {capturedTargetActIndex + 1} changed to {v}");
                 }));
             }));
         }

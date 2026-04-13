@@ -435,6 +435,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private int? _selectedPoolIndex;
     private bool _resolved;
     private bool _closing;
+    private bool _suppressAutoResolveVisibility;
     private bool _uiReady;
     private bool _hasLoadedRound;
     private Player? _localPlayer;
@@ -522,23 +523,27 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         return screen;
     }
 
-    public static async Task<ChooseTheAncientSelectionScreen> ShowWhenOverlayReadyAsync(
+    public static async Task WaitForOverlayReadyWithoutInteractionAsync(
         int nextActIndex,
-        IReadOnlyList<Player> orderedPlayers)
+        IReadOnlyList<Player> orderedPlayers,
+        int extraFrames = 2)
     {
-        SceneTree? tree = Engine.GetMainLoop() as SceneTree;
-        if (tree == null)
-            throw new InvalidOperationException("SceneTree was unavailable during screen show.");
+        /*
+         * Pushes a hidden CTA screen through the same overlay path used by the working multi-option flow,
+         * waits until it is ready and the overlay has settled, then closes it without running any vote round.
+         */
+        ChooseTheAncientSelectionScreen screen = Show(nextActIndex, orderedPlayers);
+        screen._suppressAutoResolveVisibility = true;
 
-        for (int i = 0; i < 180 && NOverlayStack.Instance == null; i++)
+        try
         {
-            await tree.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+            await screen._readyCompletion.Task;
+            await ChooseTheAncientHelpers.WaitForProcessFramesAsync(Math.Max(1, extraFrames));
         }
-
-        if (NOverlayStack.Instance == null)
-            throw new InvalidOperationException("NOverlayStack.Instance was null during screen show.");
-
-        return Show(nextActIndex, orderedPlayers);
+        finally
+        {
+            screen.CloseScreen();
+        }
     }
 
     public void Initialize(int nextActIndex, IReadOnlyList<Player> orderedPlayers)
@@ -825,6 +830,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Makes the screen visible and restores initial focus after the overlay opens.
          */
+        if (_suppressAutoResolveVisibility)
+        {
+            Visible = false;
+            RestoreRemoteCursors();
+            return;
+        }
+
         Visible = true;
         RaiseRemoteCursors();
         GrabInitialFocus();
@@ -843,6 +855,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Makes the screen visible and restores focus when the overlay becomes shown again.
          */
+        if (_suppressAutoResolveVisibility)
+        {
+            Visible = false;
+            RestoreRemoteCursors();
+            return;
+        }
+
         Visible = true;
         RaiseRemoteCursors();
         GrabInitialFocus();

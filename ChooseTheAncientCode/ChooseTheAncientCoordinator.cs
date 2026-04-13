@@ -49,134 +49,237 @@ public static class ChooseTheAncientCoordinator
         await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
     }
 
-    public static async Task RunAct1StartingRoomFlowAsync(
-        RunState runState,
-        ChooseTheAncientFlowState flow)
+
+
+
+
+public static async Task RunAct1StartingRoomFlowAsync(
+    RunState runState,
+    ChooseTheAncientFlowState flow)
+{
+    ChooseTheAncientSelectionScreen? localScreen = null;
+
+    try
     {
-        ChooseTheAncientSelectionScreen? localScreen = null;
-
-        try
+        if (!ChooseTheAncientHelpers.IsAct1StartingMapPoint(runState))
         {
-            if (!ChooseTheAncientHelpers.IsAct1StartingMapPoint(runState))
-            {
-                ModLog.Debug("Act 1 starting-room flow aborted because the player was no longer at the starting map point.");
-                return;
-            }
+            ModLog.Debug("Act 1 starting-room flow aborted because the player was no longer at the starting map point.");
+            return;
+        }
 
-            if (runState.CurrentRoom is not ChooseTheAncientStartRoom)
-            {
-                ModLog.Warn("Act 1 starting-room flow expected the current room to be the ChooseTheAncient custom shell room.");
-                return;
-            }
+        if (runState.CurrentRoom is not ChooseTheAncientStartRoom)
+        {
+            ModLog.Warn("Act 1 starting-room flow expected the current room to be the ChooseTheAncient custom shell room.");
+            return;
+        }
 
-            List<Player> orderedPlayers = runState.Players
-                .OrderBy(runState.GetPlayerSlotIndex)
-                .ToList();
+        ChooseTheAncientConfig.RefreshFromModConfig();
 
-            int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
-            ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
-            IReadOnlyList<int>? effectiveAncientPoolSourceActs =
-                await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0);
+        List<Player> orderedPlayers = runState.Players
+            .OrderBy(runState.GetPlayerSlotIndex)
+            .ToList();
 
-            ActModel firstAct = runState.Acts[0];
-            List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
-                firstAct,
-                runState,
-                targetActIndex: 0,
-                enabledSourceActsOverride: effectiveAncientPoolSourceActs);
+        int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
+        ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
+        IReadOnlyList<int>? effectiveAncientPoolSourceActs =
+            await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0);
+        IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
+            await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, targetActIndex: 0);
 
-            pool = ChooseTheAncientHelpers.PreferNonNeowAncientsForActOne(pool);
-            pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, 0, pool, ancientCount);
-            pool = ChooseTheAncientHelpers.PreferNonNeowAncientsForActOne(pool);
+        ModLog.Info(
+            "Act 1 starting-room flow effective settings: " +
+            $"AncientCount={ancientCount}, GameMode={gameMode}, " +
+            $"SourceActs={ChooseTheAncientConfig.DescribeAncientPoolSourceActs(effectiveAncientPoolSourceActs ?? Array.Empty<int>())}, " +
+            $"SpecialAncients={ChooseTheAncientConfig.DescribeSpecialAncientOverrides(effectiveSpecialAncientOverrides)}.");
 
-            if (pool.Count == 0)
-            {
-                ModLog.Warn("Act 1 starting ancient ballot is empty in the starting-room flow. Leaving the vanilla starting room in place.");
-                flow.ResolvedActs.Add(0);
-                return;
-            }
+        ActModel firstAct = runState.Acts[0];
+        List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
+            firstAct,
+            runState,
+            targetActIndex: 0,
+            enabledSourceActsOverride: effectiveAncientPoolSourceActs,
+            specialAncientOverridesOverride: effectiveSpecialAncientOverrides);
 
-            ChooseTheAncientHelpers.LogPool("Act 1 starting-room ballot", pool);
-            ModLog.Info($"Using game mode {gameMode} for the Act 1 starting-room flow.");
+        pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, 0, pool, ancientCount);
 
-            AncientEventModel chosen;
-            if (pool.Count == 1)
-            {
-                chosen = pool[0];
-                ModLog.Info($"Only one starting ancient is available for Act 1: {chosen.Id.Entry}");
-            }
-            else
-            {
-                Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
-                if (localPlayer != null)
-                {
-                    ModLog.Info("Warming Act 1 ancient ballot visuals before opening the starting-room selection screen.");
-                    await ChooseTheAncientHelpers.WarmAncientVisualAssetsAsync(pool);
-                    await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
-                }
+        if (pool.Count == 0)
+        {
+            AncientEventModel vanillaAncient = ChooseTheAncientHelpers.ResolveVanillaAct1FallbackAncient(firstAct, runState);
+            ModLog.Warn(
+                $"Act 1 starting ancient ballot is empty in the starting-room flow. Falling back to vanilla ancient {vanillaAncient.Id.Entry}.");
 
-                (chosen, localScreen) = await RunAncientSelectionBallotAsync(
-                    runState,
-                    0,
-                    orderedPlayers,
-                    pool,
-                    gameMode);
-            }
+            await WaitForAct1AutoResolveUiReadyAsync(
+                orderedPlayers,
+                vanillaAncient,
+                "empty Act 1 ballot fallback");
 
-            ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
-            ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
-
+            ChooseTheAncientHelpers.SetChosenAncient(firstAct, vanillaAncient);
             await RunModifierBootstrapAsync(orderedPlayers);
             flow.ModifierBootstrapCompleted = true;
-
             flow.ResolvedActs.Add(0);
-
-            ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, chosen);
-
-            localScreen?.CloseScreen();
-            localScreen = null;
-
-            await TransitionToAncientRoomAsync(chosen);
-
-            ModLog.Info($"Act 1 starting-room flow transitioned into chosen ancient {chosen.Id.Entry}.");
-        }
-        catch (OperationCanceledException ex)
-        {
-            ModLog.Warn(
-                $"Act 1 starting-room flow canceled: {ex.GetType().Name}. " +
-                "Leaving the current starting room in place.");
-        }
-        catch (Exception ex)
-        {
-            ModLog.Error($"Act 1 starting-room flow failed: {ex}");
-        }
-        finally
-        {
-            localScreen?.CloseScreen();
-            flow.FlowInProgress = false;
-            if (!flow.ResolvedActs.Contains(0))
-            {
-                flow.Act1StartingRoomFlowTriggered = false;
-            }
+            ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, vanillaAncient);
+            DispatchAncientRoomTransition(vanillaAncient, "empty Act 1 ballot fallback");
             ModLog.Info(
-                $"Act 1 starting-room flow cleanup. " +
-                $"InProgress={flow.FlowInProgress}, Triggered={flow.Act1StartingRoomFlowTriggered}, " +
-                $"ModifierBootstrapCompleted={flow.ModifierBootstrapCompleted}");
+                $"Act 1 starting-room flow dispatched the vanilla fallback ancient room transition for {vanillaAncient.Id.Entry}.");
+            return;
         }
+
+        ChooseTheAncientHelpers.LogPool("Act 1 starting-room ballot", pool);
+        ModLog.Info($"Using game mode {gameMode} for the Act 1 starting-room flow.");
+
+        AncientEventModel chosen;
+        if (pool.Count == 1)
+        {
+            chosen = pool[0];
+            ModLog.Info(
+                $"Only one starting ancient is available for Act 1: {chosen.Id.Entry}. " +
+                "Skipping the Act 1 selection screen and applying the choice directly.");
+
+            await WaitForAct1AutoResolveUiReadyAsync(
+                orderedPlayers,
+                chosen,
+                "single-option Act 1 ballot");
+        }
+        else
+        {
+            Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+            if (localPlayer != null)
+            {
+                ModLog.Info("Warming Act 1 ancient ballot visuals before opening the starting-room selection screen.");
+                await ChooseTheAncientHelpers.WarmAncientVisualAssetsAsync(pool);
+                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+            }
+
+            (chosen, localScreen) = await RunAncientSelectionBallotAsync(
+                runState,
+                0,
+                orderedPlayers,
+                pool,
+                gameMode);
+        }
+
+        ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
+        ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
+
+        await RunModifierBootstrapAsync(orderedPlayers);
+        flow.ModifierBootstrapCompleted = true;
+
+        flow.ResolvedActs.Add(0);
+
+        ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, chosen);
+
+        localScreen?.CloseScreen();
+        localScreen = null;
+
+        DispatchAncientRoomTransition(chosen, "Act 1 choice resolved");
+        ModLog.Info($"Act 1 starting-room flow dispatched the chosen ancient room transition for {chosen.Id.Entry}.");
+    }
+    catch (OperationCanceledException ex)
+    {
+        ModLog.Warn(
+            $"Act 1 starting-room flow canceled: {ex.GetType().Name}. " +
+            "Leaving the current starting room in place.");
+    }
+    catch (Exception ex)
+    {
+        ModLog.Error($"Act 1 starting-room flow failed: {ex}");
+    }
+    finally
+    {
+        localScreen?.CloseScreen();
+        flow.FlowInProgress = false;
+        if (!flow.ResolvedActs.Contains(0))
+        {
+            flow.Act1StartingRoomFlowTriggered = false;
+        }
+        ModLog.Info(
+            $"Act 1 starting-room flow cleanup. " +
+            $"InProgress={flow.FlowInProgress}, Triggered={flow.Act1StartingRoomFlowTriggered}, " +
+            $"ModifierBootstrapCompleted={flow.ModifierBootstrapCompleted}");
+    }
+}
+
+
+private static async Task WaitForAct1AutoResolveUiReadyAsync(
+    IReadOnlyList<Player> orderedPlayers,
+    AncientEventModel chosenAncient,
+    string reason)
+{
+    Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+    if (localPlayer == null)
+    {
+        ModLog.Debug(
+            $"Act 1 auto-resolve UI wait skipped for {chosenAncient.Id.Entry} because there is no local selecting player. " +
+            $"Reason={reason}");
+        return;
     }
 
-    private static async Task TransitionToAncientRoomAsync(AncientEventModel chosenAncient)
+    ModLog.Info(
+        $"Waiting for the Act 1 CTA overlay-ready path before auto-resolving {chosenAncient.Id.Entry}. " +
+        $"Reason={reason}");
+
+    await ChooseTheAncientSelectionScreen.WaitForOverlayReadyWithoutInteractionAsync(
+        nextActIndex: 0,
+        orderedPlayers,
+        extraFrames: 2);
+
+    ModLog.Info(
+        $"Act 1 CTA overlay-ready wait completed before auto-resolving {chosenAncient.Id.Entry}. " +
+        $"Reason={reason}");
+}
+
+private static void DispatchAncientRoomTransition(AncientEventModel chosenAncient, string reason)
+{
+    ModLog.Info(
+        $"Dispatching Act 1 ancient room transition for {chosenAncient.Id.Entry}. Reason={reason}");
+
+    _ = TransitionToAncientRoomAsync(chosenAncient);
+}
+
+private static async Task TransitionToAncientRoomAsync(AncientEventModel chosenAncient)
+{
+    try
     {
         RunManager runManager = RunManager.Instance;
+        RunState? runState = ChooseTheAncientHelpers.GetRunState(runManager);
+        bool isShellRoomTransition = runState?.CurrentRoom is ChooseTheAncientStartRoom;
+
+        ModLog.Info(
+            $"Beginning Act 1 ancient room transition for {chosenAncient.Id.Entry}. " +
+            $"ShellRoomTransition={isShellRoomTransition}.");
+
+        if (isShellRoomTransition)
+        {
+            ModLog.Debug(
+                "Bypassing normal room exit/fade for the ChooseTheAncient start shell room and entering the chosen ancient room without exiting the current room first.");
+
+            ClearScreensMethod.Invoke(runManager, null);
+            await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+
+            ModLog.Info(
+                $"Entering Act 1 chosen ancient room for {chosenAncient.Id.Entry} without exiting the custom shell room first.");
+            await runManager.EnterRoomWithoutExitingCurrentRoom(new EventRoom(chosenAncient), fadeToBlack: false);
+
+            if (runState != null)
+            {
+                ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, chosenAncient);
+            }
+
+            ModLog.Info(
+                $"Completed Act 1 shell-room bypass transition for {chosenAncient.Id.Entry}.");
+            return;
+        }
 
         if (NGame.Instance?.Transition != null)
         {
+            ModLog.Debug("Running Act 1 room fade out before entering the chosen ancient room.");
             await NGame.Instance.Transition.RoomFadeOut();
         }
 
         ClearScreensMethod.Invoke(runManager, null);
         await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
 
+        ModLog.Info($"Entering Act 1 chosen ancient room for {chosenAncient.Id.Entry}.");
         await runManager.EnterRoom(new EventRoom(chosenAncient));
 
         object? fadeInTask = FadeInMethod.Invoke(runManager, new object?[] { true });
@@ -184,7 +287,141 @@ public static class ChooseTheAncientCoordinator
         {
             await task;
         }
+
+        ModLog.Info($"Completed Act 1 ancient room transition for {chosenAncient.Id.Entry}.");
     }
+    catch (OperationCanceledException ex)
+    {
+        ModLog.Warn(
+            $"Act 1 ancient room transition for {chosenAncient.Id.Entry} was canceled: {ex.GetType().Name}.");
+        throw;
+    }
+    catch (Exception ex)
+    {
+        ModLog.Error($"Act 1 ancient room transition for {chosenAncient.Id.Entry} failed: {ex}");
+        throw;
+    }
+}
+
+public static async Task RunAct1BeforeGenerateMapFlowAsync(
+    RunManager runManager,
+    RunState runState,
+    ChooseTheAncientFlowState flow)
+{
+    ChooseTheAncientSelectionScreen? localScreen = null;
+
+    try
+    {
+        ChooseTheAncientConfig.RefreshFromModConfig();
+
+        List<Player> orderedPlayers = runState.Players
+            .OrderBy(runState.GetPlayerSlotIndex)
+            .ToList();
+
+        int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
+        ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
+        IReadOnlyList<int>? effectiveAncientPoolSourceActs =
+            await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0);
+
+        IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
+            await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, targetActIndex: 0);
+
+        ActModel firstAct = runState.Acts[0];
+        List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
+            firstAct,
+            runState,
+            targetActIndex: 0,
+            enabledSourceActsOverride: effectiveAncientPoolSourceActs,
+            specialAncientOverridesOverride: effectiveSpecialAncientOverrides);
+
+        if (ModLog.IsDebugEnabled)
+        {
+            string ancientPool = string.Join(",", pool.Select(ancient => ancient.Id.Entry));
+            ModLog.Debug($"Available starting ancients to draw {ancientCount} from: {ancientPool}");
+        }
+
+        pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, 0, pool, ancientCount);
+
+        ChooseTheAncientHelpers.LogPool("Act 1 initial ballot", pool);
+        ModLog.Info($"Using game mode {gameMode} for act 1.");
+
+        if (pool.Count == 0)
+        {
+            ModLog.Warn("Act 1 starting ancient ballot is empty after filtering. Falling back to vanilla map generation.");
+            flow.ResolvedActs.Add(0);
+            flow.FlowInProgress = false;
+            await runManager.GenerateMap();
+            return;
+        }
+
+        AncientEventModel chosen;
+        if (pool.Count == 1)
+        {
+            chosen = pool[0];
+            ModLog.Info(
+                $"Only one starting ancient is available for Act 1: {chosen.Id.Entry}. " +
+                "Skipping the Act 1 selection screen and applying the choice directly.");
+
+            await WaitForAct1AutoResolveUiReadyAsync(
+                orderedPlayers,
+                chosen,
+                "single-option Act 1 ballot");
+        }
+        else
+        {
+            Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+            if (localPlayer != null)
+            {
+                ModLog.Info("Warming Act 1 ancient ballot visuals before opening the starting selection screen.");
+                await ChooseTheAncientHelpers.WarmAncientVisualAssetsAsync(pool);
+                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+            }
+
+            (chosen, localScreen) = await RunAncientSelectionBallotAsync(
+                runState,
+                0,
+                orderedPlayers,
+                pool,
+                gameMode);
+        }
+
+        ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
+        ChooseTheAncientHelpers.ForceAct1AncientStart(runState);
+        ModLog.Info($"Chosen starting ancient for Act 1: {chosen.Id.Entry}");
+
+        await RunModifierBootstrapAsync(orderedPlayers);
+        flow.ModifierBootstrapCompleted = true;
+
+        flow.ResolvedActs.Add(0);
+        flow.FlowInProgress = false;
+        await runManager.GenerateMap();
+    }
+    catch (OperationCanceledException ex)
+    {
+        ModLog.Warn(
+            $"Act 1 starting ancient flow canceled at GenerateMap seam: {ex.GetType().Name}. " +
+            "Falling back to vanilla map generation.");
+
+        flow.ResolvedActs.Add(0);
+        flow.FlowInProgress = false;
+        await runManager.GenerateMap();
+    }
+    catch (Exception ex)
+    {
+        ModLog.Error($"Act 1 ancient selection flow at GenerateMap seam failed: {ex}");
+        flow.ResolvedActs.Add(0);
+        flow.FlowInProgress = false;
+        await runManager.GenerateMap();
+    }
+    finally
+    {
+        localScreen?.CloseScreen();
+        flow.FlowInProgress = false;
+        ModLog.Info(
+            $"Act 1 GenerateMap flow cleanup. " +
+            $"InProgress={flow.FlowInProgress}, ModifierBootstrapCompleted={flow.ModifierBootstrapCompleted}");
+    }
+}
 
     public static async Task RunAsync(
         RunManager runManager,
@@ -204,13 +441,16 @@ public static class ChooseTheAncientCoordinator
             ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
             IReadOnlyList<int>? effectiveAncientPoolSourceActs =
                 await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, nextActIndex);
+            IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
+                await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, nextActIndex);
 
             ActModel nextAct = runState.Acts[nextActIndex];
             List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
                 nextAct,
                 runState,
                 nextActIndex,
-                effectiveAncientPoolSourceActs);
+                effectiveAncientPoolSourceActs,
+                effectiveSpecialAncientOverrides);
 
             if (ModLog.IsDebugEnabled)
             {
@@ -271,6 +511,131 @@ public static class ChooseTheAncientCoordinator
         }
     }
 
+    
+public static async Task RunAct1MapEntryFlowAsync(
+    RunManager runManager,
+    RunState runState,
+    MapCoord startingCoord,
+    ChooseTheAncientFlowState flow)
+{
+    ChooseTheAncientSelectionScreen? localScreen = null;
+
+    try
+    {
+        ChooseTheAncientConfig.RefreshFromModConfig();
+
+        List<Player> orderedPlayers = runState.Players
+            .OrderBy(runState.GetPlayerSlotIndex)
+            .ToList();
+
+        int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
+        ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
+        IReadOnlyList<int>? effectiveAncientPoolSourceActs =
+            await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0);
+
+        IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
+            await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, targetActIndex: 0);
+
+        ActModel firstAct = runState.Acts[0];
+        List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
+            firstAct,
+            runState,
+            targetActIndex: 0,
+            enabledSourceActsOverride: effectiveAncientPoolSourceActs,
+            specialAncientOverridesOverride: effectiveSpecialAncientOverrides);
+
+        if (ModLog.IsDebugEnabled)
+        {
+            string ancientPool = string.Join(",", pool.Select(ancient => ancient.Id.Entry));
+            ModLog.Debug($"Available starting ancients to draw {ancientCount} from: {ancientPool}");
+        }
+
+        pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, 0, pool, ancientCount);
+
+        ChooseTheAncientHelpers.LogPool("Act 1 starting ancient ballot", pool);
+        ModLog.Info("Using game mode " + gameMode + " for the Act 1 starting ancient selection.");
+
+        if (pool.Count == 0)
+        {
+            ModLog.Warn("Act 1 starting ancient ballot is empty after filtering. Falling back to vanilla starting ancient.");
+            flow.ResolvedActs.Add(0);
+            flow.ContinueEnterMapCoord = true;
+            await runManager.EnterMapCoord(startingCoord);
+            return;
+        }
+
+        AncientEventModel chosen;
+        if (pool.Count == 1)
+        {
+            chosen = pool[0];
+            ModLog.Info(
+                $"Only one starting ancient is available for Act 1: {chosen.Id.Entry}. " +
+                "Skipping the Act 1 selection screen and applying the choice directly.");
+
+            await WaitForAct1AutoResolveUiReadyAsync(
+                orderedPlayers,
+                chosen,
+                "single-option Act 1 ballot");
+        }
+        else
+        {
+            Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+            if (localPlayer != null)
+            {
+                await PrepareAct1SelectionUiAsync(runManager);
+                ModLog.Info("Warming Act 1 ancient ballot visuals before opening the starting selection screen.");
+                await ChooseTheAncientHelpers.WarmAncientVisualAssetsAsync(pool);
+                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+            }
+
+            (chosen, localScreen) = await RunAncientSelectionBallotAsync(
+                runState,
+                0,
+                orderedPlayers,
+                pool,
+                gameMode);
+        }
+
+        ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
+        ChooseTheAncientHelpers.ForceAct1AncientStart(runState);
+
+        ModLog.Info($"Chosen starting ancient for Act 1: {chosen.Id.Entry}");
+
+        await RunModifierBootstrapAsync(orderedPlayers);
+        flow.ModifierBootstrapCompleted = true;
+
+        flow.ResolvedActs.Add(0);
+        flow.ContinueEnterMapCoord = true;
+        await runManager.EnterMapCoord(startingCoord);
+    }
+    catch (OperationCanceledException ex)
+    {
+        ModLog.Warn(
+            $"Act 1 starting ancient flow canceled: {ex.GetType().Name}. " +
+            "Falling back to vanilla starting ancient.");
+
+        flow.ResolvedActs.Add(0);
+        flow.ContinueEnterMapCoord = true;
+        await runManager.EnterMapCoord(startingCoord);
+    }
+    catch (Exception ex)
+    {
+        ModLog.Error($"Act 1 starting ancient flow failed: {ex}");
+        flow.ResolvedActs.Add(0);
+        flow.ContinueEnterMapCoord = true;
+        await runManager.EnterMapCoord(startingCoord);
+    }
+    finally
+    {
+        localScreen?.CloseScreen();
+        flow.FlowInProgress = false;
+        flow.ContinueEnterMapCoord = false;
+        ModLog.Info(
+            $"Act 1 ancient flow cleanup. " +
+            $"InProgress={flow.FlowInProgress}, ContinueMapCoord={flow.ContinueEnterMapCoord}, ModifierBootstrapCompleted={flow.ModifierBootstrapCompleted}");
+    }
+}
+
 private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionScreen? LocalScreen)> RunAncientSelectionBallotAsync(
         RunState runState,
         int targetActIndex,
@@ -278,12 +643,32 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
         List<AncientEventModel> pool,
         ChooseTheAncientConfig.SelectionGameMode gameMode)
     {
+        if (pool.Count == 0)
+        {
+            ModLog.Error(
+                $"RunAncientSelectionBallotAsync was called for act {targetActIndex + 1} with an empty pool. " +
+                "The selection screen will not be opened.");
+            throw new InvalidOperationException($"RunAncientSelectionBallotAsync was called for act {targetActIndex + 1} with an empty pool.");
+        }
+
+        if (pool.Count == 1)
+        {
+            ModLog.Warn(
+                $"RunAncientSelectionBallotAsync was called for act {targetActIndex + 1} with a single-option pool. " +
+                $"Returning {pool[0].Id.Entry} without opening the selection screen.");
+            return (pool[0], null);
+        }
+
+        ModLog.Info(
+            $"Opening ChooseTheAncient selection screen for act {targetActIndex + 1} with {pool.Count} candidates: " +
+            $"{ChooseTheAncientHelpers.DescribeAncients(pool)}");
+
         Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
         ChooseTheAncientSelectionScreen? localScreen = null;
 
         if (localPlayer != null)
         {
-            localScreen = await ChooseTheAncientSelectionScreen.ShowWhenOverlayReadyAsync(targetActIndex, orderedPlayers);
+            localScreen = ChooseTheAncientSelectionScreen.Show(targetActIndex, orderedPlayers);
         }
 
         bool useSecondRound = gameMode is
@@ -818,6 +1203,7 @@ private static async Task<int> GetVoteForPlayer(
 
         if (!ChooseTheAncientConfig.HasAncientPoolSourceActConfig(targetActIndex))
         {
+            ModLog.Warn($"GetEffectiveAncientPoolSourceActsAsync found no source-act configuration row for act {targetActIndex + 1}.");
             return null;
         }
 
@@ -868,6 +1254,62 @@ private static async Task<int> GetVoteForPlayer(
         return syncedEnabledSourceActs;
     }
 
+
+private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecialAncientOverridesAsync(
+    IReadOnlyList<Player> orderedPlayers,
+    int targetActIndex)
+{
+    ChooseTheAncientConfig.RefreshFromModConfig();
+
+    if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
+    {
+        IReadOnlyDictionary<string, bool> localOverrides =
+            ChooseTheAncientConfig.GetSpecialAncientOverridesSnapshot(targetActIndex);
+
+        ModLog.Debug(
+            $"Using local special ancient overrides for act {targetActIndex + 1}: " +
+            $"{ChooseTheAncientConfig.DescribeSpecialAncientOverrides(localOverrides)}");
+
+        return localOverrides;
+    }
+
+    Player hostPlayer = GetHostPlayer(orderedPlayers);
+    uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+
+    if (LocalContext.IsMe(hostPlayer))
+    {
+        int hostSpecialOverrideMask = ChooseTheAncientConfig.GetSpecialAncientOverrideMask(targetActIndex);
+        IReadOnlyDictionary<string, bool> hostOverrides =
+            ChooseTheAncientConfig.GetSpecialAncientOverridesFromMask(targetActIndex, hostSpecialOverrideMask);
+
+        RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+            hostPlayer,
+            choiceId,
+            PlayerChoiceResult.FromIndex(hostSpecialOverrideMask));
+
+        ModLog.Debug(
+            $"Broadcasting host special ancient overrides for act {targetActIndex + 1}: " +
+            $"mask={hostSpecialOverrideMask}, " +
+            $"{ChooseTheAncientConfig.DescribeSpecialAncientOverrides(hostOverrides)}");
+
+        return hostOverrides;
+    }
+
+    int syncedSpecialOverrideMask = (await RunManager.Instance.PlayerChoiceSynchronizer
+            .WaitForRemoteChoice(hostPlayer, choiceId))
+        .AsIndex();
+
+    IReadOnlyDictionary<string, bool> syncedOverrides =
+        ChooseTheAncientConfig.GetSpecialAncientOverridesFromMask(targetActIndex, syncedSpecialOverrideMask);
+
+    ModLog.Debug(
+        $"Received host special ancient overrides for act {targetActIndex + 1}: " +
+        $"mask={syncedSpecialOverrideMask}, " +
+        $"{ChooseTheAncientConfig.DescribeSpecialAncientOverrides(syncedOverrides)}");
+
+    return syncedOverrides;
+}
+
     private static async Task<ChooseTheAncientConfig.SelectionGameMode> GetEffectiveGameModeAsync(
         IReadOnlyList<Player> orderedPlayers)
     {
@@ -911,6 +1353,7 @@ private static async Task<int> GetVoteForPlayer(
 
         if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
         {
+            ModLog.Debug($"Using local AncientCount={ChooseTheAncientConfig.AncientCount}");
             return ChooseTheAncientConfig.AncientCount;
         }
 
