@@ -23,7 +23,7 @@ internal static class RitsuLibModSettingsInteropProvider
         };
     }
 
-    public static void SetRitsuLibSettingValue(string key, object value)
+    public static void SetRitsuLibSettingValue(string key, object? value)
     {
         switch (key)
         {
@@ -31,7 +31,7 @@ internal static class RitsuLibModSettingsInteropProvider
             {
                 var count = ToInt(value, ChooseTheAncientConfig.AncientCount);
                 ChooseTheAncientConfig.ApplyAncientCount(count);
-                ModConfigBridge.SetValue("ancientCount", (float)count);
+                ModConfigBridge.SetValue("ancientCount", (float)ChooseTheAncientConfig.AncientCount);
                 return;
             }
             case "showControllerHotkeys":
@@ -53,7 +53,9 @@ internal static class RitsuLibModSettingsInteropProvider
                 var option = value?.ToString() ?? ChooseTheAncientConfig.VoteClickTargetToOption(
                     ChooseTheAncientConfig.VoteClickTarget);
                 ChooseTheAncientConfig.ApplyVoteClickTarget(option);
-                ModConfigBridge.SetValue("voteClickTarget", option);
+                var normalizedOption = ChooseTheAncientConfig.VoteClickTargetToOption(
+                    ChooseTheAncientConfig.VoteClickTarget);
+                ModConfigBridge.SetValue("voteClickTarget", normalizedOption);
                 return;
             }
             case "logLevel":
@@ -61,7 +63,9 @@ internal static class RitsuLibModSettingsInteropProvider
                 var option = value?.ToString() ?? ChooseTheAncientConfig.LogLevelToOption(
                     ChooseTheAncientConfig.CurrentLogLevel);
                 ChooseTheAncientConfig.ApplyLogLevel(option);
-                ModConfigBridge.SetValue("logLevel", option);
+                var normalizedOption = ChooseTheAncientConfig.LogLevelToOption(
+                    ChooseTheAncientConfig.CurrentLogLevel);
+                ModConfigBridge.SetValue("logLevel", normalizedOption);
                 return;
             }
         }
