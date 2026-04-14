@@ -18,6 +18,9 @@ using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Runs.History;
 
+using System.Collections;
+using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
 public static class ChooseTheAncientHelpers
@@ -844,6 +847,60 @@ public static void ConvertAct1StartShellToChosenAncient(
     RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
     NMapScreen.Instance?.SetMap(runState.Map, runState.Rng.Seed, clearDrawings: true);
 }
+
+public static void ResyncLocalGlobalUiAfterAct1ShellTransition(RunState runState)
+{
+    try
+    {
+        NRun? runNode = NRun.Instance;
+        if (runNode?.GlobalUi?.RelicInventory == null)
+        {
+            ModLog.Debug("Skipped Act 1 shell-transition Global UI resync because the local GlobalUi or RelicInventory was not ready.");
+            return;
+        }
+
+        var relicInventory = runNode.GlobalUi.RelicInventory;
+        Traverse inventoryTraverse = Traverse.Create(relicInventory);
+
+        inventoryTraverse.Method("DisconnectPlayerEvents").GetValue();
+
+        if (inventoryTraverse.Field("_relicNodes").GetValue() is IList relicNodes)
+        {
+            List<Node> nodesToRemove = relicNodes.Cast<object>()
+                .OfType<Node>()
+                .ToList();
+
+            foreach (Node relicNode in nodesToRemove)
+            {
+                try
+                {
+                    if (relicNode.GetParent() == relicInventory)
+                    {
+                        relicInventory.RemoveChild(relicNode);
+                    }
+
+                    relicNode.QueueFree();
+                }
+                catch (Exception ex)
+                {
+                    ModLog.Debug($"Ignoring error while tearing down stale relic inventory node during Act 1 shell-transition resync: {ex.GetType().Name}");
+                }
+            }
+
+            relicNodes.Clear();
+        }
+
+        relicInventory.Initialize(runState);
+        ActiveScreenContext.Instance.Update();
+
+        ModLog.Info("Resynced the local Global UI relic inventory after the Act 1 shell-room bypass transition.");
+    }
+    catch (Exception ex)
+    {
+        ModLog.Warn($"Failed to resync the local Global UI after the Act 1 shell-room bypass transition: {ex}");
+    }
+}
+
 
 public static void RewriteCurrentMapPointHistoryToAncient(
     RunState runState,

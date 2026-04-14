@@ -2,15 +2,18 @@
 
 ## Unrelesaed
 
-## [v1.2.0] - Added Game Modes, Ancient Pool Options, fast mode and fixes
+## [v1.2.0] - Added Act 1, Game Modes, Ancient Pool Options, fast mode and fixes
 
 ### Features
+- Now works for Act 1
+  - Defaults to skipping to Neow like Vanilla unless you add Act 1 Ancients or use the settings to add vanilla ancients to act 1 pool 
 - GameModes
   - Monty hall (default)
   - Fair Fight
   - I Want To Know Everything
   - Simple Picker
 - Ancient Pool
+  - Whether Act 1 has Act 1, 2, or 3 Ancients
   - Whether Act 2 has Act 1, 2, or 3 Ancients
   - Whether Act 3 has Act 1, 2, or 3 Ancients
 - Added fast mode support

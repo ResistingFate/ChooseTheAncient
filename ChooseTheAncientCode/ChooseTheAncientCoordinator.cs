@@ -263,6 +263,8 @@ private static async Task TransitionToAncientRoomAsync(AncientEventModel chosenA
             if (runState != null)
             {
                 ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, chosenAncient);
+                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+                ChooseTheAncientHelpers.ResyncLocalGlobalUiAfterAct1ShellTransition(runState);
             }
 
             ModLog.Info(
