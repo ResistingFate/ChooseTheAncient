@@ -30,6 +30,8 @@ internal static class ModConfigBridge
     private static Type? _configTypeEnum;
 
     internal static bool IsAvailable => _available;
+    private static readonly Dictionary<string, string> _lastReadValues =
+        new(StringComparer.Ordinal);
 
     // ─── Step 1: Call this in your Initialize() ─────────────────
     // ModConfig may load AFTER your mod (alphabetical order).
@@ -48,7 +50,7 @@ internal static class ModConfigBridge
         _waitingForDeferredRegister = true;
         _deferredFramesRemaining = 2;
         var tree = (SceneTree)Engine.GetMainLoop();
-        ModLog.Info("Scheduling deferred ModConfig registration for ChooseTheAncient.");
+        ModLog.Debug("Scheduling deferred ModConfig registration for ChooseTheAncient.");
         tree.ProcessFrame += OnNextFrame;
     }
 
@@ -97,7 +99,7 @@ internal static class ModConfigBridge
             _configTypeEnum = allTypes.FirstOrDefault(t => t.FullName == "ModConfig.ConfigType");
             _available = _apiType != null && _entryType != null && _configTypeEnum != null;
 
-            ModLog.Info(
+            ModLog.Debug(
                 $"ModConfig detect complete. Available={_available}, " +
                 $"ApiType={_apiType?.FullName ?? "<null>"}, " +
                 $"EntryType={_entryType?.FullName ?? "<null>"}, " +
@@ -124,7 +126,7 @@ internal static class ModConfigBridge
         try
         {
             var entries = BuildEntries();
-            ModLog.Info($"Registering ChooseTheAncient ModConfig entries. Count={entries.Length}");
+            ModLog.Debug($"Registering ChooseTheAncient ModConfig entries. Count={entries.Length}");
 
             // Localized display name (shows in ModConfig's mod list)
             var displayNames = new Dictionary<string, string>
@@ -185,7 +187,15 @@ internal static class ModConfigBridge
                 ?.Invoke(null, new object[] { "ChooseTheAncient", key });
 
             T value = result != null ? (T)result : fallback;
-            ModLog.Info($"Loaded ModConfig key '{key}' = {value}.");
+            string valueText = Convert.ToString(value) ?? "<null>";
+
+            if (!_lastReadValues.TryGetValue(key, out string? previous) ||
+                !string.Equals(previous, valueText, StringComparison.Ordinal))
+            {
+                ModLog.Debug($"Loaded ModConfig key '{key}' = {valueText}.");
+                _lastReadValues[key] = valueText;
+            }
+
             return value;
         }
         catch (Exception e)
@@ -212,7 +222,7 @@ internal static class ModConfigBridge
         {
             _apiType!.GetMethod("SetValue", BindingFlags.Public | BindingFlags.Static)
                 ?.Invoke(null, new object[] { "ChooseTheAncient", key, value });
-            ModLog.Info($"Wrote ModConfig key '{key}' = {value}.");
+            ModLog.Debug($"Wrote ModConfig key '{key}' = {value}.");
         }
         catch (Exception e)
         {
@@ -373,7 +383,7 @@ internal static class ModConfigBridge
 
     private static void AddAncientPoolSourceEntryGroup(List<object> list, int targetActIndex)
     {
-        ModLog.Info($"Registering ModConfig ancient pool group for target act {targetActIndex + 1}.");
+        ModLog.Debug($"Registering ModConfig ancient pool group for target act {targetActIndex + 1}.");
 
         list.Add(Entry(cfg =>
         {
@@ -391,7 +401,7 @@ internal static class ModConfigBridge
                 string key = ChooseTheAncientConfig.GetAncientPoolSourceActConfigKey(capturedTargetActIndex, capturedSourceActIndex);
                 bool defaultValue = ChooseTheAncientConfig.GetDefaultAncientPoolSourceActEnabled(capturedTargetActIndex, capturedSourceActIndex);
 
-                ModLog.Info($"Registering ModConfig key '{key}' with default {defaultValue}.");
+                ModLog.Trace($"Registering ModConfig key '{key}' with default {defaultValue}.");
 
                 Set(cfg, "Key", key);
                 Set(cfg, "Label", ChooseTheAncientConfig.GetAncientPoolSourceActLabel(capturedSourceActIndex));

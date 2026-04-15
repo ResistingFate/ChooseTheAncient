@@ -205,6 +205,11 @@ internal static class ChooseTheAncientConfig
     private const string NeowAncientId = "NEOW";
     private const string DarvAncientId = "DARV";
 
+    private static readonly Dictionary<string, string> _lastConfigSectionSummaries =
+        new(StringComparer.Ordinal);
+
+    private static string? _lastRefreshSummary;
+
     private static readonly Dictionary<int, bool[]> AncientPoolSourceActsByTargetAct = new()
     {
         // Act 1 ancients.
@@ -387,6 +392,18 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 }
 
 
+    private static void LogConfigSectionIfChanged(string key, string message)
+    {
+        if (_lastConfigSectionSummaries.TryGetValue(key, out string? previous) &&
+            string.Equals(previous, message, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastConfigSectionSummaries[key] = message;
+        ModLog.Debug(message);
+    }
+
     public static void RefreshFromModConfig()
     {
         AncientCount = NormalizeAncientCount(
@@ -449,14 +466,19 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             CurrentLogLevel = ModLog.CurrentLevel;
         }
 
-        ModLog.Info(
-            "Config refresh complete. " +
+        string refreshSummary =
             $"AncientCount={AncientCount}, GameMode={GameMode}, " +
             $"Act1Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(0))}, " +
             $"Act2Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(1))}, " +
             $"Act3Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(2))}, " +
             $"NeowOverrides={DescribeSpecialAncientOverrides(NeowAncientId)}, " +
-            $"DarvOverrides={DescribeSpecialAncientOverrides(DarvAncientId)}.");
+            $"DarvOverrides={DescribeSpecialAncientOverrides(DarvAncientId)}.";
+
+        if (!string.Equals(_lastRefreshSummary, refreshSummary, StringComparison.Ordinal))
+        {
+            _lastRefreshSummary = refreshSummary;
+            ModLog.Info("Config refresh complete. " + refreshSummary);
+        }
     }
 
     public static void ApplyAncientCount(object value)
@@ -664,11 +686,10 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
                 bool loaded = ModConfigBridge.GetValue(key, fallback);
                 sourceActFlags[sourceActIndex] = loaded;
 
-                ModLog.Info(
-                    $"Loaded ModConfig key '{key}' = {loaded} for {GetAncientPoolTargetActLabel(targetActIndex).ToLowerInvariant()} pool.");
             }
 
-            ModLog.Info(
+            LogConfigSectionIfChanged(
+                $"pool_{targetActIndex}",
                 $"{GetAncientPoolTargetActLabel(targetActIndex)} sources after refresh: " +
                 $"{DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(targetActIndex))}");
         }
@@ -687,11 +708,10 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
                 bool loaded = ModConfigBridge.GetValue(key, fallback);
                 actFlags[targetActIndex] = loaded;
 
-                ModLog.Info(
-                    $"Loaded ModConfig key '{key}' = {loaded} for {GetSpecialAncientOverrideHeaderLabel(ancientId)}.");
             }
 
-            ModLog.Info(
+            LogConfigSectionIfChanged(
+                $"special_{ancientId}",
                 $"{GetSpecialAncientOverrideHeaderLabel(ancientId)} after refresh: {DescribeSpecialAncientOverrides(ancientId)}");
         }
     }
