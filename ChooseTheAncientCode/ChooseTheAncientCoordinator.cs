@@ -53,6 +53,83 @@ public static class ChooseTheAncientCoordinator
 
 
 
+
+    private static async Task EnsureAct1StartupModifierBootstrapBeforeSelectionAsync(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        IReadOnlyList<Player> orderedPlayers,
+        string reason)
+    {
+        if (flow.Act1StartupBootstrapApplied)
+        {
+            ModLog.Debug(
+                $"Skipping startup modifier bootstrap because it already completed earlier in this run. Reason={reason}");
+            return;
+        }
+
+        Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+        if (!ChooseTheAncientHelpers.HasModifierBootstrapActions(localPlayer))
+        {
+            flow.Act1StartupBootstrapApplied = true;
+            ModLog.Debug(
+                $"No startup modifier bootstrap actions were present for the current Act 1 flow. Reason={reason}");
+            return;
+        }
+
+        ModLog.Info(
+            "Start-of-run modifier bootstrap was detected for the Act 1 starting-room flow. " +
+            "Running it once before opening ChooseTheAncient so startup UI/state can complete first.");
+
+        await RunModifierBootstrapAsync(runState, orderedPlayers, reason);
+        flow.Act1StartupBootstrapApplied = true;
+
+        ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
+            "BootstrapCompleted",
+            runState,
+            flow,
+            orderedPlayers,
+            $"Reason={reason}");
+
+        ChooseTheAncientHelpers.PurgeReceivedPlayerChoicesBeforeCurrentChoiceIds(
+            flow,
+            orderedPlayers,
+            $"after {reason} and before CTA host-config sync");
+
+        ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
+            "StartupChoicesPurged",
+            runState,
+            flow,
+            orderedPlayers,
+            $"Reason={reason}");
+
+        await ChooseTheAncientHelpers.WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync(
+            runState,
+            orderedPlayers,
+            flow,
+            $"after {reason}");
+
+        ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
+            "SharedSelectionFlowReady",
+            runState,
+            flow,
+            orderedPlayers,
+            $"Reason={reason}");
+
+        ModLog.Info(
+            $"Startup modifier bootstrap is now marked complete for this run and CTA may safely enter the shared selection flow. Reason={reason}");
+
+    }
+
+    private static uint ReserveChoiceIdForCtaFlow(
+    ChooseTheAncientFlowState? flow,
+    Player player)
+{
+    uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
+    ModLog.Debug(
+        $"Reserved CTA flow choice id {choiceId} for player {player.NetId}.");
+    return choiceId;
+}
+
 public static async Task RunAct1StartingRoomFlowAsync(
     RunState runState,
     ChooseTheAncientFlowState flow)
@@ -79,12 +156,24 @@ public static async Task RunAct1StartingRoomFlowAsync(
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
-        int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
-        ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
+        ChooseTheAncientHelpers.EnsureStartupReadyMessageHandlerRegistered(
+            runState,
+            flow,
+            orderedPlayers,
+            "Act 1 starting-room flow entered the CTA shell room");
+
+        await EnsureAct1StartupModifierBootstrapBeforeSelectionAsync(
+            runState,
+            flow,
+            orderedPlayers,
+            "pre-selection startup modifier bootstrap");
+
+        int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers, flow);
+        ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers, flow);
         IReadOnlyList<int>? effectiveAncientPoolSourceActs =
-            await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0);
+            await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0, flow);
         IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
-            await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, targetActIndex: 0);
+            await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, targetActIndex: 0, flow);
 
         ModLog.Info(
             "Act 1 starting-room flow effective settings: " +
@@ -100,6 +189,11 @@ public static async Task RunAct1StartingRoomFlowAsync(
             enabledSourceActsOverride: effectiveAncientPoolSourceActs,
             specialAncientOverridesOverride: effectiveSpecialAncientOverrides);
 
+        if (flow.ModifierBootstrapCompleted)
+        {
+            pool = ChooseTheAncientHelpers.PreferNonNeowAncientsForActOne(pool);
+        }
+
         pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, 0, pool, ancientCount);
 
         if (pool.Count == 0)
@@ -114,8 +208,6 @@ public static async Task RunAct1StartingRoomFlowAsync(
                 "empty Act 1 ballot fallback");
 
             ChooseTheAncientHelpers.SetChosenAncient(firstAct, vanillaAncient);
-            await RunModifierBootstrapAsync(orderedPlayers);
-            flow.ModifierBootstrapCompleted = true;
             flow.ResolvedActs.Add(0);
             ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, vanillaAncient);
             DispatchAncientRoomTransition(vanillaAncient, "empty Act 1 ballot fallback");
@@ -150,19 +242,31 @@ public static async Task RunAct1StartingRoomFlowAsync(
                 await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
             }
 
+            ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
+                "OpeningSelectionScreen",
+                runState,
+                flow,
+                orderedPlayers,
+                $"Pool={string.Join(", ", pool.Select(ancient => ancient.Id.Entry))}, GameMode={gameMode}");
+
             (chosen, localScreen) = await RunAncientSelectionBallotAsync(
                 runState,
                 0,
                 orderedPlayers,
                 pool,
-                gameMode);
+                gameMode,
+                flow);
         }
 
         ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
         ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
 
-        await RunModifierBootstrapAsync(orderedPlayers);
-        flow.ModifierBootstrapCompleted = true;
+        if (flow.Act1StartupBootstrapApplied)
+        {
+            ModLog.Info(
+                "Act 1 startup modifier bootstrap was already consumed before CTA selection. " +
+                "CTA will not run startup modifier bootstrap again after the ancient choice resolves.");
+        }
 
         flow.ResolvedActs.Add(0);
 
@@ -170,6 +274,13 @@ public static async Task RunAct1StartingRoomFlowAsync(
 
         localScreen?.CloseScreen();
         localScreen = null;
+
+        ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
+            "DispatchingChosenAncientTransition",
+            runState,
+            flow,
+            orderedPlayers,
+            $"ChosenAncient={chosen.Id.Entry}");
 
         DispatchAncientRoomTransition(chosen, "Act 1 choice resolved");
         ModLog.Info($"Act 1 starting-room flow dispatched the chosen ancient room transition for {chosen.Id.Entry}.");
@@ -187,6 +298,12 @@ public static async Task RunAct1StartingRoomFlowAsync(
     finally
     {
         localScreen?.CloseScreen();
+        ChooseTheAncientHelpers.ReleaseStartupReadyMessageHandlerContext(
+            runState,
+            flow,
+            "Act 1 starting-room flow cleanup");
+        flow.ClearStartupFlowChoiceIds();
+        flow.ClearPendingStartupReadyMessages();
         flow.FlowInProgress = false;
         if (!flow.ResolvedActs.Contains(0))
         {
@@ -263,8 +380,6 @@ private static async Task TransitionToAncientRoomAsync(AncientEventModel chosenA
             if (runState != null)
             {
                 ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, chosenAncient);
-                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
-                ChooseTheAncientHelpers.ResyncLocalGlobalUiAfterAct1ShellTransition(runState);
             }
 
             ModLog.Info(
@@ -320,6 +435,18 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
+        ChooseTheAncientHelpers.EnsureStartupReadyMessageHandlerRegistered(
+            runState,
+            flow,
+            orderedPlayers,
+            "Act 1 starting-room flow entered the CTA shell room");
+
+        await EnsureAct1StartupModifierBootstrapBeforeSelectionAsync(
+            runState,
+            flow,
+            orderedPlayers,
+            "pre-selection startup modifier bootstrap");
+
         int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
         ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
         IReadOnlyList<int>? effectiveAncientPoolSourceActs =
@@ -335,6 +462,11 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
             targetActIndex: 0,
             enabledSourceActsOverride: effectiveAncientPoolSourceActs,
             specialAncientOverridesOverride: effectiveSpecialAncientOverrides);
+
+        if (flow.ModifierBootstrapCompleted)
+        {
+            pool = ChooseTheAncientHelpers.PreferNonNeowAncientsForActOne(pool);
+        }
 
         if (ModLog.IsDebugEnabled)
         {
@@ -391,8 +523,12 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
         ChooseTheAncientHelpers.ForceAct1AncientStart(runState);
         ModLog.Info($"Chosen starting ancient for Act 1: {chosen.Id.Entry}");
 
-        await RunModifierBootstrapAsync(orderedPlayers);
-        flow.ModifierBootstrapCompleted = true;
+        if (flow.Act1StartupBootstrapApplied)
+        {
+            ModLog.Info(
+                "Act 1 startup modifier bootstrap was already consumed before CTA selection. " +
+                "CTA will not run startup modifier bootstrap again after the ancient choice resolves.");
+        }
 
         flow.ResolvedActs.Add(0);
         flow.FlowInProgress = false;
@@ -530,6 +666,18 @@ public static async Task RunAct1MapEntryFlowAsync(
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
+        ChooseTheAncientHelpers.EnsureStartupReadyMessageHandlerRegistered(
+            runState,
+            flow,
+            orderedPlayers,
+            "Act 1 starting-room flow entered the CTA shell room");
+
+        await EnsureAct1StartupModifierBootstrapBeforeSelectionAsync(
+            runState,
+            flow,
+            orderedPlayers,
+            "pre-selection startup modifier bootstrap");
+
         int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
         ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
         IReadOnlyList<int>? effectiveAncientPoolSourceActs =
@@ -545,6 +693,11 @@ public static async Task RunAct1MapEntryFlowAsync(
             targetActIndex: 0,
             enabledSourceActsOverride: effectiveAncientPoolSourceActs,
             specialAncientOverridesOverride: effectiveSpecialAncientOverrides);
+
+        if (flow.ModifierBootstrapCompleted)
+        {
+            pool = ChooseTheAncientHelpers.PreferNonNeowAncientsForActOne(pool);
+        }
 
         if (ModLog.IsDebugEnabled)
         {
@@ -603,9 +756,6 @@ public static async Task RunAct1MapEntryFlowAsync(
 
         ModLog.Info($"Chosen starting ancient for Act 1: {chosen.Id.Entry}");
 
-        await RunModifierBootstrapAsync(orderedPlayers);
-        flow.ModifierBootstrapCompleted = true;
-
         flow.ResolvedActs.Add(0);
         flow.ContinueEnterMapCoord = true;
         await runManager.EnterMapCoord(startingCoord);
@@ -643,7 +793,8 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
         int targetActIndex,
         IReadOnlyList<Player> orderedPlayers,
         List<AncientEventModel> pool,
-        ChooseTheAncientConfig.SelectionGameMode gameMode)
+        ChooseTheAncientConfig.SelectionGameMode gameMode,
+        ChooseTheAncientFlowState? flow = null)
     {
         if (pool.Count == 0)
         {
@@ -705,7 +856,8 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             List<int> singleRoundVotes = await CollectVotes(
                 orderedPlayers,
                 singleRound,
-                localScreen);
+                localScreen,
+                flow);
 
             int chosenIndex = ResolveMostVotedIndex(
                 runState,
@@ -743,7 +895,8 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             List<int> firstVotes = await CollectVotes(
                 orderedPlayers,
                 firstRound,
-                localScreen);
+                localScreen,
+                flow);
 
             int firstPlaceIndex = ResolveMostVotedIndex(
                 runState,
@@ -805,7 +958,8 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             List<int> finalVotes = await CollectVotes(
                 orderedPlayers,
                 secondRound,
-                localScreen);
+                localScreen,
+                flow);
 
             int chosenIndex = ResolveMostVotedIndex(
                 runState,
@@ -824,7 +978,10 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
         return (chosen, localScreen);
     }
 
-    private static async Task RunModifierBootstrapAsync(IReadOnlyList<Player> orderedPlayers)
+    private static async Task RunModifierBootstrapAsync(
+        RunState runState,
+        IReadOnlyList<Player> orderedPlayers,
+        string reason)
     {
         Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
         if (localPlayer != null)
@@ -836,7 +993,7 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             {
                 ModLog.Info(
                     $"Running {bootstrapActions.Count} start-of-run modifier bootstrap action(s) " +
-                    $"for local player {localPlayer.NetId}.");
+                    $"for local player {localPlayer.NetId}. Reason={reason}");
 
                 foreach (ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction in bootstrapActions)
                 {
@@ -850,50 +1007,18 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             }
         }
 
-        await WaitForModifierBootstrapBarrierAsync(orderedPlayers);
+        await ChooseTheAncientHelpers.WaitForStartupModifierStateToSettleAsync(
+            runState,
+            orderedPlayers,
+            reason);
     }
 
-    private static async Task WaitForModifierBootstrapBarrierAsync(IReadOnlyList<Player> orderedPlayers)
-    {
-        Dictionary<ulong, uint> choiceIdsByPlayer = new();
-
-        foreach (Player player in orderedPlayers)
-        {
-            uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
-            choiceIdsByPlayer[player.NetId] = choiceId;
-        }
-
-        Task[] waitTasks = orderedPlayers
-            .Select(player => SyncOrWaitForModifierBootstrapCompletionAsync(
-                player,
-                choiceIdsByPlayer[player.NetId]))
-            .ToArray();
-
-        await Task.WhenAll(waitTasks);
-        ModLog.Debug("All players finished the start-of-run modifier bootstrap barrier.");
-    }
-
-    private static async Task SyncOrWaitForModifierBootstrapCompletionAsync(Player player, uint choiceId)
-    {
-        if (ShouldSelectLocally(player))
-        {
-            RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
-                player,
-                choiceId,
-                PlayerChoiceResult.FromIndex(1));
-            return;
-        }
-
-        _ = (await RunManager.Instance.PlayerChoiceSynchronizer
-                .WaitForRemoteChoice(player, choiceId))
-            .AsIndex();
-    }
-
-    
+            
 private static async Task<List<int>> CollectVotes(
     IReadOnlyList<Player> orderedPlayers,
     ChooseTheAncientSelectionScreen.RoundDefinition round,
-    ChooseTheAncientSelectionScreen? localScreen)
+    ChooseTheAncientSelectionScreen? localScreen,
+    ChooseTheAncientFlowState? flow = null)
 {
     if (orderedPlayers.Count == 0)
         throw new InvalidOperationException("No players available for vote collection.");
@@ -914,8 +1039,18 @@ private static async Task<List<int>> CollectVotes(
 
     foreach (Player player in orderedPlayers)
     {
-        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
+        uint choiceId = ReserveChoiceIdForCtaFlow(flow, player);
         choiceIdsByPlayer[player.NetId] = choiceId;
+    }
+
+    if (runState != null)
+    {
+        ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
+            "VoteRoundChoiceIdsReserved",
+            runState,
+            flow,
+            orderedPlayers,
+            $"RoundType={round.RoundType}, ChoiceIds={string.Join(", ", choiceIdsByPlayer.OrderBy(kvp => kvp.Key).Select(kvp => $"{kvp.Key}:{kvp.Value}"))}");
     }
 
     Task<int>[] voteTasks = orderedPlayers
@@ -953,6 +1088,9 @@ private static async Task<int> GetVoteForPlayer(
             throw new InvalidOperationException("Local ancient selection screen was not created.");
         }
 
+        ModLog.Debug(
+            $"CTA vote flow entering local selection path for player {player.NetId}. RoundType={round.RoundType}, ChoiceId={choiceId}, ChoiceIds={ChooseTheAncientHelpers.DescribeCurrentChoiceIds()}.");
+
         int localVote = await localScreen.RunRoundAsync(round);
 
         localScreen.RecordVote(player, localVote);
@@ -965,12 +1103,21 @@ private static async Task<int> GetVoteForPlayer(
                 PlayerChoiceResult.FromIndex(localVote));
         }
 
+        ModLog.Debug(
+            $"CTA vote flow sent local vote for player {player.NetId}. RoundType={round.RoundType}, ChoiceId={choiceId}, Vote={localVote}.");
+
         return localVote;
     }
+
+    ModLog.Debug(
+        $"CTA vote flow waiting for remote vote from player {player.NetId}. RoundType={round.RoundType}, ChoiceId={choiceId}, ChoiceIds={ChooseTheAncientHelpers.DescribeCurrentChoiceIds()}.");
 
     int remoteVote = (await RunManager.Instance.PlayerChoiceSynchronizer
             .WaitForRemoteChoice(player, choiceId))
         .AsIndex();
+
+    ModLog.Debug(
+        $"CTA vote flow received remote vote from player {player.NetId}. RoundType={round.RoundType}, ChoiceId={choiceId}, Vote={remoteVote}.");
 
     localScreen?.RecordVote(player, remoteVote);
     return remoteVote;
@@ -1199,7 +1346,8 @@ private static async Task<int> GetVoteForPlayer(
 
     private static async Task<IReadOnlyList<int>?> GetEffectiveAncientPoolSourceActsAsync(
         IReadOnlyList<Player> orderedPlayers,
-        int targetActIndex)
+        int targetActIndex,
+        ChooseTheAncientFlowState? flow = null)
     {
         ChooseTheAncientConfig.RefreshFromModConfig();
 
@@ -1220,7 +1368,7 @@ private static async Task<int> GetVoteForPlayer(
         }
 
         Player hostPlayer = GetHostPlayer(orderedPlayers);
-        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+        uint choiceId = ReserveChoiceIdForCtaFlow(flow, hostPlayer);
 
         if (LocalContext.IsMe(hostPlayer))
         {
@@ -1259,7 +1407,8 @@ private static async Task<int> GetVoteForPlayer(
 
 private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecialAncientOverridesAsync(
     IReadOnlyList<Player> orderedPlayers,
-    int targetActIndex)
+    int targetActIndex,
+    ChooseTheAncientFlowState? flow = null)
 {
     ChooseTheAncientConfig.RefreshFromModConfig();
 
@@ -1276,7 +1425,7 @@ private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecial
     }
 
     Player hostPlayer = GetHostPlayer(orderedPlayers);
-    uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+    uint choiceId = ReserveChoiceIdForCtaFlow(flow, hostPlayer);
 
     if (LocalContext.IsMe(hostPlayer))
     {
@@ -1313,7 +1462,8 @@ private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecial
 }
 
     private static async Task<ChooseTheAncientConfig.SelectionGameMode> GetEffectiveGameModeAsync(
-        IReadOnlyList<Player> orderedPlayers)
+        IReadOnlyList<Player> orderedPlayers,
+        ChooseTheAncientFlowState? flow = null)
     {
         ChooseTheAncientConfig.RefreshFromModConfig();
 
@@ -1323,7 +1473,7 @@ private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecial
         }
 
         Player hostPlayer = GetHostPlayer(orderedPlayers);
-        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+        uint choiceId = ReserveChoiceIdForCtaFlow(flow, hostPlayer);
 
         if (LocalContext.IsMe(hostPlayer))
         {
@@ -1349,7 +1499,9 @@ private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecial
         return normalizedMode;
     }
 
-    private static async Task<int> GetEffectiveAncientCountAsync(IReadOnlyList<Player> orderedPlayers)
+    private static async Task<int> GetEffectiveAncientCountAsync(
+        IReadOnlyList<Player> orderedPlayers,
+        ChooseTheAncientFlowState? flow = null)
     {
         ChooseTheAncientConfig.RefreshFromModConfig();
 
@@ -1360,7 +1512,7 @@ private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecial
         }
 
         Player hostPlayer = GetHostPlayer(orderedPlayers);
-        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+        uint choiceId = ReserveChoiceIdForCtaFlow(flow, hostPlayer);
 
         if (LocalContext.IsMe(hostPlayer))
         {

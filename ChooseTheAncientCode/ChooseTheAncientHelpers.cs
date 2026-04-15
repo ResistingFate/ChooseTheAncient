@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -6,21 +7,25 @@ using System.Threading.Tasks;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
+using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Multiplayer;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Models.Events;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Runs.History;
+using ChooseTheAncient.ChooseTheAncientCode.Messages;
+using ChooseTheAncient.ChooseTheAncientCode.Rooms;
 
-using System.Collections;
-using MegaCrit.Sts2.Core.Nodes;
-using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
 public static class ChooseTheAncientHelpers
@@ -36,6 +41,165 @@ public static class ChooseTheAncientHelpers
     private static readonly FieldInfo EventRngBackingField =
         AccessTools.Field(typeof(EventModel), "<Rng>k__BackingField")
         ?? throw new InvalidOperationException("Could not locate EventModel RNG backing field.");
+
+    private static readonly FieldInfo PlayerChoiceSynchronizerReceivedChoicesField =
+        AccessTools.Field(typeof(PlayerChoiceSynchronizer), "_receivedChoices")
+        ?? throw new InvalidOperationException("Could not locate PlayerChoiceSynchronizer._receivedChoices.");
+
+    private static readonly Type ReceivedChoiceType =
+        typeof(PlayerChoiceSynchronizer).GetNestedType("ReceivedChoice", BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("Could not locate PlayerChoiceSynchronizer.ReceivedChoice.");
+
+    private static readonly FieldInfo ReceivedChoiceSenderIdField =
+        AccessTools.Field(ReceivedChoiceType, "senderId")
+        ?? throw new InvalidOperationException("Could not locate ReceivedChoice.senderId.");
+
+    private static readonly FieldInfo ReceivedChoiceChoiceIdField =
+        AccessTools.Field(ReceivedChoiceType, "choiceId")
+        ?? throw new InvalidOperationException("Could not locate ReceivedChoice.choiceId.");
+
+    private static readonly object StartupReadyHandlerLock = new();
+
+    private static bool StartupReadyMessageHandlerRegistered;
+    private static INetGameService? StartupReadyMessageHandlerNetService;
+    private static RunState? ActiveStartupReadyRunState;
+    private static ChooseTheAncientFlowState? ActiveStartupReadyFlow;
+    private static HashSet<ulong> ActiveStartupReadyPlayers = new();
+
+
+    public static void EnsureStartupReadyMessageHandlerRegistered(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        IReadOnlyList<Player> orderedPlayers,
+        string reason)
+    {
+        RunManager runManager = RunManager.Instance;
+        INetGameService netService = runManager.NetService;
+
+        lock (StartupReadyHandlerLock)
+        {
+            ActiveStartupReadyRunState = runState;
+            ActiveStartupReadyFlow = flow;
+            ActiveStartupReadyPlayers = orderedPlayers
+                .Select(player => player.NetId)
+                .ToHashSet();
+
+            if (StartupReadyMessageHandlerRegistered && !ReferenceEquals(StartupReadyMessageHandlerNetService, netService))
+            {
+                try
+                {
+                    StartupReadyMessageHandlerNetService?.UnregisterMessageHandler<ChooseTheAncientStartupReadyMessage>(
+                        HandleStartupReadyMessageReceived);
+                }
+                catch (Exception ex)
+                {
+                    ModLog.Warn(
+                        $"Failed to unregister the CTA startup-ready handler from the previous net service while refreshing the registration context: {ex.GetType().Name}");
+                }
+
+                StartupReadyMessageHandlerRegistered = false;
+                StartupReadyMessageHandlerNetService = null;
+            }
+
+            if (!StartupReadyMessageHandlerRegistered)
+            {
+                netService.RegisterMessageHandler<ChooseTheAncientStartupReadyMessage>(
+                    HandleStartupReadyMessageReceived);
+                StartupReadyMessageHandlerRegistered = true;
+                StartupReadyMessageHandlerNetService = netService;
+
+                LogAct1StartupCheckpoint(
+                    "ReadyHandlerRegistered",
+                    runState,
+                    flow,
+                    orderedPlayers,
+                    $"Reason={reason}, Players={string.Join(", ", orderedPlayers.Select(player => player.NetId))}");
+            }
+            else
+            {
+                LogAct1StartupCheckpoint(
+                    "ReadyHandlerContextRefreshed",
+                    runState,
+                    flow,
+                    orderedPlayers,
+                    $"Reason={reason}, Players={string.Join(", ", orderedPlayers.Select(player => player.NetId))}");
+            }
+        }
+    }
+
+    public static void ReleaseStartupReadyMessageHandlerContext(
+        RunState? runState,
+        ChooseTheAncientFlowState? flow,
+        string reason)
+    {
+        lock (StartupReadyHandlerLock)
+        {
+            if (!ReferenceEquals(ActiveStartupReadyFlow, flow))
+                return;
+
+            LogAct1StartupCheckpoint(
+                "ReadyHandlerContextReleased",
+                runState,
+                flow,
+                orderedPlayers: null,
+                $"Reason={reason}");
+
+            ActiveStartupReadyRunState = null;
+            ActiveStartupReadyFlow = null;
+            ActiveStartupReadyPlayers = new HashSet<ulong>();
+        }
+    }
+
+    private static void HandleStartupReadyMessageReceived(
+        ChooseTheAncientStartupReadyMessage message,
+        ulong senderId)
+    {
+        RunState? runState;
+        ChooseTheAncientFlowState? flow;
+        bool senderTracked;
+
+        lock (StartupReadyHandlerLock)
+        {
+            runState = ActiveStartupReadyRunState;
+            flow = ActiveStartupReadyFlow;
+            senderTracked = ActiveStartupReadyPlayers.Count == 0 || ActiveStartupReadyPlayers.Contains(senderId);
+
+            if (flow != null && senderTracked)
+            {
+                flow.RecordPendingStartupReadyMessage(message.barrierEpoch, senderId, message.nextChoiceId);
+            }
+        }
+
+        if (message.actIndex != 1)
+            return;
+
+        if (flow == null || runState == null)
+        {
+            ModLog.Warn(
+                $"Received CTA startup ready message from player {senderId} before the CTA startup-ready handler had active flow context. " +
+                $"Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, BootstrapCompleted={message.bootstrapCompleted}, ShellRoomActive={message.shellRoomActive}");
+            return;
+        }
+
+        if (!senderTracked)
+        {
+            ModLog.Debug(
+                $"Ignoring CTA startup ready message from untracked sender {senderId}. Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}.");
+            return;
+        }
+
+        if (message.barrierEpoch == flow.Act1StartupReadyBarrierEpoch)
+        {
+            flow.SetStartupFlowNextChoiceId(senderId, message.nextChoiceId);
+        }
+
+        LogAct1StartupCheckpoint(
+            "ReadyMessageReceived",
+            runState,
+            flow,
+            orderedPlayers: null,
+            $"Sender={senderId}, Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, BootstrapCompleted={message.bootstrapCompleted}, ShellRoomActive={message.shellRoomActive}, PendingReadyMessages={flow.DescribePendingStartupReadyMessages()}");
+    }
 
     public sealed class AncientPreviewData
     {
@@ -575,6 +739,668 @@ private static bool ResolveSpecialAncientOverrideValue(
         return originalPool;
     }
 
+
+
+    private static bool HasModifier(
+        RunState runState,
+        string modifierId,
+        string? modifierTypeName = null)
+    {
+        return runState.Modifiers.Any(modifier =>
+            string.Equals(modifier.Id.Entry, modifierId, StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(modifierTypeName)
+                && string.Equals(modifier.GetType().Name, modifierTypeName, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public static bool HasSealedDeckModifier(RunState runState)
+    {
+        return HasModifier(runState, "SEALED_DECK", "SealedDeck");
+    }
+
+    public static bool HasModifierBootstrapActions(Player? player)
+    {
+        if (player == null)
+            return false;
+
+        try
+        {
+            return BuildModifierBootstrapActions(player).Count > 0;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Failed to probe start-of-run modifier bootstrap actions for player {player.NetId}: {ex.GetType().Name}");
+            return false;
+        }
+    }
+
+    public static async Task WaitForStartupModifierStateToSettleAsync(
+        RunState runState,
+        IReadOnlyList<Player> orderedPlayers,
+        string reason,
+        int requiredStableFrames = 3,
+        int maxFrames = 180)
+    {
+        bool sealedDeckActive = HasSealedDeckModifier(runState);
+        bool hasBootstrapActions = orderedPlayers.Any(HasModifierBootstrapActions);
+
+        if (!sealedDeckActive && !hasBootstrapActions)
+        {
+            await WaitForProcessFramesAsync(1);
+            return;
+        }
+
+        RunManager runManager = RunManager.Instance;
+
+        int effectiveRequiredStableFrames = sealedDeckActive
+            ? Math.Max(requiredStableFrames, 8)
+            : Math.Max(requiredStableFrames, 3);
+
+        int effectiveMaxFrames = sealedDeckActive
+            ? Math.Max(maxFrames, 360)
+            : Math.Max(maxFrames, 120);
+
+        string players = string.Join(", ", orderedPlayers.Select(player => player.NetId));
+
+        string? previousChoiceIds = null;
+        int stableFrames = 0;
+        int framesSinceLastChoiceEvent = 0;
+        int observedChoiceEventCount = 0;
+
+        void OnPlayerChoiceReceived(Player _, uint __, NetPlayerChoiceResult ___)
+        {
+            observedChoiceEventCount++;
+            framesSinceLastChoiceEvent = 0;
+        }
+
+        runManager.PlayerChoiceSynchronizer.PlayerChoiceReceived += OnPlayerChoiceReceived;
+
+        try
+        {
+            ModLog.Info(
+                $"Waiting for startup modifier state to settle before continuing CTA. " +
+                $"Reason={reason}, Players={players}, " +
+                $"RequiredStableFrames={effectiveRequiredStableFrames}, MaxFrames={effectiveMaxFrames}.");
+
+            for (int frame = 0; frame < effectiveMaxFrames; frame++)
+            {
+                await WaitForProcessFramesAsync(1);
+
+                framesSinceLastChoiceEvent++;
+
+                string currentChoiceIds = string.Join(",", runManager.PlayerChoiceSynchronizer.ChoiceIds);
+                bool choiceIdsStable = string.Equals(previousChoiceIds, currentChoiceIds, StringComparison.Ordinal);
+
+                bool actionExecutorBusy =
+                    runManager.ActionExecutor.IsRunning
+                    || runManager.ActionExecutor.IsPaused
+                    || runManager.ActionExecutor.CurrentlyRunningAction != null;
+
+                bool actionQueuesEmpty = runManager.ActionQueueSet.IsEmpty;
+                bool bootstrapTrafficQuiet = framesSinceLastChoiceEvent >= effectiveRequiredStableFrames;
+
+                if (choiceIdsStable && !actionExecutorBusy && actionQueuesEmpty && bootstrapTrafficQuiet)
+                {
+                    stableFrames++;
+                    if (stableFrames >= effectiveRequiredStableFrames)
+                    {
+                        ModLog.Info(
+                            $"Startup modifier state settled after {frame + 1} frame(s). " +
+                            $"Reason={reason}, ChoiceIds={currentChoiceIds}, " +
+                            $"ObservedChoiceEvents={observedChoiceEventCount}, QuietFrames={framesSinceLastChoiceEvent}.");
+
+                        await WaitForProcessFramesAsync(2);
+                        return;
+                    }
+                }
+                else
+                {
+                    stableFrames = 0;
+                }
+
+                if (ModLog.IsTraceEnabled)
+                {
+                    ModLog.Trace(
+                        $"Startup modifier settle tick {frame + 1}/{effectiveMaxFrames}: " +
+                        $"ChoiceIds={currentChoiceIds}, ChoiceIdsStable={choiceIdsStable}, " +
+                        $"ActionExecutorBusy={actionExecutorBusy}, ActionQueuesEmpty={actionQueuesEmpty}, " +
+                        $"ChoiceQuietFrames={framesSinceLastChoiceEvent}/{effectiveRequiredStableFrames}, " +
+                        $"ObservedChoiceEvents={observedChoiceEventCount}, StableFrames={stableFrames}/{effectiveRequiredStableFrames}.");
+                }
+
+                previousChoiceIds = currentChoiceIds;
+            }
+
+            ModLog.Warn(
+                $"Timed out waiting for startup modifier state to settle before continuing CTA. " +
+                $"Reason={reason}, ObservedChoiceEvents={observedChoiceEventCount}.");
+
+            await WaitForProcessFramesAsync(2);
+        }
+        finally
+        {
+            runManager.PlayerChoiceSynchronizer.PlayerChoiceReceived -= OnPlayerChoiceReceived;
+        }
+    }
+
+    
+public static void PurgeReceivedPlayerChoicesBeforeCurrentChoiceIds(
+        ChooseTheAncientFlowState flow,
+        IReadOnlyList<Player> orderedPlayers,
+        string reason)
+    {
+        RunManager runManager = RunManager.Instance;
+        IList? receivedChoices = PlayerChoiceSynchronizerReceivedChoicesField.GetValue(runManager.PlayerChoiceSynchronizer) as IList;
+        if (receivedChoices == null)
+        {
+            ModLog.Warn($"Could not inspect PlayerChoiceSynchronizer received choices for purge. Reason={reason}");
+            return;
+        }
+
+        HashSet<ulong> targetNetIds = orderedPlayers
+            .Select(player => player.NetId)
+            .ToHashSet();
+
+        Dictionary<ulong, uint> nextChoiceIdsBySender = new();
+        int removed = 0;
+        List<string> removedEntries = new();
+        for (int index = receivedChoices.Count - 1; index >= 0; index--)
+        {
+            object? entry = receivedChoices[index];
+            if (entry == null)
+                continue;
+
+            ulong senderId = (ulong)ReceivedChoiceSenderIdField.GetValue(entry)!;
+            uint choiceId = (uint)ReceivedChoiceChoiceIdField.GetValue(entry)!;
+
+            if (!targetNetIds.Contains(senderId))
+                continue;
+
+            receivedChoices.RemoveAt(index);
+            removed++;
+
+            uint nextChoiceId = choiceId + 1;
+            if (!nextChoiceIdsBySender.TryGetValue(senderId, out uint existingNextChoiceId)
+                || nextChoiceId > existingNextChoiceId)
+            {
+                nextChoiceIdsBySender[senderId] = nextChoiceId;
+            }
+
+            if (removedEntries.Count < 12)
+            {
+                removedEntries.Add($"{senderId}:{choiceId}");
+            }
+        }
+
+        foreach ((ulong senderId, uint nextChoiceId) in nextChoiceIdsBySender)
+        {
+            flow.SetStartupFlowNextChoiceId(senderId, nextChoiceId);
+        }
+
+        if (removed > 0)
+        {
+            string removedPreview = removedEntries.Count > 0
+                ? string.Join(", ", removedEntries)
+                : "<none>";
+
+            string trackedChoiceIds = nextChoiceIdsBySender.Count > 0
+                ? string.Join(", ", nextChoiceIdsBySender
+                    .OrderBy(kvp => kvp.Key)
+                    .Select(kvp => $"{kvp.Key}->{kvp.Value}"))
+                : "<none>";
+
+            ModLog.Info(
+                $"Cleared {removed} PlayerChoiceSynchronizer received choice(s) for CTA startup-flow players before CTA config sync. " +
+                $"Reason={reason}, ChoiceIds={string.Join(",", runManager.PlayerChoiceSynchronizer.ChoiceIds)}, " +
+                $"Removed={removedPreview}, NextChoiceIds={trackedChoiceIds}.");
+        }
+        else
+        {
+            ModLog.Debug(
+                $"No PlayerChoiceSynchronizer received choices were waiting for CTA startup-flow players. " +
+                $"Reason={reason}, ChoiceIds={string.Join(",", runManager.PlayerChoiceSynchronizer.ChoiceIds)}.");
+        }
+    }
+
+
+
+public static void AlignPlayerChoiceIdsToStartupFlowBaselines(
+    ChooseTheAncientFlowState flow,
+    IReadOnlyList<Player> orderedPlayers,
+    string reason)
+{
+    if (!flow.HasStartupFlowTrackedChoiceIds)
+    {
+        ModLog.Debug(
+            $"No startup CTA choice-id baselines were recorded for alignment. Reason={reason}");
+        return;
+    }
+
+    RunManager runManager = RunManager.Instance;
+    IReadOnlyList<uint> currentChoiceIds = runManager.PlayerChoiceSynchronizer.ChoiceIds;
+    List<string> alignedPlayers = new();
+
+    foreach (Player player in orderedPlayers)
+    {
+        if (!flow.StartupFlowNextChoiceIdsByPlayer.TryGetValue(player.NetId, out uint targetNextChoiceId))
+            continue;
+
+        int playerSlotIndex;
+        try
+        {
+            playerSlotIndex = ((RunState)player.RunState).GetPlayerSlotIndex(player);
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Failed to determine player slot index while aligning CTA choice ids for player {player.NetId}: {ex.GetType().Name}");
+            continue;
+        }
+
+        uint currentNextChoiceId = playerSlotIndex < currentChoiceIds.Count
+            ? currentChoiceIds[playerSlotIndex]
+            : 0u;
+
+        if (currentNextChoiceId >= targetNextChoiceId)
+            continue;
+
+        while (currentNextChoiceId < targetNextChoiceId)
+        {
+            runManager.PlayerChoiceSynchronizer.ReserveChoiceId(player);
+            currentNextChoiceId++;
+        }
+
+        alignedPlayers.Add($"{player.NetId}:{targetNextChoiceId}");
+    }
+
+    flow.ClearStartupFlowChoiceIds();
+
+    if (alignedPlayers.Count > 0)
+    {
+        ModLog.Info(
+            $"Aligned local PlayerChoiceSynchronizer counters to the post-bootstrap CTA baselines. " +
+            $"Reason={reason}, Players={string.Join(", ", alignedPlayers)}.");
+    }
+    else
+    {
+        ModLog.Debug(
+            $"PlayerChoiceSynchronizer counters already matched the post-bootstrap CTA baselines. " +
+            $"Reason={reason}.");
+    }
+}
+
+
+public static uint GetNextChoiceIdForPlayer(RunState runState, Player player)
+{
+    try
+    {
+        int playerSlotIndex = runState.GetPlayerSlotIndex(player);
+        IReadOnlyList<uint> choiceIds = RunManager.Instance.PlayerChoiceSynchronizer.ChoiceIds;
+        if (playerSlotIndex >= 0 && playerSlotIndex < choiceIds.Count)
+            return choiceIds[playerSlotIndex];
+    }
+    catch (Exception ex)
+    {
+        ModLog.Warn(
+            $"Failed to determine next PlayerChoiceSynchronizer choice id for player {player.NetId}: {ex.GetType().Name}");
+    }
+
+    return 0u;
+}
+
+public static string DescribeCurrentChoiceIds()
+{
+    try
+    {
+        return string.Join(",", RunManager.Instance.PlayerChoiceSynchronizer.ChoiceIds);
+    }
+    catch (Exception ex)
+    {
+        return $"<choice ids failed:{ex.GetType().Name}>";
+    }
+}
+
+public static string DescribeActionState()
+{
+    try
+    {
+        RunManager runManager = RunManager.Instance;
+        string currentAction = runManager.ActionExecutor.CurrentlyRunningAction?.GetType().Name ?? "<none>";
+        return $"IsRunning={runManager.ActionExecutor.IsRunning}, IsPaused={runManager.ActionExecutor.IsPaused}, CurrentAction={currentAction}, QueuesEmpty={runManager.ActionQueueSet.IsEmpty}";
+    }
+    catch (Exception ex)
+    {
+        return $"<action state failed:{ex.GetType().Name}>";
+    }
+}
+
+public static void LogAct1StartupCheckpoint(
+    string stage,
+    RunState? runState,
+    ChooseTheAncientFlowState? flow,
+    IReadOnlyList<Player>? orderedPlayers = null,
+    string? extra = null,
+    bool trace = false)
+{
+    string message =
+        $"[Act1Startup] Stage={stage}, Run={DescribeRunLocation(runState)}, ChoiceIds={DescribeCurrentChoiceIds()}, " +
+        $"Actions={DescribeActionState()}, Players={DescribePlayers(orderedPlayers)}, " +
+        $"TrackedNextChoiceIds={(flow?.DescribeStartupFlowChoiceIds() ?? "<flow-null>")}, " +
+        $"BootstrapCompleted={(flow?.Act1StartupBootstrapApplied.ToString() ?? "<flow-null>")}, " +
+        $"BarrierEpoch={(flow?.Act1StartupReadyBarrierEpoch.ToString() ?? "<flow-null>")}" +
+        (string.IsNullOrWhiteSpace(extra) ? string.Empty : $", {extra}");
+
+    if (trace)
+    {
+        ModLog.Trace(message);
+    }
+    else
+    {
+        ModLog.Info(message);
+    }
+}
+
+public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync(
+    RunState runState,
+    IReadOnlyList<Player> orderedPlayers,
+    ChooseTheAncientFlowState flow,
+    string reason)
+{
+    if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer || orderedPlayers.Count <= 1)
+    {
+        return;
+    }
+
+    RunManager runManager = RunManager.Instance;
+    INetGameService netService = runManager.NetService;
+    string players = string.Join(", ", orderedPlayers.Select(player => player.NetId));
+
+    EnsureStartupReadyMessageHandlerRegistered(
+        runState,
+        flow,
+        orderedPlayers,
+        $"{reason} (wait barrier)");
+
+    int barrierEpoch = flow.BeginAct1StartupReadyBarrier();
+
+    Player? localPlayer = orderedPlayers.FirstOrDefault(LocalContext.IsMe)
+        ?? orderedPlayers.FirstOrDefault();
+    if (localPlayer == null)
+    {
+        ModLog.Warn(
+            $"CTA could not identify a local player for the post-bootstrap ready barrier. Proceeding without the barrier. Reason={reason}");
+        return;
+    }
+
+    uint localNextChoiceId = GetNextChoiceIdForPlayer(runState, localPlayer);
+    bool localShellRoomActive =
+        IsAct1StartingMapPoint(runState)
+        && runState.CurrentRoom is ChooseTheAncientStartRoom
+        && runState.CurrentRoomCount == 1;
+
+    flow.SetStartupFlowNextChoiceId(localPlayer.NetId, localNextChoiceId);
+
+    int importedPendingMessages = flow.ImportPendingStartupReadyMessagesForCurrentEpoch();
+    if (importedPendingMessages > 0)
+    {
+        LogAct1StartupCheckpoint(
+            "BarrierImportedPendingMessages",
+            runState,
+            flow,
+            orderedPlayers,
+            $"Reason={reason}, Imported={importedPendingMessages}, Epoch={barrierEpoch}, PendingReadyMessages={flow.DescribePendingStartupReadyMessages()}");
+    }
+
+    string? previousChoiceIds = null;
+    int stableFrames = 0;
+    int framesSinceLastChoiceEvent = 0;
+    int observedChoiceEventCount = 0;
+    int requiredStableFrames = 8;
+    int maxFrames = 360;
+    int resendEveryFrames = 20;
+
+    void OnPlayerChoiceReceived(Player _, uint __, NetPlayerChoiceResult ___)
+    {
+        observedChoiceEventCount++;
+        framesSinceLastChoiceEvent = 0;
+    }
+
+    ChooseTheAncientStartupReadyMessage BuildLocalReadyMessage()
+    {
+        return new ChooseTheAncientStartupReadyMessage
+        {
+            actIndex = 1,
+            barrierEpoch = barrierEpoch,
+            nextChoiceId = GetNextChoiceIdForPlayer(runState, localPlayer),
+            bootstrapCompleted = flow.Act1StartupBootstrapApplied,
+            shellRoomActive =
+                IsAct1StartingMapPoint(runState)
+                && runState.CurrentRoom is ChooseTheAncientStartRoom
+                && runState.CurrentRoomCount == 1
+        };
+    }
+
+    void BroadcastLocalReadyMessage(string stage)
+    {
+        ChooseTheAncientStartupReadyMessage message = BuildLocalReadyMessage();
+        flow.RecordPendingStartupReadyMessage(message.barrierEpoch, localPlayer.NetId, message.nextChoiceId);
+        netService.SendMessage(message);
+
+        LogAct1StartupCheckpoint(
+            stage,
+            runState,
+            flow,
+            orderedPlayers,
+            $"Reason={reason}, LocalPlayer={localPlayer.NetId}, Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, ShellRoomActive={message.shellRoomActive}, BootstrapCompleted={message.bootstrapCompleted}");
+    }
+
+    runManager.PlayerChoiceSynchronizer.PlayerChoiceReceived += OnPlayerChoiceReceived;
+
+    try
+    {
+        LogAct1StartupCheckpoint(
+            "BarrierBegin",
+            runState,
+            flow,
+            orderedPlayers,
+            $"Reason={reason}, Players={players}, RequiredStableFrames={requiredStableFrames}, MaxFrames={maxFrames}, LocalNextChoiceId={localNextChoiceId}, LocalShellRoomActive={localShellRoomActive}, Epoch={barrierEpoch}");
+
+        BroadcastLocalReadyMessage("BarrierLocalReadySent");
+
+        for (int frame = 0; frame < maxFrames; frame++)
+        {
+            await WaitForProcessFramesAsync(1);
+
+            framesSinceLastChoiceEvent++;
+
+            if ((frame + 1) % resendEveryFrames == 0)
+            {
+                BroadcastLocalReadyMessage("BarrierLocalReadyResent");
+            }
+
+            string currentChoiceIds = DescribeCurrentChoiceIds();
+            bool choiceIdsStable = string.Equals(previousChoiceIds, currentChoiceIds, StringComparison.Ordinal);
+
+            bool actionExecutorBusy =
+                runManager.ActionExecutor.IsRunning
+                || runManager.ActionExecutor.IsPaused
+                || runManager.ActionExecutor.CurrentlyRunningAction != null;
+
+            bool actionQueuesEmpty = runManager.ActionQueueSet.IsEmpty;
+            bool startupTrafficQuiet = framesSinceLastChoiceEvent >= requiredStableFrames;
+            bool stillOnAct1ShellRoom =
+                IsAct1StartingMapPoint(runState)
+                && runState.CurrentRoom is ChooseTheAncientStartRoom
+                && runState.CurrentRoomCount == 1;
+
+            bool everyoneReady = orderedPlayers.All(player => flow.StartupFlowNextChoiceIdsByPlayer.ContainsKey(player.NetId));
+            int readyMessageCount = Math.Max(0, flow.StartupFlowNextChoiceIdsByPlayer.Count - 1);
+
+            if (everyoneReady && choiceIdsStable && !actionExecutorBusy && actionQueuesEmpty && startupTrafficQuiet && stillOnAct1ShellRoom)
+            {
+                stableFrames++;
+                if (stableFrames >= requiredStableFrames)
+                {
+                    LogAct1StartupCheckpoint(
+                        "BarrierComplete",
+                        runState,
+                        flow,
+                        orderedPlayers,
+                        $"Reason={reason}, ObservedChoiceEvents={observedChoiceEventCount}, ReadyMessagesReceived={readyMessageCount}, QuietFrames={framesSinceLastChoiceEvent}, Epoch={barrierEpoch}");
+
+                    AlignPlayerChoiceIdsToStartupFlowBaselines(
+                        flow,
+                        orderedPlayers,
+                        $"after CTA startup ready barrier ({reason})");
+
+                    await WaitForProcessFramesAsync(2);
+                    return;
+                }
+            }
+            else
+            {
+                stableFrames = 0;
+            }
+
+            if (ModLog.IsTraceEnabled)
+            {
+                LogAct1StartupCheckpoint(
+                    "BarrierTick",
+                    runState,
+                    flow,
+                    orderedPlayers,
+                    $"Reason={reason}, Tick={frame + 1}/{maxFrames}, ChoiceIdsStable={choiceIdsStable}, ActionExecutorBusy={actionExecutorBusy}, ActionQueuesEmpty={actionQueuesEmpty}, ChoiceQuietFrames={framesSinceLastChoiceEvent}/{requiredStableFrames}, ObservedChoiceEvents={observedChoiceEventCount}, EveryoneReady={everyoneReady}, StillOnShellRoom={stillOnAct1ShellRoom}, StableFrames={stableFrames}/{requiredStableFrames}, Epoch={barrierEpoch}",
+                    trace: true);
+            }
+
+            previousChoiceIds = currentChoiceIds;
+        }
+
+        ModLog.Warn(
+            $"Timed out waiting for the CTA-owned post-bootstrap ready barrier. Proceeding anyway to avoid a multiplayer softlock. " +
+            $"Reason={reason}, TrackedNextChoiceIds={flow.DescribeStartupFlowChoiceIds()}, PendingReadyMessages={flow.DescribePendingStartupReadyMessages()}, ObservedChoiceEvents={observedChoiceEventCount}, Epoch={barrierEpoch}.");
+
+        AlignPlayerChoiceIdsToStartupFlowBaselines(
+            flow,
+            orderedPlayers,
+            $"timeout path after CTA startup ready barrier ({reason})");
+
+        await WaitForProcessFramesAsync(2);
+    }
+    finally
+    {
+        runManager.PlayerChoiceSynchronizer.PlayerChoiceReceived -= OnPlayerChoiceReceived;
+    }
+}
+
+
+    public static string DescribePlayers(IEnumerable<Player>? players)
+    {
+        if (players == null)
+            return "<null>";
+
+        List<string> entries = new();
+        foreach (Player player in players)
+        {
+            try
+            {
+                string characterId = player.Character?.Id.Entry ?? "<no-character>";
+                entries.Add($"{player.NetId}:{characterId}");
+            }
+            catch (Exception ex)
+            {
+                entries.Add($"<player failed:{ex.GetType().Name}>");
+            }
+        }
+
+        return entries.Count == 0 ? "<none>" : string.Join(", ", entries);
+    }
+
+    public static string DescribeOption(EventOption? option, EventModel? eventModel = null, int? optionIndex = null)
+    {
+        if (option == null)
+            return optionIndex.HasValue ? $"[{optionIndex.Value}] <null>" : "<null>";
+
+        try
+        {
+            try
+            {
+                eventModel?.DynamicVars.AddTo(option.Title);
+                eventModel?.DynamicVars.AddTo(option.Description);
+            }
+            catch
+            {
+            }
+
+            string indexPrefix = optionIndex.HasValue ? $"[{optionIndex.Value}] " : string.Empty;
+            string relicId = option.Relic?.Id.Entry ?? "<none>";
+            string relicTitle = option.Relic != null ? SafeFormatLoc(option.Relic.Title) : "<none>";
+            string title = SafeFormatLoc(option.Title);
+            return $"{indexPrefix}textKey={option.TextKey}, relicId={relicId}, relicTitle={relicTitle}, title={title}, wasChosen={option.WasChosen}";
+        }
+        catch (Exception ex)
+        {
+            string indexPrefix = optionIndex.HasValue ? $"[{optionIndex.Value}] " : string.Empty;
+            return $"{indexPrefix}<option formatting failed:{ex.GetType().Name}>";
+        }
+    }
+
+    public static string DescribeOptions(IEnumerable<EventOption>? options, EventModel? eventModel = null)
+    {
+        if (options == null)
+            return "<null>";
+
+        List<string> parts = new();
+        int index = 0;
+        foreach (EventOption option in options)
+        {
+            parts.Add(DescribeOption(option, eventModel, index));
+            index++;
+        }
+
+        return parts.Count == 0 ? "<none>" : string.Join(" | ", parts);
+    }
+
+    public static string DescribeRunLocation(RunState? runState)
+    {
+        if (runState == null)
+            return "<runState:null>";
+
+        string coord = runState.CurrentMapCoord.HasValue ? runState.CurrentMapCoord.Value.ToString() : "<null>";
+        string roomType = runState.CurrentRoom?.GetType().Name ?? "<null>";
+        string roomModelId = runState.CurrentRoom?.ModelId?.Entry ?? "<none>";
+        string historyType = runState.CurrentMapPointHistoryEntry?.MapPointType.ToString() ?? "<null>";
+        string historyRoomModel = runState.CurrentMapPointHistoryEntry?.Rooms.FirstOrDefault()?.ModelId?.Entry ?? "<none>";
+
+        return
+            $"Act={runState.CurrentActIndex + 1}, Coord={coord}, RoomCount={runState.CurrentRoomCount}, CurrentRoomType={roomType}, " +
+            $"CurrentRoomModel={roomModelId}, StartedWithNeow={runState.ExtraFields.StartedWithNeow}, " +
+            $"HistoryType={historyType}, HistoryRoomModel={historyRoomModel}";
+    }
+
+    public static string DescribeEventState(EventModel? eventModel)
+    {
+        if (eventModel == null)
+            return "<event:null>";
+
+        try
+        {
+            string owner = eventModel.Owner?.NetId.ToString() ?? "<null>";
+            return
+                $"EventId={eventModel.Id.Entry}, Owner={owner}, Shared={eventModel.IsShared}, Finished={eventModel.IsFinished}, " +
+                $"Layout={eventModel.LayoutType}, Options={DescribeOptions(eventModel.CurrentOptions, eventModel)}";
+        }
+        catch (Exception ex)
+        {
+            return $"<event formatting failed:{ex.GetType().Name}>";
+        }
+    }
+
+    public static void LogEventState(string prefix, EventModel? eventModel)
+    {
+        ModLog.Info($"{prefix} {DescribeEventState(eventModel)}");
+    }
+
     public static List<ModifierBootstrapAction> BuildModifierBootstrapActions(Player player)
     {
         RunState runState = player.RunState as RunState
@@ -847,60 +1673,6 @@ public static void ConvertAct1StartShellToChosenAncient(
     RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
     NMapScreen.Instance?.SetMap(runState.Map, runState.Rng.Seed, clearDrawings: true);
 }
-
-public static void ResyncLocalGlobalUiAfterAct1ShellTransition(RunState runState)
-{
-    try
-    {
-        NRun? runNode = NRun.Instance;
-        if (runNode?.GlobalUi?.RelicInventory == null)
-        {
-            ModLog.Debug("Skipped Act 1 shell-transition Global UI resync because the local GlobalUi or RelicInventory was not ready.");
-            return;
-        }
-
-        var relicInventory = runNode.GlobalUi.RelicInventory;
-        Traverse inventoryTraverse = Traverse.Create(relicInventory);
-
-        inventoryTraverse.Method("DisconnectPlayerEvents").GetValue();
-
-        if (inventoryTraverse.Field("_relicNodes").GetValue() is IList relicNodes)
-        {
-            List<Node> nodesToRemove = relicNodes.Cast<object>()
-                .OfType<Node>()
-                .ToList();
-
-            foreach (Node relicNode in nodesToRemove)
-            {
-                try
-                {
-                    if (relicNode.GetParent() == relicInventory)
-                    {
-                        relicInventory.RemoveChild(relicNode);
-                    }
-
-                    relicNode.QueueFree();
-                }
-                catch (Exception ex)
-                {
-                    ModLog.Debug($"Ignoring error while tearing down stale relic inventory node during Act 1 shell-transition resync: {ex.GetType().Name}");
-                }
-            }
-
-            relicNodes.Clear();
-        }
-
-        relicInventory.Initialize(runState);
-        ActiveScreenContext.Instance.Update();
-
-        ModLog.Info("Resynced the local Global UI relic inventory after the Act 1 shell-room bypass transition.");
-    }
-    catch (Exception ex)
-    {
-        ModLog.Warn($"Failed to resync the local Global UI after the Act 1 shell-room bypass transition: {ex}");
-    }
-}
-
 
 public static void RewriteCurrentMapPointHistoryToAncient(
     RunState runState,
