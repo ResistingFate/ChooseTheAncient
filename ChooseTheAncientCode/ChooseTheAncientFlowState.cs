@@ -4,12 +4,18 @@ using System.Linq;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
-
-public enum StartupReadyRecordResult
+public enum StartupStepRecordResult
 {
     Added,
     Updated,
     Duplicate
+}
+
+public sealed class StartupStepCompletionInfo
+{
+    public required int TotalStepCount { get; init; }
+    public required string ModifierId { get; init; }
+    public required uint NextChoiceId { get; init; }
 }
 
 public sealed class ChooseTheAncientFlowState
@@ -18,159 +24,96 @@ public sealed class ChooseTheAncientFlowState
     public bool FlowInProgress { get; set; }
     public bool ContinueEnterMapCoord { get; set; }
     public bool ContinueEnterNextAct { get; set; }
-
-    // This is a one-shot per-run flag for startup modifier bootstrap work
-    // (for example Sealed Deck). Once it flips true, CTA must not try to
-    // bootstrap startup modifiers again later in the Act 1 flow.
     public bool ModifierBootstrapCompleted { get; set; }
+    public bool ForceAct1NeowBlessingMode { get; set; }
+    public bool Act1StartingRoomFlowTriggered { get; set; }
 
-    // Compatibility alias for future patches / logs that want a more explicit name.
-    public bool Act1StartupBootstrapApplied
-    {
-        get => ModifierBootstrapCompleted;
-        set => ModifierBootstrapCompleted = value;
-    }
-
-    // Tracks the next CTA-owned choice id that should be consumed for a given
-    // player after startup modifier bootstrap has already advanced the
-    // global PlayerChoiceSynchronizer stream.
-    public Dictionary<ulong, uint> StartupFlowNextChoiceIdsByPlayer { get; } = new();
-
-    public bool HasStartupFlowTrackedChoiceIds => StartupFlowNextChoiceIdsByPlayer.Count > 0;
-
-    // Explicit startup-step completion messages for bootstrap actions. These let CTA
-    // synchronize per-modifier startup completion without inferring "done" from frame silence.
-    public Dictionary<int, Dictionary<string, Dictionary<ulong, uint>>> PendingStartupStepCompletionMessagesByEpoch { get; } = new();
-
-    // CTA-owned startup bootstrap sync epoch. This lets us ignore stale startup-step completion
-    // messages from older attempts while keeping the sync off PlayerChoiceSynchronizer.
     public int Act1StartupBootstrapSyncEpoch { get; private set; }
+
+    public Dictionary<int, Dictionary<int, Dictionary<ulong, StartupStepCompletionInfo>>> PendingStartupStepCompletionMessagesByEpoch { get; } = new();
 
     public int BeginAct1StartupBootstrapSyncEpoch()
     {
         Act1StartupBootstrapSyncEpoch++;
+        PendingStartupStepCompletionMessagesByEpoch.Clear();
         return Act1StartupBootstrapSyncEpoch;
     }
 
-    public void SetStartupFlowNextChoiceId(ulong netId, uint nextChoiceId)
-    {
-        if (StartupFlowNextChoiceIdsByPlayer.TryGetValue(netId, out uint existingNextChoiceId)
-            && existingNextChoiceId >= nextChoiceId)
-        {
-            return;
-        }
-
-        StartupFlowNextChoiceIdsByPlayer[netId] = nextChoiceId;
-    }
-
-    public bool TryConsumeStartupFlowChoiceId(ulong netId, out uint choiceId)
-    {
-        if (StartupFlowNextChoiceIdsByPlayer.TryGetValue(netId, out choiceId))
-        {
-            StartupFlowNextChoiceIdsByPlayer[netId] = choiceId + 1;
-            return true;
-        }
-
-        choiceId = 0;
-        return false;
-    }
-
-    public void ClearStartupFlowChoiceIds()
-    {
-        StartupFlowNextChoiceIdsByPlayer.Clear();
-    }
-
-    public StartupReadyRecordResult RecordPendingStartupStepCompletionMessage(
-        int bootstrapSyncEpoch,
-        string stepKey,
-        ulong netId,
+    public StartupStepRecordResult RecordPendingStartupStepCompletionMessage(
+        int syncEpoch,
+        int stepIndex,
+        ulong playerNetId,
+        int totalStepCount,
+        string modifierId,
         uint nextChoiceId)
     {
-        if (!PendingStartupStepCompletionMessagesByEpoch.TryGetValue(
-                bootstrapSyncEpoch,
-                out Dictionary<string, Dictionary<ulong, uint>>? byStep))
+        if (!PendingStartupStepCompletionMessagesByEpoch.TryGetValue(syncEpoch, out Dictionary<int, Dictionary<ulong, StartupStepCompletionInfo>>? byStep))
         {
-            byStep = new Dictionary<string, Dictionary<ulong, uint>>(StringComparer.Ordinal);
-            PendingStartupStepCompletionMessagesByEpoch[bootstrapSyncEpoch] = byStep;
+            byStep = new Dictionary<int, Dictionary<ulong, StartupStepCompletionInfo>>();
+            PendingStartupStepCompletionMessagesByEpoch[syncEpoch] = byStep;
         }
 
-        if (!byStep.TryGetValue(stepKey, out Dictionary<ulong, uint>? byPlayer))
+        if (!byStep.TryGetValue(stepIndex, out Dictionary<ulong, StartupStepCompletionInfo>? byPlayer))
         {
-            byPlayer = new Dictionary<ulong, uint>();
-            byStep[stepKey] = byPlayer;
+            byPlayer = new Dictionary<ulong, StartupStepCompletionInfo>();
+            byStep[stepIndex] = byPlayer;
         }
 
-        StartupReadyRecordResult result;
-        if (byPlayer.TryGetValue(netId, out uint existingNextChoiceId))
+        StartupStepCompletionInfo incoming = new()
         {
-            if (existingNextChoiceId == nextChoiceId || existingNextChoiceId > nextChoiceId)
-            {
-                result = StartupReadyRecordResult.Duplicate;
-                nextChoiceId = existingNextChoiceId;
-            }
-            else
-            {
-                result = StartupReadyRecordResult.Updated;
-            }
-        }
-        else
+            TotalStepCount = totalStepCount,
+            ModifierId = modifierId,
+            NextChoiceId = nextChoiceId
+        };
+
+        if (!byPlayer.TryGetValue(playerNetId, out StartupStepCompletionInfo? existing))
         {
-            result = StartupReadyRecordResult.Added;
+            byPlayer[playerNetId] = incoming;
+            return StartupStepRecordResult.Added;
         }
 
-        byPlayer[netId] = nextChoiceId;
-
-        if (bootstrapSyncEpoch == Act1StartupBootstrapSyncEpoch)
+        if (existing.TotalStepCount == incoming.TotalStepCount
+            && string.Equals(existing.ModifierId, incoming.ModifierId, StringComparison.Ordinal)
+            && existing.NextChoiceId == incoming.NextChoiceId)
         {
-            SetStartupFlowNextChoiceId(netId, nextChoiceId);
+            return StartupStepRecordResult.Duplicate;
         }
 
-        return result;
+        byPlayer[playerNetId] = incoming.NextChoiceId >= existing.NextChoiceId ? incoming : existing;
+        return StartupStepRecordResult.Updated;
     }
 
-    public int ImportPendingStartupStepCompletionMessagesForCurrentSyncEpoch(string stepKey)
+    public bool HasPendingStartupStepCompletionMessageForEpoch(
+        int syncEpoch,
+        int stepIndex,
+        ulong playerNetId)
     {
-        if (!PendingStartupStepCompletionMessagesByEpoch.TryGetValue(
-                Act1StartupBootstrapSyncEpoch,
-                out Dictionary<string, Dictionary<ulong, uint>>? byStep)
-            || !byStep.TryGetValue(stepKey, out Dictionary<ulong, uint>? byPlayer)
-            || byPlayer.Count == 0)
-        {
-            return 0;
-        }
-
-        int imported = 0;
-        foreach (KeyValuePair<ulong, uint> entry in byPlayer)
-        {
-            SetStartupFlowNextChoiceId(entry.Key, entry.Value);
-            imported++;
-        }
-
-        return imported;
+        return PendingStartupStepCompletionMessagesByEpoch.TryGetValue(syncEpoch, out Dictionary<int, Dictionary<ulong, StartupStepCompletionInfo>>? byStep)
+               && byStep.TryGetValue(stepIndex, out Dictionary<ulong, StartupStepCompletionInfo>? byPlayer)
+               && byPlayer.ContainsKey(playerNetId);
     }
 
-    public bool HasPendingStartupStepCompletionMessageForEpoch(int bootstrapSyncEpoch, string stepKey, ulong netId)
+    public int GetPendingStartupStepCompletionMessageCountForEpoch(
+        int syncEpoch,
+        int stepIndex)
     {
-        return PendingStartupStepCompletionMessagesByEpoch.TryGetValue(
-                   bootstrapSyncEpoch,
-                   out Dictionary<string, Dictionary<ulong, uint>>? byStep)
-               && byStep.TryGetValue(stepKey, out Dictionary<ulong, uint>? byPlayer)
-               && byPlayer.ContainsKey(netId);
-    }
-
-    public int GetPendingStartupStepCompletionMessageCountForEpoch(int bootstrapSyncEpoch, string stepKey)
-    {
-        return PendingStartupStepCompletionMessagesByEpoch.TryGetValue(
-                   bootstrapSyncEpoch,
-                   out Dictionary<string, Dictionary<ulong, uint>>? byStep)
-               && byStep.TryGetValue(stepKey, out Dictionary<ulong, uint>? byPlayer)
+        return PendingStartupStepCompletionMessagesByEpoch.TryGetValue(syncEpoch, out Dictionary<int, Dictionary<ulong, StartupStepCompletionInfo>>? byStep)
+               && byStep.TryGetValue(stepIndex, out Dictionary<ulong, StartupStepCompletionInfo>? byPlayer)
             ? byPlayer.Count
             : 0;
     }
 
-    public void ClearPendingStartupStepCompletionMessages()
+    public IReadOnlyDictionary<ulong, StartupStepCompletionInfo> GetPendingStartupStepCompletionMessagesForEpoch(
+        int syncEpoch,
+        int stepIndex)
     {
-        PendingStartupStepCompletionMessagesByEpoch.Clear();
+        if (PendingStartupStepCompletionMessagesByEpoch.TryGetValue(syncEpoch, out Dictionary<int, Dictionary<ulong, StartupStepCompletionInfo>>? byStep)
+            && byStep.TryGetValue(stepIndex, out Dictionary<ulong, StartupStepCompletionInfo>? byPlayer))
+        {
+            return byPlayer;
+        }
+
+        return new Dictionary<ulong, StartupStepCompletionInfo>();
     }
 
     public string DescribePendingStartupStepCompletionMessages()
@@ -181,30 +124,21 @@ public sealed class ChooseTheAncientFlowState
         return string.Join(
             " | ",
             PendingStartupStepCompletionMessagesByEpoch
-                .OrderBy(kvp => kvp.Key)
-                .Select(kvp =>
-                    $"epoch {kvp.Key}: " +
+                .OrderBy(epochEntry => epochEntry.Key)
+                .Select(epochEntry =>
+                    $"epoch {epochEntry.Key}: " +
                     string.Join(
                         "; ",
-                        kvp.Value
-                            .OrderBy(step => step.Key, StringComparer.Ordinal)
-                            .Select(step =>
-                                $"{step.Key}=[" +
-                                string.Join(", ", step.Value.OrderBy(player => player.Key).Select(player => $"{player.Key}->{player.Value}")) +
-                                "]"))));
+                        epochEntry.Value.OrderBy(stepEntry => stepEntry.Key).Select(stepEntry =>
+                            $"step {stepEntry.Key}: " +
+                            string.Join(
+                                ", ",
+                                stepEntry.Value.OrderBy(playerEntry => playerEntry.Key).Select(playerEntry =>
+                                    $"{playerEntry.Key}->{playerEntry.Value.ModifierId}/{playerEntry.Value.NextChoiceId}/{playerEntry.Value.TotalStepCount}"))))));
     }
 
-    public string DescribeStartupFlowChoiceIds()
+    public void ClearPendingStartupStepCompletionMessages()
     {
-        if (StartupFlowNextChoiceIdsByPlayer.Count == 0)
-            return "<none>";
-
-        return string.Join(
-            ", ",
-            StartupFlowNextChoiceIdsByPlayer
-                .OrderBy(kvp => kvp.Key)
-                .Select(kvp => $"{kvp.Key}->{kvp.Value}"));
+        PendingStartupStepCompletionMessagesByEpoch.Clear();
     }
-
-    public bool Act1StartingRoomFlowTriggered { get; set; }
 }
