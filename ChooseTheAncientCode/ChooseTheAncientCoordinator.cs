@@ -80,7 +80,11 @@ public static class ChooseTheAncientCoordinator
             "Start-of-run modifier bootstrap was detected for the Act 1 starting-room flow. " +
             "Running it once before opening ChooseTheAncient so startup UI/state can complete first.");
 
-        await RunModifierBootstrapAsync(runState, orderedPlayers, reason);
+        int startupBootstrapSyncEpoch = flow.BeginAct1StartupBootstrapSyncEpoch();
+        flow.ClearPendingStartupStepCompletionMessages();
+
+
+        await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch, reason);
         flow.Act1StartupBootstrapApplied = true;
 
         ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
@@ -102,11 +106,23 @@ public static class ChooseTheAncientCoordinator
             orderedPlayers,
             $"Reason={reason}");
 
-        await ChooseTheAncientHelpers.WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync(
+        ChooseTheAncientHelpers.FinalizeStartupFlowChoiceBaselinesFromCurrentState(
             runState,
             orderedPlayers,
             flow,
-            $"after {reason}");
+            $"after {reason} and before final CTA startup-step sync baseline alignment");
+
+        ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
+            "StartupChoiceBaselinesFinalized",
+            runState,
+            flow,
+            orderedPlayers,
+            $"Reason={reason}");
+
+        ChooseTheAncientHelpers.AlignPlayerChoiceIdsToStartupFlowBaselines(
+            flow,
+            orderedPlayers,
+            $"after explicit CTA startup-step sync ({reason})");
 
         ChooseTheAncientHelpers.LogAct1StartupCheckpoint(
             "SharedSelectionFlowReady",
@@ -156,7 +172,7 @@ public static async Task RunAct1StartingRoomFlowAsync(
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
-        ChooseTheAncientHelpers.EnsureStartupReadyMessageHandlerRegistered(
+        ChooseTheAncientHelpers.EnsureStartupSyncMessageHandlerRegistered(
             runState,
             flow,
             orderedPlayers,
@@ -298,12 +314,11 @@ public static async Task RunAct1StartingRoomFlowAsync(
     finally
     {
         localScreen?.CloseScreen();
-        ChooseTheAncientHelpers.ReleaseStartupReadyMessageHandlerContext(
+        ChooseTheAncientHelpers.ReleaseStartupSyncMessageHandlerContext(
             runState,
             flow,
             "Act 1 starting-room flow cleanup");
         flow.ClearStartupFlowChoiceIds();
-        flow.ClearPendingStartupReadyMessages();
         flow.FlowInProgress = false;
         if (!flow.ResolvedActs.Contains(0))
         {
@@ -435,7 +450,7 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
-        ChooseTheAncientHelpers.EnsureStartupReadyMessageHandlerRegistered(
+        ChooseTheAncientHelpers.EnsureStartupSyncMessageHandlerRegistered(
             runState,
             flow,
             orderedPlayers,
@@ -666,7 +681,7 @@ public static async Task RunAct1MapEntryFlowAsync(
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
-        ChooseTheAncientHelpers.EnsureStartupReadyMessageHandlerRegistered(
+        ChooseTheAncientHelpers.EnsureStartupSyncMessageHandlerRegistered(
             runState,
             flow,
             orderedPlayers,
@@ -980,30 +995,107 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
 
     private static async Task RunModifierBootstrapAsync(
         RunState runState,
+        ChooseTheAncientFlowState flow,
         IReadOnlyList<Player> orderedPlayers,
+        int startupBootstrapSyncEpoch,
         string reason)
     {
         Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
         if (localPlayer != null)
         {
-            IReadOnlyList<ChooseTheAncientHelpers.ModifierBootstrapAction> bootstrapActions =
-                ChooseTheAncientHelpers.BuildModifierBootstrapActions(localPlayer);
+            HashSet<string> executedBootstrapKeys = new(StringComparer.OrdinalIgnoreCase);
+            int maxBootstrapPasses = Math.Max(8, runState.Modifiers.Count * 3);
+            int consecutiveEmptyPasses = 0;
 
-            if (bootstrapActions.Count > 0)
+            for (int pass = 1; pass <= maxBootstrapPasses && consecutiveEmptyPasses < 2; pass++)
             {
-                ModLog.Info(
-                    $"Running {bootstrapActions.Count} start-of-run modifier bootstrap action(s) " +
-                    $"for local player {localPlayer.NetId}. Reason={reason}");
+                IReadOnlyList<ChooseTheAncientHelpers.ModifierBootstrapAction> discoveredActions =
+                    ChooseTheAncientHelpers.BuildModifierBootstrapActions(localPlayer);
 
-                foreach (ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction in bootstrapActions)
+                List<(ChooseTheAncientHelpers.ModifierBootstrapAction Action, string Key)> pendingActions =
+                    discoveredActions
+                        .Select(action => (Action: action, Key: GetModifierBootstrapKey(runState, action)))
+                        .Where(entry => !executedBootstrapKeys.Contains(entry.Key))
+                        .OrderBy(entry => GetModifierBootstrapPriority(entry.Action))
+                        .ThenBy(entry => GetModifierBootstrapId(entry.Action), StringComparer.Ordinal)
+                        .ThenBy(entry => entry.Key, StringComparer.Ordinal)
+                        .ToList();
+
+                if (pendingActions.Count == 0)
                 {
-                    ModLog.Info($"Running modifier bootstrap for {bootstrapAction.Modifier.Id.Entry}.");
+                    consecutiveEmptyPasses++;
+
+                    if (pass == 1)
+                    {
+                        ModLog.Info($"No start-of-run modifier bootstrap actions were found for local player {localPlayer.NetId}.");
+                    }
+                    else
+                    {
+                        ModLog.Debug(
+                            $"No newly surfaced start-of-run modifier bootstrap actions were found on pass {pass} " +
+                            $"for local player {localPlayer.NetId}. Reason={reason}. EmptyPasses={consecutiveEmptyPasses}/2.");
+                    }
+
+                    await ChooseTheAncientHelpers.WaitForStartupModifierStateToSettleAsync(
+                        runState,
+                        orderedPlayers,
+                        $"{reason} (bootstrap probe pass {pass})",
+                        requiredStableFrames: 3,
+                        maxFrames: 180);
+
+                    continue;
+                }
+
+                consecutiveEmptyPasses = 0;
+
+                ModLog.Info(
+                    $"Running {pendingActions.Count} newly surfaced start-of-run modifier bootstrap action(s) " +
+                    $"for local player {localPlayer.NetId}. Reason={reason}. Pass={pass}/{maxBootstrapPasses}. " +
+                    $"Order={string.Join(", ", pendingActions.Select(entry => $"{GetModifierBootstrapId(entry.Action)}[{entry.Key}]"))}");
+
+                foreach ((ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction, string bootstrapKey) in pendingActions)
+                {
+                    string modifierId = GetModifierBootstrapId(bootstrapAction);
+                    executedBootstrapKeys.Add(bootstrapKey);
+
+                    ModLog.Info(
+                        $"Running modifier bootstrap for {modifierId}. Pass={pass}/{maxBootstrapPasses}, Key={bootstrapKey}.");
+
                     await bootstrapAction.ApplyAsync();
+
+                    if (ModifierBootstrapRequiresMidSettle(bootstrapAction))
+                    {
+                        await ChooseTheAncientHelpers.WaitForStartupModifierStateToSettleAsync(
+                            runState,
+                            orderedPlayers,
+                            $"{reason} ({modifierId})");
+                    }
+                    else
+                    {
+                        await ChooseTheAncientHelpers.WaitForStartupModifierStateToSettleAsync(
+                            runState,
+                            orderedPlayers,
+                            $"{reason} ({modifierId}, passive)",
+                            requiredStableFrames: 2,
+                            maxFrames: 90);
+                    }
+
+                    await ChooseTheAncientHelpers.WaitForAllPlayersToCompleteStartupStepAsync(
+                        runState,
+                        orderedPlayers,
+                        flow,
+                        startupBootstrapSyncEpoch,
+                        bootstrapKey,
+                        $"{reason} ({modifierId})");
                 }
             }
-            else
+
+            if (consecutiveEmptyPasses < 2)
             {
-                ModLog.Info($"No start-of-run modifier bootstrap actions were found for local player {localPlayer.NetId}.");
+                ModLog.Warn(
+                    $"CTA hit the startup modifier bootstrap pass limit before the action set stabilized. " +
+                    $"Reason={reason}, LocalPlayer={localPlayer.NetId}, MaxPasses={maxBootstrapPasses}, " +
+                    $"Executed={string.Join(", ", executedBootstrapKeys.OrderBy(value => value, StringComparer.Ordinal))}.");
             }
         }
 
@@ -1011,6 +1103,60 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             runState,
             orderedPlayers,
             reason);
+    }
+
+    private static string GetModifierBootstrapId(
+        ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
+    {
+        string entry = bootstrapAction.Modifier?.Id.Entry ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(entry))
+            return entry;
+
+        return bootstrapAction.Modifier?.GetType().Name ?? "<unknown_modifier>";
+    }
+
+    private static string GetModifierBootstrapKey(
+        RunState runState,
+        ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
+    {
+        ModifierModel? modifier = bootstrapAction.Modifier;
+        if (modifier == null)
+            return "<null_modifier>";
+
+        int modifierIndex = runState.Modifiers
+            .Select((candidate, index) => (candidate, index))
+            .Where(entry => ReferenceEquals(entry.candidate, modifier))
+            .Select(entry => entry.index)
+            .DefaultIfEmpty(-1)
+            .First();
+
+        string modifierId = GetModifierBootstrapId(bootstrapAction);
+        string modifierType = modifier.GetType().FullName ?? modifier.GetType().Name;
+
+        return $"{modifierIndex}:{modifierId}:{modifierType}";
+    }
+
+    private static int GetModifierBootstrapPriority(
+        ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
+    {
+        string modifierId = GetModifierBootstrapId(bootstrapAction);
+
+        if (string.Equals(modifierId, "SEALED_DECK", StringComparison.OrdinalIgnoreCase))
+            return 0;
+
+        if (string.Equals(modifierId, "DRAFT", StringComparison.OrdinalIgnoreCase))
+            return 1;
+
+        return 100;
+    }
+
+    private static bool ModifierBootstrapRequiresMidSettle(
+        ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
+    {
+        string modifierId = GetModifierBootstrapId(bootstrapAction);
+
+        return string.Equals(modifierId, "SEALED_DECK", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(modifierId, "DRAFT", StringComparison.OrdinalIgnoreCase);
     }
 
             

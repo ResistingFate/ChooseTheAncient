@@ -58,16 +58,16 @@ public static class ChooseTheAncientHelpers
         AccessTools.Field(ReceivedChoiceType, "choiceId")
         ?? throw new InvalidOperationException("Could not locate ReceivedChoice.choiceId.");
 
-    private static readonly object StartupReadyHandlerLock = new();
+    private static readonly object StartupSyncHandlerLock = new();
 
-    private static bool StartupReadyMessageHandlerRegistered;
-    private static INetGameService? StartupReadyMessageHandlerNetService;
-    private static RunState? ActiveStartupReadyRunState;
-    private static ChooseTheAncientFlowState? ActiveStartupReadyFlow;
-    private static HashSet<ulong> ActiveStartupReadyPlayers = new();
+    private static bool StartupStepCompletionMessageHandlerRegistered;
+    private static INetGameService? StartupStepCompletionMessageHandlerNetService;
+    private static RunState? ActiveStartupSyncRunState;
+    private static ChooseTheAncientFlowState? ActiveStartupSyncFlow;
+    private static HashSet<ulong> ActiveStartupSyncPlayers = new();
 
 
-    public static void EnsureStartupReadyMessageHandlerRegistered(
+    public static void EnsureStartupSyncMessageHandlerRegistered(
         RunState runState,
         ChooseTheAncientFlowState flow,
         IReadOnlyList<Player> orderedPlayers,
@@ -76,82 +76,75 @@ public static class ChooseTheAncientHelpers
         RunManager runManager = RunManager.Instance;
         INetGameService netService = runManager.NetService;
 
-        lock (StartupReadyHandlerLock)
+        lock (StartupSyncHandlerLock)
         {
-            ActiveStartupReadyRunState = runState;
-            ActiveStartupReadyFlow = flow;
-            ActiveStartupReadyPlayers = orderedPlayers
+            ActiveStartupSyncRunState = runState;
+            ActiveStartupSyncFlow = flow;
+            ActiveStartupSyncPlayers = orderedPlayers
                 .Select(player => player.NetId)
                 .ToHashSet();
 
-            if (StartupReadyMessageHandlerRegistered && !ReferenceEquals(StartupReadyMessageHandlerNetService, netService))
+            if (StartupStepCompletionMessageHandlerRegistered && !ReferenceEquals(StartupStepCompletionMessageHandlerNetService, netService))
             {
                 try
                 {
-                    StartupReadyMessageHandlerNetService?.UnregisterMessageHandler<ChooseTheAncientStartupReadyMessage>(
-                        HandleStartupReadyMessageReceived);
+                    StartupStepCompletionMessageHandlerNetService?.UnregisterMessageHandler<ChooseTheAncientStartupStepCompletedMessage>(
+                        HandleStartupStepCompletedMessageReceived);
                 }
                 catch (Exception ex)
                 {
                     ModLog.Warn(
-                        $"Failed to unregister the CTA startup-ready handler from the previous net service while refreshing the registration context: {ex.GetType().Name}");
+                        $"Failed to unregister the CTA startup-step-completed handler from the previous net service while refreshing the registration context: {ex.GetType().Name}");
                 }
 
-                StartupReadyMessageHandlerRegistered = false;
-                StartupReadyMessageHandlerNetService = null;
+                StartupStepCompletionMessageHandlerRegistered = false;
+                StartupStepCompletionMessageHandlerNetService = null;
             }
 
-            if (!StartupReadyMessageHandlerRegistered)
+            bool registeredHandler = false;
+            if (!StartupStepCompletionMessageHandlerRegistered)
             {
-                netService.RegisterMessageHandler<ChooseTheAncientStartupReadyMessage>(
-                    HandleStartupReadyMessageReceived);
-                StartupReadyMessageHandlerRegistered = true;
-                StartupReadyMessageHandlerNetService = netService;
+                netService.RegisterMessageHandler<ChooseTheAncientStartupStepCompletedMessage>(
+                    HandleStartupStepCompletedMessageReceived);
+                StartupStepCompletionMessageHandlerRegistered = true;
+                StartupStepCompletionMessageHandlerNetService = netService;
+                registeredHandler = true;
+            }
 
-                LogAct1StartupCheckpoint(
-                    "ReadyHandlerRegistered",
-                    runState,
-                    flow,
-                    orderedPlayers,
-                    $"Reason={reason}, Players={string.Join(", ", orderedPlayers.Select(player => player.NetId))}");
-            }
-            else
-            {
-                LogAct1StartupCheckpoint(
-                    "ReadyHandlerContextRefreshed",
-                    runState,
-                    flow,
-                    orderedPlayers,
-                    $"Reason={reason}, Players={string.Join(", ", orderedPlayers.Select(player => player.NetId))}");
-            }
+            LogAct1StartupCheckpoint(
+                registeredHandler ? "StartupSyncHandlerRegistered" : "StartupSyncHandlerContextRefreshed",
+                runState,
+                flow,
+                orderedPlayers,
+                $"Reason={reason}, Players={string.Join(", ", orderedPlayers.Select(player => player.NetId))}");
         }
     }
 
-    public static void ReleaseStartupReadyMessageHandlerContext(
+    public static void ReleaseStartupSyncMessageHandlerContext(
         RunState? runState,
         ChooseTheAncientFlowState? flow,
         string reason)
     {
-        lock (StartupReadyHandlerLock)
+        lock (StartupSyncHandlerLock)
         {
-            if (!ReferenceEquals(ActiveStartupReadyFlow, flow))
+            if (!ReferenceEquals(ActiveStartupSyncFlow, flow))
                 return;
 
             LogAct1StartupCheckpoint(
-                "ReadyHandlerContextReleased",
+                "StartupSyncHandlerContextReleased",
                 runState,
                 flow,
                 orderedPlayers: null,
                 $"Reason={reason}");
 
-            ActiveStartupReadyRunState = null;
-            ActiveStartupReadyFlow = null;
-            ActiveStartupReadyPlayers = new HashSet<ulong>();
+            ActiveStartupSyncRunState = null;
+            ActiveStartupSyncFlow = null;
+            ActiveStartupSyncPlayers = new HashSet<ulong>();
         }
     }
 
-    private static void HandleStartupReadyMessageReceived(
-        ChooseTheAncientStartupReadyMessage message,
+    private static void HandleStartupStepCompletedMessageReceived(
+        ChooseTheAncientStartupStepCompletedMessage message,
         ulong senderId)
     {
         RunState? runState;
@@ -159,15 +152,19 @@ public static class ChooseTheAncientHelpers
         bool senderTracked;
         StartupReadyRecordResult recordResult = StartupReadyRecordResult.Duplicate;
 
-        lock (StartupReadyHandlerLock)
+        lock (StartupSyncHandlerLock)
         {
-            runState = ActiveStartupReadyRunState;
-            flow = ActiveStartupReadyFlow;
-            senderTracked = ActiveStartupReadyPlayers.Count == 0 || ActiveStartupReadyPlayers.Contains(senderId);
+            runState = ActiveStartupSyncRunState;
+            flow = ActiveStartupSyncFlow;
+            senderTracked = ActiveStartupSyncPlayers.Count == 0 || ActiveStartupSyncPlayers.Contains(senderId);
 
             if (flow != null && senderTracked)
             {
-                recordResult = flow.RecordPendingStartupReadyMessage(message.barrierEpoch, senderId, message.nextChoiceId);
+                recordResult = flow.RecordPendingStartupStepCompletionMessage(
+                    message.bootstrapSyncEpoch,
+                    message.stepKey,
+                    senderId,
+                    message.nextChoiceId);
             }
         }
 
@@ -177,15 +174,15 @@ public static class ChooseTheAncientHelpers
         if (flow == null || runState == null)
         {
             ModLog.Warn(
-                $"Received CTA startup ready message from player {senderId} before the CTA startup-ready handler had active flow context. " +
-                $"Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, BootstrapCompleted={message.bootstrapCompleted}, ShellRoomActive={message.shellRoomActive}");
+                $"Received CTA startup step-completed message from player {senderId} before the CTA startup-sync handler had active flow context. " +
+                $"Epoch={message.bootstrapSyncEpoch}, StepKey={message.stepKey}, NextChoiceId={message.nextChoiceId}, ShellRoomActive={message.shellRoomActive}");
             return;
         }
 
         if (!senderTracked)
         {
             ModLog.Debug(
-                $"Ignoring CTA startup ready message from untracked sender {senderId}. Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}.");
+                $"Ignoring CTA startup step-completed message from untracked sender {senderId}. Epoch={message.bootstrapSyncEpoch}, StepKey={message.stepKey}, NextChoiceId={message.nextChoiceId}.");
             return;
         }
 
@@ -194,11 +191,11 @@ public static class ChooseTheAncientHelpers
             if (ModLog.IsTraceEnabled)
             {
                 LogAct1StartupCheckpoint(
-                    "ReadyMessageDuplicateIgnored",
+                    "StartupStepCompletionDuplicateIgnored",
                     runState,
                     flow,
                     orderedPlayers: null,
-                    $"Sender={senderId}, Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, BootstrapCompleted={message.bootstrapCompleted}, ShellRoomActive={message.shellRoomActive}, PendingReadyMessages={flow.DescribePendingStartupReadyMessages()}",
+                    $"Sender={senderId}, Epoch={message.bootstrapSyncEpoch}, StepKey={message.stepKey}, NextChoiceId={message.nextChoiceId}, ShellRoomActive={message.shellRoomActive}, PendingStepCompletions={flow.DescribePendingStartupStepCompletionMessages()}",
                     trace: true);
             }
 
@@ -206,11 +203,11 @@ public static class ChooseTheAncientHelpers
         }
 
         LogAct1StartupCheckpoint(
-            recordResult == StartupReadyRecordResult.Added ? "ReadyMessageReceived" : "ReadyMessageUpdated",
+            recordResult == StartupReadyRecordResult.Added ? "StartupStepCompletedMessageReceived" : "StartupStepCompletedMessageUpdated",
             runState,
             flow,
             orderedPlayers: null,
-            $"Sender={senderId}, Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, BootstrapCompleted={message.bootstrapCompleted}, ShellRoomActive={message.shellRoomActive}, PendingReadyMessages={flow.DescribePendingStartupReadyMessages()}");
+            $"Sender={senderId}, Epoch={message.bootstrapSyncEpoch}, StepKey={message.stepKey}, NextChoiceId={message.nextChoiceId}, ShellRoomActive={message.shellRoomActive}, PendingStepCompletions={flow.DescribePendingStartupStepCompletionMessages()}");
     }
 
     public sealed class AncientPreviewData
@@ -1042,6 +1039,28 @@ public static void AlignPlayerChoiceIdsToStartupFlowBaselines(
 }
 
 
+public static void FinalizeStartupFlowChoiceBaselinesFromCurrentState(
+    RunState runState,
+    IReadOnlyList<Player> orderedPlayers,
+    ChooseTheAncientFlowState flow,
+    string reason)
+{
+    List<string> liveSnapshots = new();
+
+    foreach (Player player in orderedPlayers)
+    {
+        uint liveNextChoiceId = GetNextChoiceIdForPlayer(runState, player);
+        flow.SetStartupFlowNextChoiceId(player.NetId, liveNextChoiceId);
+        liveSnapshots.Add($"{player.NetId}->{liveNextChoiceId}");
+    }
+
+    ModLog.Info(
+        $"Finalized CTA startup choice baselines from the fully settled post-bootstrap state. " +
+        $"Reason={reason}, LiveChoiceIds={DescribeCurrentChoiceIds()}, " +
+        $"MergedBaselines={flow.DescribeStartupFlowChoiceIds()}, LiveSnapshots={string.Join(", ", liveSnapshots)}.");
+}
+
+
 public static uint GetNextChoiceIdForPlayer(RunState runState, Player player)
 {
     try
@@ -1115,7 +1134,7 @@ public static void LogAct1StartupCheckpoint(
         $"Actions={DescribeActionState()}, Players={DescribePlayers(orderedPlayers)}, " +
         $"TrackedNextChoiceIds={(flow?.DescribeStartupFlowChoiceIds() ?? "<flow-null>")}, " +
         $"BootstrapCompleted={(flow?.Act1StartupBootstrapApplied.ToString() ?? "<flow-null>")}, " +
-        $"BarrierEpoch={(flow?.Act1StartupReadyBarrierEpoch.ToString() ?? "<flow-null>")}" +
+        $"BootstrapSyncEpoch={(flow?.Act1StartupBootstrapSyncEpoch.ToString() ?? "<flow-null>")}" +
         (string.IsNullOrWhiteSpace(extra) ? string.Empty : $", {extra}");
 
     if (trace)
@@ -1128,10 +1147,13 @@ public static void LogAct1StartupCheckpoint(
     }
 }
 
-public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync(
+
+public static async Task WaitForAllPlayersToCompleteStartupStepAsync(
     RunState runState,
     IReadOnlyList<Player> orderedPlayers,
     ChooseTheAncientFlowState flow,
+    int bootstrapSyncEpoch,
+    string stepKey,
     string reason)
 {
     if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer || orderedPlayers.Count <= 1)
@@ -1141,76 +1163,64 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
 
     RunManager runManager = RunManager.Instance;
     INetGameService netService = runManager.NetService;
+
     string players = string.Join(", ", orderedPlayers.Select(player => player.NetId));
 
-    EnsureStartupReadyMessageHandlerRegistered(
+    EnsureStartupSyncMessageHandlerRegistered(
         runState,
         flow,
         orderedPlayers,
-        $"{reason} (wait barrier)");
-
-    int barrierEpoch = flow.BeginAct1StartupReadyBarrier();
+        $"{reason} (startup step sync:{stepKey})");
 
     Player? localPlayer = orderedPlayers.FirstOrDefault(LocalContext.IsMe)
         ?? orderedPlayers.FirstOrDefault();
     if (localPlayer == null)
     {
         ModLog.Warn(
-            $"CTA could not identify a local player for the post-bootstrap ready barrier. Proceeding without the barrier. Reason={reason}");
+            $"CTA could not identify a local player for the startup-step completion sync. Proceeding without the step sync. Reason={reason}, StepKey={stepKey}");
         return;
     }
 
-    uint localNextChoiceId = GetNextChoiceIdForPlayer(
-        runState,
-        localPlayer,
-        flow,
-        preferTrackedStartupFlowChoiceId: true);
+    uint GetEffectiveLocalNextChoiceId()
+    {
+        uint liveNextChoiceId = GetNextChoiceIdForPlayer(runState, localPlayer);
+        uint trackedNextChoiceId = GetNextChoiceIdForPlayer(
+            runState,
+            localPlayer,
+            flow,
+            preferTrackedStartupFlowChoiceId: true);
+
+        return Math.Max(liveNextChoiceId, trackedNextChoiceId);
+    }
+
     bool localShellRoomActive =
         IsAct1StartingMapPoint(runState)
         && runState.CurrentRoom is ChooseTheAncientStartRoom
         && runState.CurrentRoomCount == 1;
 
-    flow.SetStartupFlowNextChoiceId(localPlayer.NetId, localNextChoiceId);
-
-    int importedPendingMessages = flow.ImportPendingStartupReadyMessagesForCurrentEpoch();
+    int importedPendingMessages = flow.ImportPendingStartupStepCompletionMessagesForCurrentSyncEpoch(stepKey);
     if (importedPendingMessages > 0)
     {
         LogAct1StartupCheckpoint(
-            "BarrierImportedPendingMessages",
+            "StartupStepSyncImportedPendingMessages",
             runState,
             flow,
             orderedPlayers,
-            $"Reason={reason}, Imported={importedPendingMessages}, Epoch={barrierEpoch}, PendingReadyMessages={flow.DescribePendingStartupReadyMessages()}");
+            $"Reason={reason}, StepKey={stepKey}, Imported={importedPendingMessages}, Epoch={bootstrapSyncEpoch}, PendingStepCompletions={flow.DescribePendingStartupStepCompletionMessages()}");
     }
 
-    string? previousChoiceIds = null;
-    int stableFrames = 0;
-    int framesSinceLastChoiceEvent = 0;
-    int observedChoiceEventCount = 0;
-    int requiredStableFrames = 8;
-    int maxFrames = 360;
     int[] resendScheduleFrames = { 60, 150, 300 };
     int resendScheduleIndex = 0;
-    ChooseTheAncientStartupReadyMessage? lastSentReadyMessage = null;
+    ChooseTheAncientStartupStepCompletedMessage? lastSentStepMessage = null;
 
-    void OnPlayerChoiceReceived(Player _, uint __, NetPlayerChoiceResult ___)
+    ChooseTheAncientStartupStepCompletedMessage BuildLocalStepCompletedMessage()
     {
-        observedChoiceEventCount++;
-        framesSinceLastChoiceEvent = 0;
-    }
-
-    ChooseTheAncientStartupReadyMessage BuildLocalReadyMessage()
-    {
-        return new ChooseTheAncientStartupReadyMessage
+        return new ChooseTheAncientStartupStepCompletedMessage
         {
             actIndex = 1,
-            barrierEpoch = barrierEpoch,
-            nextChoiceId = GetNextChoiceIdForPlayer(
-                runState,
-                localPlayer,
-                flow,
-                preferTrackedStartupFlowChoiceId: true),
-            bootstrapCompleted = flow.Act1StartupBootstrapApplied,
+            bootstrapSyncEpoch = bootstrapSyncEpoch,
+            stepKey = stepKey,
+            nextChoiceId = GetEffectiveLocalNextChoiceId(),
             shellRoomActive =
                 IsAct1StartingMapPoint(runState)
                 && runState.CurrentRoom is ChooseTheAncientStartRoom
@@ -1218,145 +1228,104 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
         };
     }
 
-    static bool AreEquivalentReadyMessages(
-        ChooseTheAncientStartupReadyMessage left,
-        ChooseTheAncientStartupReadyMessage right)
+    static bool AreEquivalentStepCompletedMessages(
+        ChooseTheAncientStartupStepCompletedMessage left,
+        ChooseTheAncientStartupStepCompletedMessage right)
     {
         return left.actIndex == right.actIndex
-            && left.barrierEpoch == right.barrierEpoch
+            && left.bootstrapSyncEpoch == right.bootstrapSyncEpoch
+            && string.Equals(left.stepKey, right.stepKey, StringComparison.Ordinal)
             && left.nextChoiceId == right.nextChoiceId
-            && left.bootstrapCompleted == right.bootstrapCompleted
             && left.shellRoomActive == right.shellRoomActive;
     }
 
-    void BroadcastLocalReadyMessage(string stage, ChooseTheAncientStartupReadyMessage? messageOverride = null)
+    void BroadcastLocalStepCompletedMessage(string stage, ChooseTheAncientStartupStepCompletedMessage? messageOverride = null)
     {
-        ChooseTheAncientStartupReadyMessage message = messageOverride ?? BuildLocalReadyMessage();
+        ChooseTheAncientStartupStepCompletedMessage message = messageOverride ?? BuildLocalStepCompletedMessage();
         StartupReadyRecordResult recordResult =
-            flow.RecordPendingStartupReadyMessage(message.barrierEpoch, localPlayer.NetId, message.nextChoiceId);
+            flow.RecordPendingStartupStepCompletionMessage(
+                message.bootstrapSyncEpoch,
+                message.stepKey,
+                localPlayer.NetId,
+                message.nextChoiceId);
+
+        flow.SetStartupFlowNextChoiceId(localPlayer.NetId, message.nextChoiceId);
         netService.SendMessage(message);
-        lastSentReadyMessage = message;
+        lastSentStepMessage = message;
 
         LogAct1StartupCheckpoint(
             stage,
             runState,
             flow,
             orderedPlayers,
-            $"Reason={reason}, LocalPlayer={localPlayer.NetId}, Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, ShellRoomActive={message.shellRoomActive}, BootstrapCompleted={message.bootstrapCompleted}, LocalRecordResult={recordResult}");
+            $"Reason={reason}, StepKey={message.stepKey}, LocalPlayer={localPlayer.NetId}, Epoch={message.bootstrapSyncEpoch}, NextChoiceId={message.nextChoiceId}, ShellRoomActive={message.shellRoomActive}, LocalRecordResult={recordResult}");
     }
 
-    runManager.PlayerChoiceSynchronizer.PlayerChoiceReceived += OnPlayerChoiceReceived;
+    LogAct1StartupCheckpoint(
+        "StartupStepSyncBegin",
+        runState,
+        flow,
+        orderedPlayers,
+        $"Reason={reason}, StepKey={stepKey}, Players={players}, Epoch={bootstrapSyncEpoch}, LocalNextChoiceId={GetEffectiveLocalNextChoiceId()}, LocalShellRoomActive={localShellRoomActive}, ResendScheduleFrames={string.Join(",", resendScheduleFrames)}");
 
-    try
+    BroadcastLocalStepCompletedMessage("StartupStepSyncLocalCompletedSent");
+
+    int maxFrames = 720;
+
+    for (int frame = 0; frame < maxFrames; frame++)
     {
-        LogAct1StartupCheckpoint(
-            "BarrierBegin",
-            runState,
-            flow,
-            orderedPlayers,
-            $"Reason={reason}, Players={players}, RequiredStableFrames={requiredStableFrames}, MaxFrames={maxFrames}, LocalNextChoiceId={localNextChoiceId}, LocalShellRoomActive={localShellRoomActive}, Epoch={barrierEpoch}, ResendScheduleFrames={string.Join(",", resendScheduleFrames)}");
+        await WaitForProcessFramesAsync(1);
 
-        BroadcastLocalReadyMessage("BarrierLocalReadySent");
+        bool everyoneCompleted = orderedPlayers.All(
+            player => flow.HasPendingStartupStepCompletionMessageForEpoch(bootstrapSyncEpoch, stepKey, player.NetId));
 
-        for (int frame = 0; frame < maxFrames; frame++)
+        ChooseTheAncientStartupStepCompletedMessage currentLocalMessage = BuildLocalStepCompletedMessage();
+        bool localStateChanged = !lastSentStepMessage.HasValue
+            || !AreEquivalentStepCompletedMessages(lastSentStepMessage.Value, currentLocalMessage);
+
+        if (localStateChanged)
         {
-            await WaitForProcessFramesAsync(1);
-
-            framesSinceLastChoiceEvent++;
-
-            string currentChoiceIds = DescribeCurrentChoiceIds();
-            bool choiceIdsStable = string.Equals(previousChoiceIds, currentChoiceIds, StringComparison.Ordinal);
-
-            bool actionExecutorBusy =
-                runManager.ActionExecutor.IsRunning
-                || runManager.ActionExecutor.IsPaused
-                || runManager.ActionExecutor.CurrentlyRunningAction != null;
-
-            bool actionQueuesEmpty = runManager.ActionQueueSet.IsEmpty;
-            bool startupTrafficQuiet = framesSinceLastChoiceEvent >= requiredStableFrames;
-            bool stillOnAct1ShellRoom =
-                IsAct1StartingMapPoint(runState)
-                && runState.CurrentRoom is ChooseTheAncientStartRoom
-                && runState.CurrentRoomCount == 1;
-
-            bool everyoneReady = orderedPlayers.All(player => flow.StartupFlowNextChoiceIdsByPlayer.ContainsKey(player.NetId));
-            int readyMessageCount = Math.Max(0, flow.StartupFlowNextChoiceIdsByPlayer.Count - 1);
-
-            ChooseTheAncientStartupReadyMessage currentLocalReadyMessage = BuildLocalReadyMessage();
-            bool localReadyStateChanged = !lastSentReadyMessage.HasValue
-                || !AreEquivalentReadyMessages(lastSentReadyMessage.Value, currentLocalReadyMessage);
-
-            if (localReadyStateChanged)
-            {
-                BroadcastLocalReadyMessage("BarrierLocalReadyStateChanged", currentLocalReadyMessage);
-            }
-            else if (!everyoneReady
-                && resendScheduleIndex < resendScheduleFrames.Length
-                && (frame + 1) >= resendScheduleFrames[resendScheduleIndex])
-            {
-                BroadcastLocalReadyMessage(
-                    $"BarrierLocalReadyResent{resendScheduleIndex + 1}",
-                    currentLocalReadyMessage);
-                resendScheduleIndex++;
-            }
-
-            if (everyoneReady && choiceIdsStable && !actionExecutorBusy && actionQueuesEmpty && startupTrafficQuiet && stillOnAct1ShellRoom)
-            {
-                stableFrames++;
-                if (stableFrames >= requiredStableFrames)
-                {
-                    LogAct1StartupCheckpoint(
-                        "BarrierComplete",
-                        runState,
-                        flow,
-                        orderedPlayers,
-                        $"Reason={reason}, ObservedChoiceEvents={observedChoiceEventCount}, ReadyMessagesReceived={readyMessageCount}, QuietFrames={framesSinceLastChoiceEvent}, Epoch={barrierEpoch}");
-
-                    AlignPlayerChoiceIdsToStartupFlowBaselines(
-                        flow,
-                        orderedPlayers,
-                        $"after CTA startup ready barrier ({reason})");
-
-                    await WaitForProcessFramesAsync(2);
-                    return;
-                }
-            }
-            else
-            {
-                stableFrames = 0;
-            }
-
-            if (ModLog.IsTraceEnabled)
-            {
-                LogAct1StartupCheckpoint(
-                    "BarrierTick",
-                    runState,
-                    flow,
-                    orderedPlayers,
-                    $"Reason={reason}, Tick={frame + 1}/{maxFrames}, ChoiceIdsStable={choiceIdsStable}, ActionExecutorBusy={actionExecutorBusy}, ActionQueuesEmpty={actionQueuesEmpty}, ChoiceQuietFrames={framesSinceLastChoiceEvent}/{requiredStableFrames}, ObservedChoiceEvents={observedChoiceEventCount}, EveryoneReady={everyoneReady}, StillOnShellRoom={stillOnAct1ShellRoom}, StableFrames={stableFrames}/{requiredStableFrames}, Epoch={barrierEpoch}, LocalReadyStateChanged={localReadyStateChanged}, NextResendFrame={(resendScheduleIndex < resendScheduleFrames.Length ? resendScheduleFrames[resendScheduleIndex].ToString() : "<none>")}",
-                    trace: true);
-            }
-
-            previousChoiceIds = currentChoiceIds;
+            BroadcastLocalStepCompletedMessage("StartupStepSyncLocalCompletedStateChanged", currentLocalMessage);
+        }
+        else if (!everyoneCompleted
+                 && resendScheduleIndex < resendScheduleFrames.Length
+                 && (frame + 1) >= resendScheduleFrames[resendScheduleIndex])
+        {
+            BroadcastLocalStepCompletedMessage(
+                $"StartupStepSyncLocalCompletedResent{resendScheduleIndex + 1}",
+                currentLocalMessage);
+            resendScheduleIndex++;
         }
 
-        ModLog.Warn(
-            $"Timed out waiting for the CTA-owned post-bootstrap ready barrier. Proceeding anyway to avoid a multiplayer softlock. " +
-            $"Reason={reason}, TrackedNextChoiceIds={flow.DescribeStartupFlowChoiceIds()}, PendingReadyMessages={flow.DescribePendingStartupReadyMessages()}, ObservedChoiceEvents={observedChoiceEventCount}, Epoch={barrierEpoch}.");
+        if (everyoneCompleted)
+        {
+            int imported = flow.ImportPendingStartupStepCompletionMessagesForCurrentSyncEpoch(stepKey);
 
-        AlignPlayerChoiceIdsToStartupFlowBaselines(
-            flow,
-            orderedPlayers,
-            $"timeout path after CTA startup ready barrier ({reason})");
+            LogAct1StartupCheckpoint(
+                "StartupStepSyncComplete",
+                runState,
+                flow,
+                orderedPlayers,
+                $"Reason={reason}, StepKey={stepKey}, Epoch={bootstrapSyncEpoch}, Imported={imported}, CompletedPlayers={flow.GetPendingStartupStepCompletionMessageCountForEpoch(bootstrapSyncEpoch, stepKey)}, PendingStepCompletions={flow.DescribePendingStartupStepCompletionMessages()}");
 
-        await WaitForProcessFramesAsync(2);
+            return;
+        }
+
+        if (ModLog.IsTraceEnabled)
+        {
+            LogAct1StartupCheckpoint(
+                "StartupStepSyncTick",
+                runState,
+                flow,
+                orderedPlayers,
+                $"Reason={reason}, StepKey={stepKey}, Tick={frame + 1}/{maxFrames}, CompletedPlayers={flow.GetPendingStartupStepCompletionMessageCountForEpoch(bootstrapSyncEpoch, stepKey)}, EveryoneCompleted={everyoneCompleted}, PendingStepCompletions={flow.DescribePendingStartupStepCompletionMessages()}, LocalStateChanged={localStateChanged}, NextResendFrame={(resendScheduleIndex < resendScheduleFrames.Length ? resendScheduleFrames[resendScheduleIndex].ToString() : "<none>")}",
+                trace: true);
+        }
     }
-    finally
-    {
-        runManager.PlayerChoiceSynchronizer.PlayerChoiceReceived -= OnPlayerChoiceReceived;
-    }
+
+    ModLog.Warn(
+        $"Timed out waiting for explicit CTA startup-step completion sync. Proceeding anyway to avoid a multiplayer softlock. Reason={reason}, StepKey={stepKey}, Epoch={bootstrapSyncEpoch}, PendingStepCompletions={flow.DescribePendingStartupStepCompletionMessages()}");
 }
-
 
     public static string DescribePlayers(IEnumerable<Player>? players)
     {
