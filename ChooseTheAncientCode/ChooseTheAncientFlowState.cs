@@ -3,6 +3,14 @@ using System.Linq;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
+
+public enum StartupReadyRecordResult
+{
+    Added,
+    Updated,
+    Duplicate
+}
+
 public sealed class ChooseTheAncientFlowState
 {
     public HashSet<int> ResolvedActs { get; } = new();
@@ -41,12 +49,11 @@ public sealed class ChooseTheAncientFlowState
     public int BeginAct1StartupReadyBarrier()
     {
         Act1StartupReadyBarrierEpoch++;
-        StartupFlowNextChoiceIdsByPlayer.Clear();
         ImportPendingStartupReadyMessagesForCurrentEpoch();
         return Act1StartupReadyBarrierEpoch;
     }
 
-    public void RecordPendingStartupReadyMessage(int barrierEpoch, ulong netId, uint nextChoiceId)
+    public StartupReadyRecordResult RecordPendingStartupReadyMessage(int barrierEpoch, ulong netId, uint nextChoiceId)
     {
         if (!PendingStartupReadyMessagesByEpoch.TryGetValue(barrierEpoch, out Dictionary<ulong, uint>? byPlayer))
         {
@@ -54,12 +61,32 @@ public sealed class ChooseTheAncientFlowState
             PendingStartupReadyMessagesByEpoch[barrierEpoch] = byPlayer;
         }
 
+        StartupReadyRecordResult result;
+        if (byPlayer.TryGetValue(netId, out uint existingNextChoiceId))
+        {
+            if (existingNextChoiceId == nextChoiceId || existingNextChoiceId > nextChoiceId)
+            {
+                result = StartupReadyRecordResult.Duplicate;
+                nextChoiceId = existingNextChoiceId;
+            }
+            else
+            {
+                result = StartupReadyRecordResult.Updated;
+            }
+        }
+        else
+        {
+            result = StartupReadyRecordResult.Added;
+        }
+
         byPlayer[netId] = nextChoiceId;
 
         if (barrierEpoch == Act1StartupReadyBarrierEpoch)
         {
-            StartupFlowNextChoiceIdsByPlayer[netId] = nextChoiceId;
+            SetStartupFlowNextChoiceId(netId, nextChoiceId);
         }
+
+        return result;
     }
 
     public int ImportPendingStartupReadyMessagesForCurrentEpoch()
@@ -73,7 +100,7 @@ public sealed class ChooseTheAncientFlowState
         int imported = 0;
         foreach (KeyValuePair<ulong, uint> entry in byPlayer)
         {
-            StartupFlowNextChoiceIdsByPlayer[entry.Key] = entry.Value;
+            SetStartupFlowNextChoiceId(entry.Key, entry.Value);
             imported++;
         }
 
@@ -82,6 +109,12 @@ public sealed class ChooseTheAncientFlowState
 
     public void SetStartupFlowNextChoiceId(ulong netId, uint nextChoiceId)
     {
+        if (StartupFlowNextChoiceIdsByPlayer.TryGetValue(netId, out uint existingNextChoiceId)
+            && existingNextChoiceId >= nextChoiceId)
+        {
+            return;
+        }
+
         StartupFlowNextChoiceIdsByPlayer[netId] = nextChoiceId;
     }
 

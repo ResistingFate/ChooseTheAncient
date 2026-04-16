@@ -157,6 +157,7 @@ public static class ChooseTheAncientHelpers
         RunState? runState;
         ChooseTheAncientFlowState? flow;
         bool senderTracked;
+        StartupReadyRecordResult recordResult = StartupReadyRecordResult.Duplicate;
 
         lock (StartupReadyHandlerLock)
         {
@@ -166,7 +167,7 @@ public static class ChooseTheAncientHelpers
 
             if (flow != null && senderTracked)
             {
-                flow.RecordPendingStartupReadyMessage(message.barrierEpoch, senderId, message.nextChoiceId);
+                recordResult = flow.RecordPendingStartupReadyMessage(message.barrierEpoch, senderId, message.nextChoiceId);
             }
         }
 
@@ -188,13 +189,24 @@ public static class ChooseTheAncientHelpers
             return;
         }
 
-        if (message.barrierEpoch == flow.Act1StartupReadyBarrierEpoch)
+        if (recordResult == StartupReadyRecordResult.Duplicate)
         {
-            flow.SetStartupFlowNextChoiceId(senderId, message.nextChoiceId);
+            if (ModLog.IsTraceEnabled)
+            {
+                LogAct1StartupCheckpoint(
+                    "ReadyMessageDuplicateIgnored",
+                    runState,
+                    flow,
+                    orderedPlayers: null,
+                    $"Sender={senderId}, Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, BootstrapCompleted={message.bootstrapCompleted}, ShellRoomActive={message.shellRoomActive}, PendingReadyMessages={flow.DescribePendingStartupReadyMessages()}",
+                    trace: true);
+            }
+
+            return;
         }
 
         LogAct1StartupCheckpoint(
-            "ReadyMessageReceived",
+            recordResult == StartupReadyRecordResult.Added ? "ReadyMessageReceived" : "ReadyMessageUpdated",
             runState,
             flow,
             orderedPlayers: null,
@@ -1048,6 +1060,22 @@ public static uint GetNextChoiceIdForPlayer(RunState runState, Player player)
     return 0u;
 }
 
+public static uint GetNextChoiceIdForPlayer(
+    RunState runState,
+    Player player,
+    ChooseTheAncientFlowState? flow,
+    bool preferTrackedStartupFlowChoiceId)
+{
+    if (preferTrackedStartupFlowChoiceId
+        && flow != null
+        && flow.StartupFlowNextChoiceIdsByPlayer.TryGetValue(player.NetId, out uint trackedNextChoiceId))
+    {
+        return trackedNextChoiceId;
+    }
+
+    return GetNextChoiceIdForPlayer(runState, player);
+}
+
 public static string DescribeCurrentChoiceIds()
 {
     try
@@ -1132,7 +1160,11 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
         return;
     }
 
-    uint localNextChoiceId = GetNextChoiceIdForPlayer(runState, localPlayer);
+    uint localNextChoiceId = GetNextChoiceIdForPlayer(
+        runState,
+        localPlayer,
+        flow,
+        preferTrackedStartupFlowChoiceId: true);
     bool localShellRoomActive =
         IsAct1StartingMapPoint(runState)
         && runState.CurrentRoom is ChooseTheAncientStartRoom
@@ -1157,7 +1189,9 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
     int observedChoiceEventCount = 0;
     int requiredStableFrames = 8;
     int maxFrames = 360;
-    int resendEveryFrames = 20;
+    int[] resendScheduleFrames = { 60, 150, 300 };
+    int resendScheduleIndex = 0;
+    ChooseTheAncientStartupReadyMessage? lastSentReadyMessage = null;
 
     void OnPlayerChoiceReceived(Player _, uint __, NetPlayerChoiceResult ___)
     {
@@ -1171,7 +1205,11 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
         {
             actIndex = 1,
             barrierEpoch = barrierEpoch,
-            nextChoiceId = GetNextChoiceIdForPlayer(runState, localPlayer),
+            nextChoiceId = GetNextChoiceIdForPlayer(
+                runState,
+                localPlayer,
+                flow,
+                preferTrackedStartupFlowChoiceId: true),
             bootstrapCompleted = flow.Act1StartupBootstrapApplied,
             shellRoomActive =
                 IsAct1StartingMapPoint(runState)
@@ -1180,18 +1218,31 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
         };
     }
 
-    void BroadcastLocalReadyMessage(string stage)
+    static bool AreEquivalentReadyMessages(
+        ChooseTheAncientStartupReadyMessage left,
+        ChooseTheAncientStartupReadyMessage right)
     {
-        ChooseTheAncientStartupReadyMessage message = BuildLocalReadyMessage();
-        flow.RecordPendingStartupReadyMessage(message.barrierEpoch, localPlayer.NetId, message.nextChoiceId);
+        return left.actIndex == right.actIndex
+            && left.barrierEpoch == right.barrierEpoch
+            && left.nextChoiceId == right.nextChoiceId
+            && left.bootstrapCompleted == right.bootstrapCompleted
+            && left.shellRoomActive == right.shellRoomActive;
+    }
+
+    void BroadcastLocalReadyMessage(string stage, ChooseTheAncientStartupReadyMessage? messageOverride = null)
+    {
+        ChooseTheAncientStartupReadyMessage message = messageOverride ?? BuildLocalReadyMessage();
+        StartupReadyRecordResult recordResult =
+            flow.RecordPendingStartupReadyMessage(message.barrierEpoch, localPlayer.NetId, message.nextChoiceId);
         netService.SendMessage(message);
+        lastSentReadyMessage = message;
 
         LogAct1StartupCheckpoint(
             stage,
             runState,
             flow,
             orderedPlayers,
-            $"Reason={reason}, LocalPlayer={localPlayer.NetId}, Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, ShellRoomActive={message.shellRoomActive}, BootstrapCompleted={message.bootstrapCompleted}");
+            $"Reason={reason}, LocalPlayer={localPlayer.NetId}, Epoch={message.barrierEpoch}, NextChoiceId={message.nextChoiceId}, ShellRoomActive={message.shellRoomActive}, BootstrapCompleted={message.bootstrapCompleted}, LocalRecordResult={recordResult}");
     }
 
     runManager.PlayerChoiceSynchronizer.PlayerChoiceReceived += OnPlayerChoiceReceived;
@@ -1203,7 +1254,7 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
             runState,
             flow,
             orderedPlayers,
-            $"Reason={reason}, Players={players}, RequiredStableFrames={requiredStableFrames}, MaxFrames={maxFrames}, LocalNextChoiceId={localNextChoiceId}, LocalShellRoomActive={localShellRoomActive}, Epoch={barrierEpoch}");
+            $"Reason={reason}, Players={players}, RequiredStableFrames={requiredStableFrames}, MaxFrames={maxFrames}, LocalNextChoiceId={localNextChoiceId}, LocalShellRoomActive={localShellRoomActive}, Epoch={barrierEpoch}, ResendScheduleFrames={string.Join(",", resendScheduleFrames)}");
 
         BroadcastLocalReadyMessage("BarrierLocalReadySent");
 
@@ -1212,11 +1263,6 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
             await WaitForProcessFramesAsync(1);
 
             framesSinceLastChoiceEvent++;
-
-            if ((frame + 1) % resendEveryFrames == 0)
-            {
-                BroadcastLocalReadyMessage("BarrierLocalReadyResent");
-            }
 
             string currentChoiceIds = DescribeCurrentChoiceIds();
             bool choiceIdsStable = string.Equals(previousChoiceIds, currentChoiceIds, StringComparison.Ordinal);
@@ -1235,6 +1281,24 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
 
             bool everyoneReady = orderedPlayers.All(player => flow.StartupFlowNextChoiceIdsByPlayer.ContainsKey(player.NetId));
             int readyMessageCount = Math.Max(0, flow.StartupFlowNextChoiceIdsByPlayer.Count - 1);
+
+            ChooseTheAncientStartupReadyMessage currentLocalReadyMessage = BuildLocalReadyMessage();
+            bool localReadyStateChanged = !lastSentReadyMessage.HasValue
+                || !AreEquivalentReadyMessages(lastSentReadyMessage.Value, currentLocalReadyMessage);
+
+            if (localReadyStateChanged)
+            {
+                BroadcastLocalReadyMessage("BarrierLocalReadyStateChanged", currentLocalReadyMessage);
+            }
+            else if (!everyoneReady
+                && resendScheduleIndex < resendScheduleFrames.Length
+                && (frame + 1) >= resendScheduleFrames[resendScheduleIndex])
+            {
+                BroadcastLocalReadyMessage(
+                    $"BarrierLocalReadyResent{resendScheduleIndex + 1}",
+                    currentLocalReadyMessage);
+                resendScheduleIndex++;
+            }
 
             if (everyoneReady && choiceIdsStable && !actionExecutorBusy && actionQueuesEmpty && startupTrafficQuiet && stillOnAct1ShellRoom)
             {
@@ -1269,7 +1333,7 @@ public static async Task WaitForPlayersReadyBeforeProceedingToAct1SelectionAsync
                     runState,
                     flow,
                     orderedPlayers,
-                    $"Reason={reason}, Tick={frame + 1}/{maxFrames}, ChoiceIdsStable={choiceIdsStable}, ActionExecutorBusy={actionExecutorBusy}, ActionQueuesEmpty={actionQueuesEmpty}, ChoiceQuietFrames={framesSinceLastChoiceEvent}/{requiredStableFrames}, ObservedChoiceEvents={observedChoiceEventCount}, EveryoneReady={everyoneReady}, StillOnShellRoom={stillOnAct1ShellRoom}, StableFrames={stableFrames}/{requiredStableFrames}, Epoch={barrierEpoch}",
+                    $"Reason={reason}, Tick={frame + 1}/{maxFrames}, ChoiceIdsStable={choiceIdsStable}, ActionExecutorBusy={actionExecutorBusy}, ActionQueuesEmpty={actionQueuesEmpty}, ChoiceQuietFrames={framesSinceLastChoiceEvent}/{requiredStableFrames}, ObservedChoiceEvents={observedChoiceEventCount}, EveryoneReady={everyoneReady}, StillOnShellRoom={stillOnAct1ShellRoom}, StableFrames={stableFrames}/{requiredStableFrames}, Epoch={barrierEpoch}, LocalReadyStateChanged={localReadyStateChanged}, NextResendFrame={(resendScheduleIndex < resendScheduleFrames.Length ? resendScheduleFrames[resendScheduleIndex].ToString() : "<none>")}",
                     trace: true);
             }
 

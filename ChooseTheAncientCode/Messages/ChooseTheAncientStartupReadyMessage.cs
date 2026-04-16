@@ -3,8 +3,8 @@ using MegaCrit.Sts2.Core.Multiplayer.Transport;
 
 namespace ChooseTheAncient.ChooseTheAncientCode.Messages;
 
-    public struct ChooseTheAncientStartupReadyMessage : INetMessage, IPacketSerializable
-    {
+public struct ChooseTheAncientStartupReadyMessage : INetMessage, IPacketSerializable
+{
     public int actIndex;
     public int barrierEpoch;
     public uint nextChoiceId;
