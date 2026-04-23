@@ -26,6 +26,17 @@
 - Preview Options scale slightly better for more than 3 ancients
 - I Want to Know Everything for greater than 3 ancients now uses vertical columns for Ancients.
 
+### Technical
+- GenerateMapPatch changes the Act 1 starting node before the map is shown.
+- CreateRoomPatch stops vanilla from creating the normal room for that start node.
+- It returns a custom ChooseTheAncientStartRoom shell instead.
+- SetCurrentRoomPatch waits until that shell room is the current room, then launches the chooser.
+- After the vote, it jumps straight into the chosen ancient room.
+- Also Messages to fix Sealed Deck and other card stacking modifiers from desyncing in multiplayer
+- A Neow patch so Neow doesn't give modifiers twice
+- Also Neow Messages to fix their modifier desyncs in multiplayer.
+
+
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 
 ### Features
