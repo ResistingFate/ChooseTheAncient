@@ -1,0 +1,98 @@
+{
+  "modId": "ChooseTheAncient",
+  "pageId": "interop",
+  "title": "Settings",
+  "description": "ChooseTheAncient settings mirrored into RitsuLib UI via reflection interop.",
+  "sections": [
+    {
+      "id": "general",
+      "title": "General",
+      "entries": [
+        {
+          "id": "ancient_count",
+          "type": "int-slider",
+          "key": "ancientCount",
+          "label": "Ancients in vote",
+          "description": "How many ancients appear in the initial vote.",
+          "min": 2,
+          "max": 8,
+          "step": 1
+        },
+        {
+          "id": "show_controller_hotkeys",
+          "type": "toggle",
+          "key": "showControllerHotkeys",
+          "label": "Show controller hotkeys",
+          "description": "Show controller/keyboard prompt hints on the ancient selection screen."
+        },
+        {
+          "id": "show_only_button_outline",
+          "type": "toggle",
+          "key": "showOnlyButtonOutline",
+          "label": "Alternative vote button design",
+          "description": "Only shows white outline and text for vote buttons."
+        },
+        {
+          "id": "vote_click_target",
+          "type": "choice",
+          "key": "voteClickTarget",
+          "label": "Vote click area",
+          "description": "Choose whether only the button, the whole card, or the whole ancient slot can be clicked.",
+          "presentation": "dropdown",
+          "options": [
+            {
+              "value": "Button only",
+              "label": "Button only"
+            },
+            {
+              "value": "Whole card",
+              "label": "Whole card"
+            },
+            {
+              "value": "Whole ancient slot",
+              "label": "Whole ancient slot"
+            }
+          ]
+        },
+        {
+          "id": "log_level",
+          "type": "choice",
+          "key": "logLevel",
+          "label": "Log level",
+          "description": "Controls how much ChooseTheAncient writes to the log. Changes apply immediately.",
+          "presentation": "stepper",
+          "options": [
+            {
+              "value": "Error",
+              "label": "Error"
+            },
+            {
+              "value": "Warn",
+              "label": "Warn"
+            },
+            {
+              "value": "Info",
+              "label": "Info"
+            },
+            {
+              "value": "Debug",
+              "label": "Debug"
+            },
+            {
+              "value": "Trace",
+              "label": "Trace"
+            }
+          ]
+        },
+        {
+          "id": "reload_from_modconfig",
+          "type": "button",
+          "key": "reloadConfig",
+          "label": "Reload values from ModConfig",
+          "buttonText": "Reload",
+          "tone": "normal"
+        }
+      ]
+    }
+  ]
+}

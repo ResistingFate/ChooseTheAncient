@@ -103,6 +103,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <AssemblyMetadata Include="RitsuLib.ModSettingsMirror.Mod.ChooseTheAncient.DisableSources" Value="baselib,modconfig" />
+        <AssemblyMetadata Include="RitsuLib.ModSettingsInterop.ProviderType" Value="ChooseTheAncient.Scripts.RitsuLibModSettingsInteropProvider" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Compile Remove="ChooseTheAncient/**"/>
         <Compile Remove="materials/**"/>
         <Compile Remove="shaders/**"/>
