@@ -697,7 +697,8 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
             if (enablePreviews && localPlayer != null)
             {
-                localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
+                localPreviewData = BuildPreviewDataForRound(
+                    runState,
                     localPlayer,
                     pool,
                     targetActIndex);
@@ -786,7 +787,8 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
             if (localPlayer != null)
             {
-                localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
+                localPreviewData = BuildPreviewDataForRound(
+                    runState,
                     localPlayer,
                     finalists,
                     targetActIndex);
@@ -837,7 +839,42 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
     }
 
     
-private static async Task RunModifierBootstrapAsync(
+
+    private static Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData> BuildPreviewDataForRound(
+        RunState runState,
+        Player localPlayer,
+        IReadOnlyList<AncientEventModel> ancients,
+        int targetActIndex)
+    {
+        ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);
+
+        bool shouldForceAct1NeowBlessingPreview =
+            targetActIndex == 0
+            && ancients.Any(ChooseTheAncientHelpers.IsNeowAncient);
+
+        bool previousForceAct1NeowBlessingMode = flow.ForceAct1NeowBlessingMode;
+
+        try
+        {
+            if (shouldForceAct1NeowBlessingPreview)
+            {
+                flow.ForceAct1NeowBlessingMode = true;
+                ModLog.Debug(
+                    "Temporarily enabling CTA Act 1 Neow blessing mode while preview options are generated.");
+            }
+
+            return ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
+                localPlayer,
+                ancients,
+                targetActIndex);
+        }
+        finally
+        {
+            flow.ForceAct1NeowBlessingMode = previousForceAct1NeowBlessingMode;
+        }
+    }
+
+    private static async Task RunModifierBootstrapAsync(
         RunState runState,
         ChooseTheAncientFlowState flow,
         IReadOnlyList<Player> orderedPlayers)
