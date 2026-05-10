@@ -35,7 +35,7 @@
 - Also Messages to fix Sealed Deck and other card stacking modifiers from desyncing in multiplayer
 - A Neow patch so Neow doesn't give modifiers twice
 - Also Neow Messages to fix their modifier desyncs in multiplayer.
-
+- Added sharedBuffer field to Custom Messages due to 1.05 update.
 
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 

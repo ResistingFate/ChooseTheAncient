@@ -15,6 +15,7 @@ public struct ChooseTheAncientNeowOptionIdentityChosenMessage : INetMessage, IRu
     public bool ShouldBroadcast => true;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public MegaCrit.Sts2.Core.Logging.LogLevel LogLevel => MegaCrit.Sts2.Core.Logging.LogLevel.VeryDebug;
+    public bool ShouldBuffer => true;
     public RunLocation Location => location;
 
     public void Serialize(PacketWriter writer)
