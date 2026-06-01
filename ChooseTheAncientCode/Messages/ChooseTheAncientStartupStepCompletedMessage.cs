@@ -14,7 +14,7 @@ public struct ChooseTheAncientStartupStepCompletedMessage : INetMessage, IPacket
     public bool ShouldBroadcast => true;
     public NetTransferMode Mode => NetTransferMode.Reliable;
     public MegaCrit.Sts2.Core.Logging.LogLevel LogLevel => MegaCrit.Sts2.Core.Logging.LogLevel.VeryDebug;
-    public bool ShouldBuffer => true;
+    public bool ShouldBuffer { get; }
 
     public void Serialize(PacketWriter writer)
     {
@@ -22,7 +22,10 @@ public struct ChooseTheAncientStartupStepCompletedMessage : INetMessage, IPacket
         writer.WriteInt(stepIndex);
         writer.WriteInt(totalStepCount);
         writer.WriteString(modifierId ?? string.Empty);
-        writer.WriteUInt(nextChoiceId, 4);
+        // Choice ids can exceed 15 during DRAFT/SEALED_DECK bootstrap. The second
+        // PacketWriter argument is a bit count, not a byte count; using 4 here
+        // truncated 16 to 0 and prevented peers from aligning the bootstrap baseline.
+        writer.WriteUInt(nextChoiceId, 32);
     }
 
     public void Deserialize(PacketReader reader)
@@ -31,11 +34,11 @@ public struct ChooseTheAncientStartupStepCompletedMessage : INetMessage, IPacket
         stepIndex = reader.ReadInt();
         totalStepCount = reader.ReadInt();
         modifierId = reader.ReadString();
-        nextChoiceId = reader.ReadUInt(4);
+        nextChoiceId = reader.ReadUInt(32);
     }
 
     public override string ToString()
     {
-        return $"{"ChooseTheAncientStartupStepCompletedMessage"} epoch {syncEpoch} step {stepIndex}/{totalStepCount} modifier {modifierId} nextChoiceId {nextChoiceId}";
+        return $"ChooseTheAncientStartupStepCompletedMessage epoch {syncEpoch} step {stepIndex}/{totalStepCount} modifier {modifierId} nextChoiceId {nextChoiceId}";
     }
 }

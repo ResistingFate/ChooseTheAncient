@@ -40,11 +40,13 @@ public static class ChooseTheAncientCoordinator
     private static bool StartupBootstrapStepHandlerRegistered;
     private static INetGameService? StartupBootstrapStepHandlerNetService;
     private static MessageHandlerDelegate<ChooseTheAncientStartupStepCompletedMessage>? StartupBootstrapStepHandler;
-    private static Action<MegaCrit.Sts2.Core.Entities.Multiplayer.NetErrorInfo>? StartupBootstrapDisconnectedHandler;
-    private static Action<ulong, MegaCrit.Sts2.Core.Entities.Multiplayer.NetErrorInfo>? StartupBootstrapClientDisconnectedHandler;
     private static ChooseTheAncientFlowState? ActiveStartupBootstrapFlow;
     private static RunState? ActiveStartupBootstrapRunState;
     private static HashSet<ulong> ActiveStartupBootstrapPlayers = new();
+
+    // This is a watchdog, not the normal path. The normal path proceeds as soon as every player reports.
+    // It prevents a missed custom message from freezing the Act 1 shell room forever. Comment out if not needed.
+    private const int StartupBootstrapBarrierMaxFrames = 7200;
 
 
     private static async Task PrepareAct1SelectionUiAsync(RunManager runManager)
@@ -60,6 +62,21 @@ public static class ChooseTheAncientCoordinator
         }
 
         await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+    }
+
+    private static int BeginAct1StartupBootstrapSync(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        IReadOnlyList<Player> orderedPlayers)
+    {
+        EnsureStartupBootstrapStepHandlerRegistered(runState, flow, orderedPlayers);
+        int syncEpoch = flow.BeginAct1StartupBootstrapSyncEpoch();
+
+        ModLog.Debug(
+            $"Began CTA Act 1 startup bootstrap sync epoch {syncEpoch} for players " +
+            $"{string.Join(",", orderedPlayers.Select(player => player.NetId))}.");
+
+        return syncEpoch;
     }
 
 
@@ -91,6 +108,8 @@ public static async Task RunAct1StartingRoomFlowAsync(
         List<Player> orderedPlayers = runState.Players
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
+
+        int startupBootstrapSyncEpoch = BeginAct1StartupBootstrapSync(runState, flow, orderedPlayers);
 
         int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
         ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
@@ -127,7 +146,7 @@ public static async Task RunAct1StartingRoomFlowAsync(
                 "empty Act 1 ballot fallback");
 
             ChooseTheAncientHelpers.SetChosenAncient(firstAct, vanillaAncient);
-            await RunModifierBootstrapAsync(runState, flow, orderedPlayers);
+            await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
             flow.ModifierBootstrapCompleted = true;
             flow.ForceAct1NeowBlessingMode = ChooseTheAncientHelpers.IsNeowAncient(vanillaAncient);
             flow.ResolvedActs.Add(0);
@@ -175,7 +194,7 @@ public static async Task RunAct1StartingRoomFlowAsync(
         ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
         ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
 
-        await RunModifierBootstrapAsync(runState, flow, orderedPlayers);
+        await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
         flow.ModifierBootstrapCompleted = true;
         flow.ForceAct1NeowBlessingMode = ChooseTheAncientHelpers.IsNeowAncient(chosen);
 
@@ -334,6 +353,8 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
+        int startupBootstrapSyncEpoch = BeginAct1StartupBootstrapSync(runState, flow, orderedPlayers);
+
         int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
         ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
         IReadOnlyList<int>? effectiveAncientPoolSourceActs =
@@ -405,7 +426,7 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
         ChooseTheAncientHelpers.ForceAct1AncientStart(runState);
         ModLog.Info($"Chosen starting ancient for Act 1: {chosen.Id.Entry}");
 
-        await RunModifierBootstrapAsync(runState, flow, orderedPlayers);
+        await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
         flow.ModifierBootstrapCompleted = true;
 
         flow.ResolvedActs.Add(0);
@@ -432,6 +453,7 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
     finally
     {
         localScreen?.CloseScreen();
+        ReleaseStartupBootstrapStepHandlerContext(flow);
         flow.FlowInProgress = false;
         ModLog.Info(
             $"Act 1 GenerateMap flow cleanup. " +
@@ -544,6 +566,8 @@ public static async Task RunAct1MapEntryFlowAsync(
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
+        int startupBootstrapSyncEpoch = BeginAct1StartupBootstrapSync(runState, flow, orderedPlayers);
+
         int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
         ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
         IReadOnlyList<int>? effectiveAncientPoolSourceActs =
@@ -617,7 +641,7 @@ public static async Task RunAct1MapEntryFlowAsync(
 
         ModLog.Info($"Chosen starting ancient for Act 1: {chosen.Id.Entry}");
 
-        await RunModifierBootstrapAsync(runState, flow, orderedPlayers);
+        await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
         flow.ModifierBootstrapCompleted = true;
 
         flow.ResolvedActs.Add(0);
@@ -644,6 +668,7 @@ public static async Task RunAct1MapEntryFlowAsync(
     finally
     {
         localScreen?.CloseScreen();
+        ReleaseStartupBootstrapStepHandlerContext(flow);
         flow.FlowInProgress = false;
         flow.ContinueEnterMapCoord = false;
         ModLog.Info(
@@ -699,8 +724,7 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
             if (enablePreviews && localPlayer != null)
             {
-                localPreviewData = BuildPreviewDataForRound(
-                    runState,
+                localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
                     localPlayer,
                     pool,
                     targetActIndex);
@@ -789,8 +813,7 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
             if (localPlayer != null)
             {
-                localPreviewData = BuildPreviewDataForRound(
-                    runState,
+                localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
                     localPlayer,
                     finalists,
                     targetActIndex);
@@ -841,49 +864,14 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
     }
 
     
-
-    private static Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData> BuildPreviewDataForRound(
-        RunState runState,
-        Player localPlayer,
-        IReadOnlyList<AncientEventModel> ancients,
-        int targetActIndex)
-    {
-        ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);
-
-        bool shouldForceAct1NeowBlessingPreview =
-            targetActIndex == 0
-            && ancients.Any(ChooseTheAncientHelpers.IsNeowAncient);
-
-        bool previousForceAct1NeowBlessingMode = flow.ForceAct1NeowBlessingMode;
-
-        try
-        {
-            if (shouldForceAct1NeowBlessingPreview)
-            {
-                flow.ForceAct1NeowBlessingMode = true;
-                ModLog.Debug(
-                    "Temporarily enabling CTA Act 1 Neow blessing mode while preview options are generated.");
-            }
-
-            return ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
-                localPlayer,
-                ancients,
-                targetActIndex);
-        }
-        finally
-        {
-            flow.ForceAct1NeowBlessingMode = previousForceAct1NeowBlessingMode;
-        }
-    }
-
-    private static async Task RunModifierBootstrapAsync(
+private static async Task RunModifierBootstrapAsync(
         RunState runState,
         ChooseTheAncientFlowState flow,
-        IReadOnlyList<Player> orderedPlayers)
+        IReadOnlyList<Player> orderedPlayers,
+        int syncEpoch)
     {
         EnsureStartupBootstrapStepHandlerRegistered(runState, flow, orderedPlayers);
 
-        int syncEpoch = flow.BeginAct1StartupBootstrapSyncEpoch();
         Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
 
         if (localPlayer != null)
@@ -910,7 +898,7 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
                     await bootstrapAction.ApplyAsync();
                     await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
 
-                    bool bootstrapStepSynchronized = await SyncModifierBootstrapStepCompletionAsync(
+                    await SyncModifierBootstrapStepCompletionAsync(
                         runState,
                         flow,
                         orderedPlayers,
@@ -919,14 +907,6 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
                         stepIndex,
                         bootstrapActions.Count,
                         modifierId);
-
-                    if (!bootstrapStepSynchronized)
-                    {
-                        ModLog.Warn(
-                            $"Aborting remaining CTA startup modifier bootstrap steps after step {stepIndex + 1}/{bootstrapActions.Count} " +
-                            $"for {modifierId} because multiplayer synchronization is no longer available.");
-                        break;
-                    }
                 }
             }
             else
@@ -954,27 +934,20 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
 
             if (StartupBootstrapStepHandlerRegistered && !ReferenceEquals(StartupBootstrapStepHandlerNetService, netService))
             {
-                UnregisterStartupBootstrapNetHandlers_NoLock();
+                if (StartupBootstrapStepHandlerNetService != null && StartupBootstrapStepHandler != null)
+                {
+                    StartupBootstrapStepHandlerNetService.UnregisterMessageHandler<ChooseTheAncientStartupStepCompletedMessage>(StartupBootstrapStepHandler);
+                }
+
+                StartupBootstrapStepHandlerRegistered = false;
+                StartupBootstrapStepHandlerNetService = null;
+                StartupBootstrapStepHandler = null;
             }
 
             if (!StartupBootstrapStepHandlerRegistered)
             {
                 StartupBootstrapStepHandler = HandleStartupBootstrapStepCompletedMessage;
                 netService.RegisterMessageHandler<ChooseTheAncientStartupStepCompletedMessage>(StartupBootstrapStepHandler);
-
-                StartupBootstrapDisconnectedHandler = HandleStartupBootstrapDisconnected;
-                netService.Disconnected += StartupBootstrapDisconnectedHandler;
-
-                if (netService is INetHostGameService hostService)
-                {
-                    StartupBootstrapClientDisconnectedHandler = HandleStartupBootstrapClientDisconnected;
-                    hostService.ClientDisconnected += StartupBootstrapClientDisconnectedHandler;
-                }
-                else
-                {
-                    StartupBootstrapClientDisconnectedHandler = null;
-                }
-
                 StartupBootstrapStepHandlerNetService = netService;
                 StartupBootstrapStepHandlerRegistered = true;
             }
@@ -989,68 +962,21 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             if (!ReferenceEquals(ActiveStartupBootstrapFlow, flow))
                 return;
 
+            if (flow.ModifierBootstrapCompleted)
+            {
+                // Keep the handler/context alive after the shell-room transition is dispatched.
+                // A late startup-completion message can still arrive before the first NEOW checksum;
+                // unregistering here was what made those late messages unhandleable.
+                ModLog.Debug("Keeping CTA startup bootstrap handler context available for late completion messages.");
+                return;
+            }
+
             ActiveStartupBootstrapFlow = null;
             ActiveStartupBootstrapRunState = null;
             ActiveStartupBootstrapPlayers = new HashSet<ulong>();
 
-            UnregisterStartupBootstrapNetHandlers_NoLock();
-        }
-    }
-
-    private static void UnregisterStartupBootstrapNetHandlers_NoLock()
-    {
-        if (!StartupBootstrapStepHandlerRegistered || StartupBootstrapStepHandlerNetService == null)
-            return;
-
-        if (StartupBootstrapStepHandler != null)
-        {
-            StartupBootstrapStepHandlerNetService.UnregisterMessageHandler<ChooseTheAncientStartupStepCompletedMessage>(StartupBootstrapStepHandler);
-        }
-
-        if (StartupBootstrapDisconnectedHandler != null)
-        {
-            StartupBootstrapStepHandlerNetService.Disconnected -= StartupBootstrapDisconnectedHandler;
-        }
-
-        if (StartupBootstrapClientDisconnectedHandler != null
-            && StartupBootstrapStepHandlerNetService is INetHostGameService hostService)
-        {
-            hostService.ClientDisconnected -= StartupBootstrapClientDisconnectedHandler;
-        }
-
-        StartupBootstrapStepHandlerRegistered = false;
-        StartupBootstrapStepHandlerNetService = null;
-        StartupBootstrapStepHandler = null;
-        StartupBootstrapDisconnectedHandler = null;
-        StartupBootstrapClientDisconnectedHandler = null;
-    }
-
-    private static void HandleStartupBootstrapDisconnected(
-        MegaCrit.Sts2.Core.Entities.Multiplayer.NetErrorInfo info)
-    {
-        lock (StartupBootstrapSyncLock)
-        {
-            ModLog.Warn(
-                $"CTA startup bootstrap detected a multiplayer disconnect while waiting for modifier sync. " +
-                $"Info={info}.");
-
-            ActiveStartupBootstrapPlayers = new HashSet<ulong>();
-        }
-    }
-
-    private static void HandleStartupBootstrapClientDisconnected(
-        ulong senderId,
-        MegaCrit.Sts2.Core.Entities.Multiplayer.NetErrorInfo info)
-    {
-        lock (StartupBootstrapSyncLock)
-        {
-            if (ActiveStartupBootstrapPlayers.Remove(senderId))
-            {
-                ModLog.Warn(
-                    $"CTA startup bootstrap removed disconnected player {senderId} from the modifier sync barrier. " +
-                    $"Info={info}. " +
-                    $"RemainingPlayers={string.Join(", ", ActiveStartupBootstrapPlayers.OrderBy(id => id))}");
-            }
+            // Keep the net message handler registered. With a null context it becomes a harmless no-op,
+            // but late reliable messages no longer produce 'no handlers are registered' warnings.
         }
     }
 
@@ -1058,6 +984,9 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
         ChooseTheAncientStartupStepCompletedMessage message,
         ulong senderId)
     {
+        RunState? runStateForAlignment = null;
+        bool shouldAlign = false;
+
         lock (StartupBootstrapSyncLock)
         {
             ChooseTheAncientFlowState? flow = ActiveStartupBootstrapFlow;
@@ -1066,6 +995,14 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
 
             if (flow == null || runState == null || !senderTracked)
                 return;
+
+            if (message.syncEpoch != flow.Act1StartupBootstrapSyncEpoch)
+            {
+                ModLog.Debug(
+                    $"Ignoring stale CTA startup step completion from player {senderId}. " +
+                    $"MessageEpoch={message.syncEpoch}, ActiveEpoch={flow.Act1StartupBootstrapSyncEpoch}.");
+                return;
+            }
 
             StartupStepRecordResult result = flow.RecordPendingStartupStepCompletionMessage(
                 message.syncEpoch,
@@ -1082,11 +1019,22 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
                     $"Epoch={message.syncEpoch}, Step={message.stepIndex + 1}/{message.totalStepCount}, " +
                     $"Modifier={message.modifierId}, NextChoiceId={message.nextChoiceId}, Result={result}, " +
                     $"Pending={flow.DescribePendingStartupStepCompletionMessages()}.");
+                runStateForAlignment = runState;
+                shouldAlign = true;
             }
+        }
+
+        if (shouldAlign && runStateForAlignment != null)
+        {
+            AlignChoiceIdBaselineForPlayer(
+                runStateForAlignment,
+                senderId,
+                message.nextChoiceId,
+                "received CTA startup completion");
         }
     }
 
-    private static async Task<bool> SyncModifierBootstrapStepCompletionAsync(
+    private static async Task SyncModifierBootstrapStepCompletionAsync(
         RunState runState,
         ChooseTheAncientFlowState flow,
         IReadOnlyList<Player> orderedPlayers,
@@ -1096,15 +1044,6 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
         int totalStepCount,
         string modifierId)
     {
-        INetGameService netService = RunManager.Instance.NetService;
-        if (!netService.IsConnected)
-        {
-            ModLog.Warn(
-                $"Skipping CTA startup bootstrap barrier because multiplayer is already disconnected. " +
-                $"Epoch={syncEpoch}, Step={stepIndex + 1}/{totalStepCount}, Modifier={modifierId}.");
-            return false;
-        }
-
         uint localNextChoiceId = GetNextChoiceIdForPlayer(runState, localPlayer);
 
         flow.RecordPendingStartupStepCompletionMessage(
@@ -1115,15 +1054,7 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             modifierId,
             localNextChoiceId);
 
-        if (!netService.IsConnected)
-        {
-            ModLog.Warn(
-                $"Skipping CTA startup bootstrap message send because multiplayer disconnected after local step completion was recorded. " +
-                $"Epoch={syncEpoch}, Step={stepIndex + 1}/{totalStepCount}, Modifier={modifierId}.");
-            return false;
-        }
-
-        netService.SendMessage(new ChooseTheAncientStartupStepCompletedMessage
+        RunManager.Instance.NetService.SendMessage(new ChooseTheAncientStartupStepCompletedMessage
         {
             syncEpoch = syncEpoch,
             stepIndex = stepIndex,
@@ -1132,29 +1063,10 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             nextChoiceId = localNextChoiceId
         });
 
-        int maxFrames = 360;
-        for (int frame = 0; frame < maxFrames; frame++)
+        for (int frame = 0; frame < StartupBootstrapBarrierMaxFrames; frame++)
         {
-            if (!netService.IsConnected)
-            {
-                ModLog.Warn(
-                    $"Aborting CTA startup bootstrap barrier because multiplayer disconnected while waiting. " +
-                    $"Epoch={syncEpoch}, Step={stepIndex + 1}/{totalStepCount}, Modifier={modifierId}, " +
-                    $"Pending={flow.DescribePendingStartupStepCompletionMessages()}.");
-                return false;
-            }
-
-            HashSet<ulong> expectedPlayerIds = GetExpectedStartupBootstrapPlayerIds(orderedPlayers);
-            if (expectedPlayerIds.Count == 0)
-            {
-                ModLog.Warn(
-                    $"Aborting CTA startup bootstrap barrier because no connected players remain in the sync set. " +
-                    $"Epoch={syncEpoch}, Step={stepIndex + 1}/{totalStepCount}, Modifier={modifierId}.");
-                return false;
-            }
-
-            bool allPlayersReported = expectedPlayerIds.All(playerId =>
-                flow.HasPendingStartupStepCompletionMessageForEpoch(syncEpoch, stepIndex, playerId));
+            bool allPlayersReported = orderedPlayers.All(player =>
+                flow.HasPendingStartupStepCompletionMessageForEpoch(syncEpoch, stepIndex, player.NetId));
 
             if (allPlayersReported)
             {
@@ -1175,40 +1087,24 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
                         $"Messages={flow.DescribePendingStartupStepCompletionMessages()}");
                 }
 
-                IReadOnlyList<Player> expectedPlayers = orderedPlayers
-                    .Where(player => expectedPlayerIds.Contains(player.NetId))
-                    .ToList();
-
-                AlignChoiceIdBaselinesFromStartupStepMessages(runState, expectedPlayers, completions);
+                AlignChoiceIdBaselinesFromStartupStepMessages(runState, orderedPlayers, completions);
                 await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
-                return true;
+                return;
             }
 
             await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
         }
 
         ModLog.Warn(
-            $"Timed out waiting for CTA startup bootstrap step completion barrier. " +
+            $"Timed out waiting for CTA startup bootstrap step completion barrier; applying available baselines and continuing to avoid a hard deadlock. " +
             $"Epoch={syncEpoch}, Step={stepIndex + 1}/{totalStepCount}, Modifier={modifierId}, " +
             $"Count={flow.GetPendingStartupStepCompletionMessageCountForEpoch(syncEpoch, stepIndex)}, " +
             $"Pending={flow.DescribePendingStartupStepCompletionMessages()}.");
-        return false;
-    }
 
-    private static HashSet<ulong> GetExpectedStartupBootstrapPlayerIds(
-        IReadOnlyList<Player> orderedPlayers)
-    {
-        lock (StartupBootstrapSyncLock)
-        {
-            HashSet<ulong> trackedPlayerIds = ActiveStartupBootstrapPlayers.Count > 0
-                ? ActiveStartupBootstrapPlayers
-                : orderedPlayers.Select(player => player.NetId).ToHashSet();
-
-            return orderedPlayers
-                .Select(player => player.NetId)
-                .Where(trackedPlayerIds.Contains)
-                .ToHashSet();
-        }
+        IReadOnlyDictionary<ulong, StartupStepCompletionInfo> availableCompletions =
+            flow.GetPendingStartupStepCompletionMessagesForEpoch(syncEpoch, stepIndex);
+        AlignChoiceIdBaselinesFromStartupStepMessages(runState, orderedPlayers, availableCompletions);
+        await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
     }
 
     private static void AlignChoiceIdBaselinesFromStartupStepMessages(
@@ -1221,13 +1117,51 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             if (!completions.TryGetValue(player.NetId, out StartupStepCompletionInfo? completion))
                 continue;
 
-            uint currentNextChoiceId = GetNextChoiceIdForPlayer(runState, player);
+            AlignChoiceIdBaselineForPlayer(
+                runState,
+                player.NetId,
+                completion.NextChoiceId,
+                "CTA startup completion barrier");
+        }
+    }
 
-            while (currentNextChoiceId < completion.NextChoiceId)
-            {
-                RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
-                currentNextChoiceId++;
-            }
+    private static void AlignChoiceIdBaselineForPlayer(
+        RunState runState,
+        ulong playerNetId,
+        uint targetNextChoiceId,
+        string reason)
+    {
+        Player? player = runState.Players.FirstOrDefault(candidate => candidate.NetId == playerNetId);
+        if (player == null)
+        {
+            ModLog.Warn(
+                $"Could not align CTA startup choice id baseline for missing player {playerNetId}. " +
+                $"TargetNextChoiceId={targetNextChoiceId}, Reason={reason}.");
+            return;
+        }
+
+        uint currentNextChoiceId = GetNextChoiceIdForPlayer(runState, player);
+        uint startingNextChoiceId = currentNextChoiceId;
+
+        if (currentNextChoiceId > targetNextChoiceId)
+        {
+            ModLog.Debug(
+                $"CTA startup choice id baseline for player {playerNetId} is already ahead of reported baseline. " +
+                $"CurrentNextChoiceId={currentNextChoiceId}, ReportedNextChoiceId={targetNextChoiceId}, Reason={reason}.");
+            return;
+        }
+
+        while (currentNextChoiceId < targetNextChoiceId)
+        {
+            RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
+            currentNextChoiceId++;
+        }
+
+        if (startingNextChoiceId != currentNextChoiceId)
+        {
+            ModLog.Info(
+                $"Aligned CTA startup choice id baseline for player {playerNetId}: " +
+                $"{startingNextChoiceId}->{currentNextChoiceId}. Reason={reason}.");
         }
     }
 
