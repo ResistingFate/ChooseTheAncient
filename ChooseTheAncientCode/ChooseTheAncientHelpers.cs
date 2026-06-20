@@ -634,12 +634,12 @@ private static bool ResolveSpecialAncientOverrideValue(
          * Goal here is to copy the RNG method vanilla uses, so it'll be the same as when the ancient
          * reveals the reward
          */
-        ulong ownerContribution = eventModel.IsShared ? 0UL : player.NetId;
+        int  ownerContribution = eventModel.IsShared ? 0 : runState.GetPlayerSlotIndex(player);
 
         return unchecked((uint)(
-            runState.Rng.Seed
+            (int)runState.Rng.Seed
             + ownerContribution
-            + (ulong)StringHelper.GetDeterministicHashCode(eventModel.Id.Entry)));
+            + StringHelper.GetDeterministicHashCode(eventModel.Id.Entry)));
     }
 
     public static Rng CreatePreviewEventRng(RunState runState, Player player, EventModel eventModel)
