@@ -22,7 +22,7 @@ public struct ChooseTheAncientNeowOptionIdentityChosenMessage : INetMessage, IRu
     {
         writer.WriteString(eventId ?? string.Empty);
         writer.WriteString(optionIdentity ?? string.Empty);
-        writer.WriteUInt(optionIndex, 4);
+        writer.WriteUInt(optionIndex, 32);
         writer.Write(location);
     }
 
@@ -30,7 +30,7 @@ public struct ChooseTheAncientNeowOptionIdentityChosenMessage : INetMessage, IRu
     {
         eventId = reader.ReadString();
         optionIdentity = reader.ReadString();
-        optionIndex = reader.ReadUInt(4);
+        optionIndex = reader.ReadUInt(32);
         location = reader.Read<RunLocation>();
     }
 
