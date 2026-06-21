@@ -2,7 +2,7 @@
 
 ## Unrelesaed
 
-## [v1.2.0] - Added Act 1, Game Modes, Ancient Pool Options, fast mode and fixes
+## [v1.2.0] - Added Act 1, Game Modes, Ancient Pool Options, fast mode and fixes. Requires sts2 v1.07.1 minimum
 
 ### Features
 - Now works for Act 1
@@ -25,6 +25,8 @@
 - Increased the font outline thickness of the card title and text
 - Preview Options scale slightly better for more than 3 ancients
 - I Want to Know Everything for greater than 3 ancients now uses vertical columns for Ancients.
+- Fixed bug on v1.1 of the mod caused Custom Ancients to not always show.
+- The second ancient selection should randomize propely, instead of always being the left or right option  you didn't pick.
 
 ### Technical
 - GenerateMapPatch changes the Act 1 starting node before the map is shown.

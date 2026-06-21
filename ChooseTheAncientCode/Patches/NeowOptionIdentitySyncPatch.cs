@@ -248,7 +248,7 @@ public static class NeowOptionIdentitySyncPatch
         if (runState == null)
             return false;
 
-        return ChooseTheAncientStateStore.Get(runState).ForceAct1NeowBlessingMode;
+        return ChooseTheAncientStateStore.Get(runState).ForceNeowBlessingMode;
     }
 
     private static bool TryTakePendingIdentity(

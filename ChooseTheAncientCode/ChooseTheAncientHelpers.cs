@@ -676,7 +676,12 @@ private static bool ResolveSpecialAncientOverrideValue(
         try
         {
             AncientEventModel previewEvent = (AncientEventModel)ancient.ToMutable();
-            RunState runState = player.RunState as RunState;
+            if (player.RunState is not RunState runState)
+            {
+                ModLog.Warn($"Could not generate preview data for ancient {ancient.Id.Entry}: player is not attached to a mutable RunState.");
+                return null;
+            }
+
             int originalActIndex = runState.CurrentActIndex;
 
             try
@@ -689,20 +694,22 @@ private static bool ResolveSpecialAncientOverrideValue(
                 /*
                  * TODO implement patches so ancient events can be shared
                  */
-                Rng previewRng = CreatePreviewEventRng(runState, player, previewEvent);
+                Rng previewRng = ResetPreviewEventRng(runState, player, previewEvent);
                 //Rng previewRng = CreateAncientRelicOptionsRng(
                 //    runState, nextActIndex, (GroupAncientOptionsPool ? 0UL : player.NetId), previewEvent.Id.Entry);
-                // We use are new rng to change how the ancients randomness work and don't change it back
-                EventRngBackingField.SetValue(previewEvent, previewRng);
+                // We use our new rng to change how the ancients randomness work and don't change it back
 
                 ModLog.Debug($"Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} at act index {nextActIndex}.");
 
                 // This is what BeginEvents does in Megacritic EventModel
                 previewEvent.CalculateVars();
 
-                IReadOnlyList<EventOption> options =
-                    (GenerateInitialOptionsWrapperMethod.Invoke(previewEvent, Array.Empty<object>()) as IReadOnlyList<EventOption>)
-                    ?? Array.Empty<EventOption>();
+                IReadOnlyList<EventOption> options = GeneratePreviewOptionsRobustly(
+                    player,
+                    runState,
+                    previewEvent,
+                    ancient,
+                    nextActIndex);
 
                 LogPreviewOptions(previewEvent, ancient, options);
 
@@ -721,6 +728,204 @@ private static bool ResolveSpecialAncientOverrideValue(
         {
             ModLog.Error($"Failed to generate preview data for ancient {ancient.Id.Entry}: {ex}");
             return null;
+        }
+    }
+
+    private static IReadOnlyList<EventOption> GeneratePreviewOptionsRobustly(
+        Player player,
+        RunState runState,
+        AncientEventModel previewEvent,
+        AncientEventModel sourceAncient,
+        int nextActIndex)
+    {
+        bool isNeowPreview = IsNeowAncient(previewEvent);
+        IReadOnlyList<ModifierModel>? originalModifiers = null;
+        bool maskedModifiers = false;
+
+        try
+        {
+            if (isNeowPreview && runState.Modifiers.Count > 0)
+            {
+                originalModifiers = runState.Modifiers;
+                maskedModifiers = TrySetRunStateModifiers(runState, Array.Empty<ModifierModel>());
+                if (maskedModifiers)
+                {
+                    ModLog.Info(
+                        $"Temporarily masked {originalModifiers.Count} run modifier(s) while generating the Neow preview for act {nextActIndex + 1}. " +
+                        "This forces Neow to build blessing reward options instead of custom-game modifier bootstrap options.");
+                }
+            }
+
+            IReadOnlyList<EventOption> options = TryGeneratePreviewOptionsViaWrapper(
+                player,
+                runState,
+                previewEvent,
+                sourceAncient,
+                nextActIndex,
+                requireRelicReward: isNeowPreview,
+                attemptName: maskedModifiers ? "wrapper with modifiers masked" : "wrapper");
+
+            if (HasUsablePreviewOptions(options, requireRelicReward: isNeowPreview))
+                return options;
+
+            ModLog.Warn(
+                $"Preview option generation for {sourceAncient.Id.Entry} returned no usable reward options via the wrapper " +
+                $"at act {nextActIndex + 1}; attempting the concrete GenerateInitialOptions method directly.");
+
+            options = TryGeneratePreviewOptionsDirectly(
+                player,
+                runState,
+                previewEvent,
+                sourceAncient,
+                nextActIndex,
+                requireRelicReward: isNeowPreview);
+
+            if (HasUsablePreviewOptions(options, requireRelicReward: isNeowPreview))
+                return options;
+
+            ModLog.Warn(
+                $"Preview option generation for {sourceAncient.Id.Entry} still returned no usable reward options " +
+                $"at act {nextActIndex + 1}; could not predict the rewards so will show none.");
+
+            return Array.Empty<EventOption>();
+        }
+        finally
+        {
+            if (maskedModifiers)
+            {
+                TrySetRunStateModifiers(runState, originalModifiers ?? Array.Empty<ModifierModel>());
+                ModLog.Debug("Restored RunState.Modifiers after robust preview generation.");
+            }
+        }
+    }
+
+    private static IReadOnlyList<EventOption> TryGeneratePreviewOptionsViaWrapper(
+        Player player,
+        RunState runState,
+        AncientEventModel previewEvent,
+        AncientEventModel sourceAncient,
+        int nextActIndex,
+        bool requireRelicReward,
+        string attemptName)
+    {
+        try
+        {
+            ResetPreviewEventRng(runState, player, previewEvent);
+            IReadOnlyList<EventOption> options =
+                (GenerateInitialOptionsWrapperMethod.Invoke(previewEvent, Array.Empty<object>()) as IReadOnlyList<EventOption>)
+                ?? Array.Empty<EventOption>();
+
+            if (!HasUsablePreviewOptions(options, requireRelicReward))
+            {
+                ModLog.Warn(
+                    $"Preview generation attempt '{attemptName}' for {sourceAncient.Id.Entry} produced " +
+                    $"{DescribePreviewOptionCount(options)} at act {nextActIndex + 1}.");
+            }
+
+            return options.Where(option => option != null).ToList();
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Preview generation attempt '{attemptName}' for {sourceAncient.Id.Entry} failed " +
+                $"at act {nextActIndex + 1}: {UnwrapReflectionException(ex)}");
+            return Array.Empty<EventOption>();
+        }
+    }
+
+    private static IReadOnlyList<EventOption> TryGeneratePreviewOptionsDirectly(
+        Player player,
+        RunState runState,
+        AncientEventModel previewEvent,
+        AncientEventModel sourceAncient,
+        int nextActIndex,
+        bool requireRelicReward)
+    {
+        try
+        {
+            ResetPreviewEventRng(runState, player, previewEvent);
+
+            MethodInfo? generateInitialOptionsMethod = AccessTools.Method(previewEvent.GetType(), "GenerateInitialOptions");
+            if (generateInitialOptionsMethod == null)
+            {
+                ModLog.Warn($"Could not locate GenerateInitialOptions on {previewEvent.GetType().FullName} while previewing {sourceAncient.Id.Entry}.");
+                return Array.Empty<EventOption>();
+            }
+
+            IReadOnlyList<EventOption> options =
+                (generateInitialOptionsMethod.Invoke(previewEvent, Array.Empty<object>()) as IReadOnlyList<EventOption>)
+                ?? Array.Empty<EventOption>();
+
+            List<EventOption> cleanedOptions = options
+                .Where(option => option != null)
+                .ToList();
+
+            if (!HasUsablePreviewOptions(cleanedOptions, requireRelicReward))
+            {
+                ModLog.Warn(
+                    $"Direct GenerateInitialOptions for {sourceAncient.Id.Entry} produced " +
+                    $"{DescribePreviewOptionCount(cleanedOptions)} at act {nextActIndex + 1}.");
+            }
+
+            return cleanedOptions;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Direct GenerateInitialOptions for {sourceAncient.Id.Entry} failed " +
+                $"at act {nextActIndex + 1}: {UnwrapReflectionException(ex)}");
+            return Array.Empty<EventOption>();
+        }
+    }
+
+    private static bool HasUsablePreviewOptions(
+        IReadOnlyList<EventOption> options,
+        bool requireRelicReward)
+    {
+        return options.Count > 0
+               && options.Any(option => option != null && !option.IsProceed && (!requireRelicReward || option.Relic != null));
+    }
+
+    private static string DescribePreviewOptionCount(IReadOnlyList<EventOption> options)
+    {
+        int nonNullCount = options.Count(option => option != null);
+        int proceedCount = options.Count(option => option != null && option.IsProceed);
+        int relicCount = options.Count(option => option?.Relic != null);
+        return $"{options.Count} option(s), nonNull={nonNullCount}, proceed={proceedCount}, relic={relicCount}";
+    }
+
+    private static string UnwrapReflectionException(Exception ex)
+    {
+        return ex is TargetInvocationException { InnerException: not null }
+            ? ex.InnerException.ToString()
+            : ex.ToString();
+    }
+
+    private static Rng ResetPreviewEventRng(
+        RunState runState,
+        Player player,
+        EventModel previewEvent)
+    {
+        Rng previewRng = CreatePreviewEventRng(runState, player, previewEvent);
+        EventRngBackingField.SetValue(previewEvent, previewRng);
+        return previewRng;
+    }
+
+    private static bool TrySetRunStateModifiers(
+        RunState runState,
+        IReadOnlyList<ModifierModel> modifiers)
+    {
+        try
+        {
+            Traverse.Create(runState)
+                .Property<IReadOnlyList<ModifierModel>>(nameof(RunState.Modifiers))
+                .Value = modifiers;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Failed to set RunState.Modifiers while generating ancient preview options: {ex}");
+            return false;
         }
     }
 

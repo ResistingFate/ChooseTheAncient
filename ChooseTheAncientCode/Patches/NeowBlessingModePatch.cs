@@ -64,7 +64,7 @@ public static class NeowBlessingModePatch
             return null;
 
         ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);
-        if (!flow.ForceAct1NeowBlessingMode)
+        if (!flow.ForceNeowBlessingMode)
             return null;
 
         lock (LockObj)
@@ -85,7 +85,7 @@ public static class NeowBlessingModePatch
                     .Property<IReadOnlyList<ModifierModel>>(nameof(RunState.Modifiers))
                     .Value = Array.Empty<ModifierModel>();
 
-                ModLog.Info("Temporarily masked RunState.Modifiers so CTA-selected Neow uses blessing options instead of modifier rewards.");
+                ModLog.Info("Temporarily masked RunState.Modifiers so CTA-selected Neow uses blessing options instead of modifier rewards regardless of act.");
             }
 
             state.Depth++;

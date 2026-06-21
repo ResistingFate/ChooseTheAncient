@@ -25,7 +25,14 @@ public sealed class ChooseTheAncientFlowState
     public bool ContinueEnterMapCoord { get; set; }
     public bool ContinueEnterNextAct { get; set; }
     public bool ModifierBootstrapCompleted { get; set; }
-    public bool ForceAct1NeowBlessingMode { get; set; }
+    public bool ForceNeowBlessingMode { get; set; }
+
+    public bool ForceAct1NeowBlessingMode
+    {
+        get => ForceNeowBlessingMode;
+        set => ForceNeowBlessingMode = value;
+    }
+
     public bool Act1StartingRoomFlowTriggered { get; set; }
 
     public int Act1StartupBootstrapSyncEpoch { get; private set; }

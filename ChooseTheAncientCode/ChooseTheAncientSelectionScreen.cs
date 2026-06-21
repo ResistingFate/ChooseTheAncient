@@ -2092,23 +2092,47 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             $"isSuppressed={(!string.IsNullOrEmpty(_suppressedPreviewAncientId) && requestedAncientId == _suppressedPreviewAncientId)}, " +
             $"isReaction={(!string.IsNullOrEmpty(_reactionAncientId) && requestedAncientId == _reactionAncientId)}");
 
-        if (!hasPreview)
+        if (!hasPreview || preview == null || preview.Options.Count == 0)
         {
+            string previousState = !hasPreview
+                ? "missing"
+                : preview == null
+                    ? "null"
+                    : "empty";
+
             ModLog.Warn(
-                $"No preview data found for requested={requestedAncientId}; " +
+                $"Preview data for requested={requestedAncientId} was {previousState}; " +
                 $"availableKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}; " +
-                $"roundType={_roundType}");
-            refs.PreviewAnchor.Visible = false;
-            return;
+                $"roundType={_roundType}. Attempting on-demand generation from the selection screen.");
+
+            if (_localPlayer != null)
+            {
+                ChooseTheAncientHelpers.AncientPreviewData? generatedPreview =
+                    ChooseTheAncientHelpers.TryGeneratePreviewData(_localPlayer, refs.Ancient, _nextActIndex);
+
+                if (generatedPreview != null && generatedPreview.Options.Count > 0)
+                {
+                    preview = generatedPreview;
+                    hasPreview = true;
+                    _previewDataByAncientId[requestedAncientId] = generatedPreview;
+                    ModLog.Info(
+                        $"On-demand preview generation succeeded for {requestedAncientId} with {generatedPreview.Options.Count} option(s).");
+                }
+            }
+            else
+            {
+                ModLog.Warn($"Could not generate on-demand preview data for {requestedAncientId} because no local player is available.");
+            }
+
+            if (!hasPreview || preview == null || preview.Options.Count == 0)
+            {
+                ModLog.Warn($"Preview data for requested={requestedAncientId} is still unavailable after on-demand generation.");
+                refs.PreviewAnchor.Visible = false;
+                return;
+            }
         }
 
         ModLog.Debug($"Building preview UI for {requestedAncientId} with {preview.Options.Count} option(s).");
-
-        if (preview.Options.Count == 0)
-        {
-            refs.PreviewAnchor.Visible = false;
-            return;
-        }
 
         refs.PreviewAnchor.Visible = true;
 

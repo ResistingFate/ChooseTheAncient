@@ -148,7 +148,7 @@ public static async Task RunAct1StartingRoomFlowAsync(
             ChooseTheAncientHelpers.SetChosenAncient(firstAct, vanillaAncient);
             await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
             flow.ModifierBootstrapCompleted = true;
-            flow.ForceAct1NeowBlessingMode = ChooseTheAncientHelpers.IsNeowAncient(vanillaAncient);
+            SetForceNeowBlessingModeIfNeeded(flow, vanillaAncient, "empty Act 1 ballot fallback");
             flow.ResolvedActs.Add(0);
             ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, vanillaAncient);
             DispatchAncientRoomTransition(vanillaAncient, "empty Act 1 ballot fallback");
@@ -196,7 +196,7 @@ public static async Task RunAct1StartingRoomFlowAsync(
 
         await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
         flow.ModifierBootstrapCompleted = true;
-        flow.ForceAct1NeowBlessingMode = ChooseTheAncientHelpers.IsNeowAncient(chosen);
+        SetForceNeowBlessingModeIfNeeded(flow, chosen, "Act 1 choice resolved");
 
         flow.ResolvedActs.Add(0);
 
@@ -338,6 +338,20 @@ private static async Task TransitionToAncientRoomAsync(AncientEventModel chosenA
     }
 }
 
+private static void SetForceNeowBlessingModeIfNeeded(
+    ChooseTheAncientFlowState flow,
+    AncientEventModel chosenAncient,
+    string reason)
+{
+    if (!ChooseTheAncientHelpers.IsNeowAncient(chosenAncient))
+        return;
+
+    flow.ForceNeowBlessingMode = true;
+    ModLog.Info(
+        $"ForceNeowBlessingMode enabled because CTA selected Neow ({chosenAncient.Id.Entry}). " +
+        $"Reason={reason}");
+}
+
 public static async Task RunAct1BeforeGenerateMapFlowAsync(
     RunManager runManager,
     RunState runState,
@@ -428,6 +442,7 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
 
         await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
         flow.ModifierBootstrapCompleted = true;
+        SetForceNeowBlessingModeIfNeeded(flow, chosen, "Act 1 GenerateMap seam choice resolved");
 
         flow.ResolvedActs.Add(0);
         flow.FlowInProgress = false;
@@ -522,6 +537,11 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
 
                 ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
                 ModLog.Info($"Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}");
+            }
+
+            if (chosen != null)
+            {
+                SetForceNeowBlessingModeIfNeeded(flow, chosen, $"Act {nextActIndex + 1} choice resolved");
             }
 
             flow.ResolvedActs.Add(nextActIndex);
@@ -643,6 +663,7 @@ public static async Task RunAct1MapEntryFlowAsync(
 
         await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
         flow.ModifierBootstrapCompleted = true;
+        SetForceNeowBlessingModeIfNeeded(flow, chosen, "Act 1 map-entry choice resolved");
 
         flow.ResolvedActs.Add(0);
         flow.ContinueEnterMapCoord = true;
