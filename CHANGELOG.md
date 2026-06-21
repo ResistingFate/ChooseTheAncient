@@ -30,6 +30,7 @@
 - Ancients don't repeat same combination of relic rewards in they show up in a later act
 - Other ancients in Act 1 don't heal more health than Neow on Weary Travelere
 - Neow does not heal less health than other ancients on act 2 plus.
+- Custom Act 1 Ancients do not need to set health to 0, it's done through the mod now.
 
 ### Technical
 - GenerateMapPatch changes the Act 1 starting node before the map is shown.
@@ -42,7 +43,7 @@
 - Also Neow Messages to fix their modifier desyncs in multiplayer.
 - Added sharedBuffer field to Custom Messages due to 1.05 update.
 - RewardRng prefix patch returning false was added so all ancient generate different reward seeds on different acts.
-- NeowHpResetPatch 
+- NeowHpBaselineTranspilerPatch is used to replace the line to set health to 0 so it's controlled by the mod.
 
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 
