@@ -122,6 +122,9 @@ public static class AncientHpBaselineTranspilerPatch
             if (!IsNeowType(type))
                 continue;
 
+            if (!IsVanillaNeowHpResetCheck(codes, i))
+                continue;
+
             instruction.opcode = OpCodes.Call;
             instruction.operand = ShouldResetHpBeforeAncientHealMethod;
             replacements++;
@@ -145,12 +148,50 @@ public static class AncientHpBaselineTranspilerPatch
         else
         {
             ModLog.Warn(
-                $"CTA HP baseline transpiler replaced {replacements} Neow type checks; expected exactly 1. " +
-                "STS2 may have changed AncientEventModel.BeforeEventStarted, or this transpiler's match is too broad. " +
-                "Review the decompiled method to confirm every replacement is still the HP reset condition.");
+                $"CTA HP baseline transpiler replaced {replacements} Neow HP reset checks; expected exactly 1. " +
+                "STS2 may have changed AncientEventModel.BeforeEventStarted. " +
+                "Review the decompiled method to confirm there is still a single vanilla HP reset condition.");
         }
 
         return codes;
+    }
+
+    private static bool IsVanillaNeowHpResetCheck(IReadOnlyList<CodeInstruction> codes, int typeCheckIndex)
+    /*
+     * AncientEventModel.BeforeEventStarted currently contains two "this is Neow" checks:
+     * one gates the HP reset before healing, and a later one gates the top-bar HP lerp.
+     * Only the HP-reset check should be replaced. The UI lerp check must keep vanilla's
+     * exact Neow-only behavior.
+     */
+    {
+        for (int i = typeCheckIndex + 1; i < codes.Count; i++)
+        {
+            CodeInstruction instruction = codes[i];
+
+            if (instruction.opcode == OpCodes.Isinst
+                && instruction.operand is Type type
+                && IsNeowType(type))
+            {
+                return false;
+            }
+
+            if (IsCallTo(instruction, "SetCurrentHpInternal"))
+                return true;
+
+            if (IsCallTo(instruction, "LerpAtNeow"))
+                return false;
+        }
+
+        return false;
+    }
+
+    private static bool IsCallTo(CodeInstruction instruction, string methodName)
+    {
+        if (instruction.opcode != OpCodes.Call && instruction.opcode != OpCodes.Callvirt)
+            return false;
+
+        return instruction.operand is MethodBase method
+               && string.Equals(method.Name, methodName, StringComparison.Ordinal);
     }
 
     private static bool IsNeowType(Type type)
