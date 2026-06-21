@@ -893,8 +893,7 @@ private static bool ResolveSpecialAncientOverrideValue(
         string candidatePoolSignature,
         string purpose)
     /*
-     * Uniformly shuffles a distinct set of ancients with Fisher-Yates (picks elements randomly until empty)
-     * choice while starting from a stable ID-sorted order.
+     * Uniformly shuffles a distinct set of ancients with Fisher-Yates while starting from a stable ID-sorted order.
      * This gives every included ancient the same chance at every display slot without consuming mutable run RNG state.
      */
     {
@@ -969,10 +968,173 @@ private static bool ResolveSpecialAncientOverrideValue(
 
     public static Rng CreatePreviewEventRng(RunState runState, Player player, EventModel eventModel)
     /*
-     * Creates the event RNG used when simulating reward previews for an ancient.
+     * Creates the vanilla event RNG used when simulating reward previews or modifier bootstrap events that should not use CTA reward offsets.
      */
     {
         return new Rng(ComputeVanillaEventSeed(runState, player, eventModel));
+    }
+
+    public static Rng CreateAncientEventRngForTargetAct(
+        RunState runState,
+        Player player,
+        EventModel eventModel,
+        int targetActIndex)
+    /*
+     * Creates the RNG CTA should use for ancient reward previews or reveals in a target act.
+     * Offset zero exactly matches vanilla; earlier/later-than-normal appearances add only the signed act offset to the vanilla seed.
+     */
+    {
+        uint seed = ComputeVanillaEventSeed(runState, player, eventModel);
+        int normalActIndex = GetNormalMinimumActIndexForAncient(runState, eventModel);
+        int actOffset = targetActIndex - normalActIndex;
+
+        if (actOffset != 0)
+        {
+            seed = unchecked(seed + (uint)actOffset);
+        }
+
+        return new Rng(seed);
+    }
+
+    public static int GetRewardActOffsetForTargetAct(
+        RunState runState,
+        EventModel eventModel,
+        int targetActIndex)
+    /*
+     * Returns how far the target act is from the ancient's normal minimum act.
+     * Zero means vanilla reward RNG should be preserved.
+     */
+    {
+        int normalActIndex = GetNormalMinimumActIndexForAncient(runState, eventModel);
+        return targetActIndex - normalActIndex;
+    }
+
+    private static int GetNormalMinimumActIndexForAncient(RunState runState, EventModel eventModel)
+    /*
+     * Finds the earliest act where an ancient belongs under vanilla room-generation rules, ignoring CTA source-act settings.
+     * Act-specific ancients can start in their owning act; shared ancients are never considered normal before Act 2.
+     */
+    {
+        int? minimumActIndex = null;
+
+        for (int actIndex = 0; actIndex < runState.Acts.Count; actIndex++)
+        {
+            ActModel act = runState.Acts[actIndex];
+
+            if (act.GetUnlockedAncients(runState.UnlockState)
+                .Any(ancient => AncientIdsMatch(ancient, eventModel)))
+            {
+                minimumActIndex = MinActIndex(minimumActIndex, actIndex);
+            }
+        }
+
+        List<AncientEventModel> sharedAncients = runState.UnlockState.SharedAncients
+            .Concat(ModelDb.AllSharedAncients.Where(ancient => AncientIdsMatch(ancient, eventModel) || IsBaseLibCustomAncient(ancient)))
+            .DistinctBy(ancient => ancient.Id)
+            .ToList();
+
+        AncientEventModel? sharedAncient = sharedAncients
+            .FirstOrDefault(ancient => AncientIdsMatch(ancient, eventModel));
+
+        if (sharedAncient == null && eventModel is AncientEventModel ancientEventModel && IsBaseLibCustomAncient(ancientEventModel))
+        {
+            sharedAncient = ancientEventModel;
+        }
+
+        if (sharedAncient != null)
+        {
+            for (int actIndex = 1; actIndex < runState.Acts.Count; actIndex++)
+            {
+                if (IsAncientValidForAct(sharedAncient, runState.Acts[actIndex]))
+                {
+                    minimumActIndex = MinActIndex(minimumActIndex, actIndex);
+                    break;
+                }
+            }
+        }
+
+        if (minimumActIndex.HasValue)
+            return minimumActIndex.Value;
+
+        int fallbackActIndex = Math.Clamp(runState.CurrentActIndex, 0, Math.Max(0, runState.Acts.Count - 1));
+        ModLog.Warn(
+            $"Could not determine normal minimum act for ancient {eventModel.Id.Entry}; " +
+            $"falling back to current act {fallbackActIndex + 1} so CTA reward RNG remains vanilla.");
+
+        return fallbackActIndex;
+    }
+
+    private static bool AncientIdsMatch(EventModel left, EventModel right)
+    /*
+     * Compares event IDs by entry so mutable preview copies and canonical models match reliably.
+     */
+    {
+        return string.Equals(left.Id.Entry, right.Id.Entry, StringComparison.Ordinal);
+    }
+
+    private static int MinActIndex(int? existing, int candidate)
+    /*
+     * Updates a nullable minimum act index without allocating helper collections.
+     */
+    {
+        return existing.HasValue ? Math.Min(existing.Value, candidate) : candidate;
+    }
+
+    public static bool TryApplyCtaAncientRewardActOffsetRng(AncientEventModel ancient, string context)
+    /*
+     * Applies CTA's act-offset reward RNG to a real ancient immediately before its options are generated.
+     */
+    {
+        try
+        {
+            Player? owner = ancient.Owner;
+            if (owner == null)
+            {
+                ModLog.Debug(
+                    $"CTA act-offset reward RNG skipped for {ancient.Id.Entry}: ancient has no owner. Context={context}.");
+                return false;
+            }
+
+            RunState? runState = owner.RunState as RunState;
+            if (runState == null)
+            {
+                ModLog.Debug(
+                    $"CTA act-offset reward RNG skipped for {ancient.Id.Entry}: owner RunState is not a mutable RunState. " +
+                    $"RuntimeType={owner.RunState?.GetType().FullName ?? "null"}, Context={context}.");
+                return false;
+            }
+
+            int targetActIndex = runState.CurrentActIndex;
+            int normalActIndex = GetNormalMinimumActIndexForAncient(runState, ancient);
+            int actOffset = targetActIndex - normalActIndex;
+
+            if (actOffset == 0)
+            {
+                ModLog.Debug(
+                    $"CTA reward RNG for {ancient.Id.Entry} at act {targetActIndex + 1} remains vanilla. " +
+                    $"NormalAct={normalActIndex + 1}, ActOffset=0, Context={context}.");
+                return false;
+            }
+
+            Rng rng = CreateAncientEventRngForTargetAct(
+                runState,
+                owner,
+                ancient,
+                targetActIndex);
+
+            EventRngBackingField.SetValue(ancient, rng);
+
+            ModLog.Info(
+                $"Applied CTA act-offset ancient reward RNG for {ancient.Id.Entry}. " +
+                $"TargetAct={targetActIndex + 1}, NormalAct={normalActIndex + 1}, ActOffset={actOffset}, Seed={rng.Seed}, Context={context}.");
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Could not apply CTA act-offset ancient reward RNG for {ancient.Id.Entry}: {ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
     }
 
     public static Dictionary<string, AncientPreviewData> BuildPreviewDataByAncientId(
@@ -1016,6 +1178,7 @@ private static bool ResolveSpecialAncientOverrideValue(
                 return null;
             }
 
+            int actOffset = GetRewardActOffsetForTargetAct(runState, previewEvent, nextActIndex);
             int originalActIndex = runState.CurrentActIndex;
 
             try
@@ -1028,12 +1191,18 @@ private static bool ResolveSpecialAncientOverrideValue(
                 /*
                  * TODO implement patches so ancient events can be shared
                  */
-                Rng previewRng = ResetPreviewEventRng(runState, player, previewEvent);
+                Rng previewRng = ResetPreviewEventRng(
+                    runState,
+                    player,
+                    previewEvent,
+                    nextActIndex);
                 //Rng previewRng = CreateAncientRelicOptionsRng(
                 //    runState, nextActIndex, (GroupAncientOptionsPool ? 0UL : player.NetId), previewEvent.Id.Entry);
                 // We use our new rng to change how the ancients randomness work and don't change it back
 
-                ModLog.Debug($"Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} at act index {nextActIndex}.");
+                ModLog.Debug(
+                    $"Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} " +
+                    $"at act index {nextActIndex}. ActOffset={actOffset}.");
 
                 // This is what BeginEvents does in Megacritic EventModel
                 previewEvent.CalculateVars();
@@ -1150,7 +1319,11 @@ private static bool ResolveSpecialAncientOverrideValue(
     {
         try
         {
-            ResetPreviewEventRng(runState, player, previewEvent);
+            ResetPreviewEventRng(
+                runState,
+                player,
+                previewEvent,
+                nextActIndex);
             IReadOnlyList<EventOption> options =
                 (GenerateInitialOptionsWrapperMethod.Invoke(previewEvent, Array.Empty<object>()) as IReadOnlyList<EventOption>)
                 ?? Array.Empty<EventOption>();
@@ -1186,7 +1359,11 @@ private static bool ResolveSpecialAncientOverrideValue(
     {
         try
         {
-            ResetPreviewEventRng(runState, player, previewEvent);
+            ResetPreviewEventRng(
+                runState,
+                player,
+                previewEvent,
+                nextActIndex);
 
             MethodInfo? generateInitialOptionsMethod = AccessTools.Method(previewEvent.GetType(), "GenerateInitialOptions");
             if (generateInitialOptionsMethod == null)
@@ -1256,12 +1433,19 @@ private static bool ResolveSpecialAncientOverrideValue(
     private static Rng ResetPreviewEventRng(
         RunState runState,
         Player player,
-        EventModel previewEvent)
+        EventModel previewEvent,
+        int targetActIndex)
     /*
      * Recreates and assigns the preview event RNG so each generation attempt starts from the same seed.
+     * Target acts at the ancient's normal minimum act match vanilla exactly; earlier/later target acts use the signed act offset.
      */
     {
-        Rng previewRng = CreatePreviewEventRng(runState, player, previewEvent);
+        Rng previewRng = CreateAncientEventRngForTargetAct(
+            runState,
+            player,
+            previewEvent,
+            targetActIndex);
+
         EventRngBackingField.SetValue(previewEvent, previewRng);
         return previewRng;
     }

@@ -201,6 +201,7 @@ public static async Task RunAct1StartingRoomFlowAsync(
         }
 
         ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
+
         ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
 
         await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
@@ -669,6 +670,7 @@ public static async Task RunAct1MapEntryFlowAsync(
         }
 
         ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
+
         ChooseTheAncientHelpers.ForceAct1AncientStart(runState);
 
         ModLog.Info($"Chosen starting ancient for Act 1: {chosen.Id.Entry}");
@@ -709,6 +711,7 @@ public static async Task RunAct1MapEntryFlowAsync(
             $"InProgress={flow.FlowInProgress}, ContinueMapCoord={flow.ContinueEnterMapCoord}, ModifierBootstrapCompleted={flow.ModifierBootstrapCompleted}");
     }
 }
+
 
 private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionScreen? LocalScreen)> RunAncientSelectionBallotAsync(
         RunState runState,
