@@ -814,7 +814,7 @@ private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionSc
             int secondPlaceIndex = ResolveSecondPlaceIndex(
                 runState,
                 targetActIndex,
-                pool.Count,
+                pool,
                 firstPlaceIndex,
                 firstVotes);
 
@@ -1368,10 +1368,11 @@ private static async Task<int> GetVoteForPlayer(
     private static int ResolveSecondPlaceIndex(
         RunState runState,
         int nextActIndex,
-        int optionCount,
+        IReadOnlyList<AncientEventModel> firstRoundPool,
         int firstPlaceIndex,
         IReadOnlyList<int> votesInPlayerSlotOrder)
     {
+        int optionCount = firstRoundPool.Count;
         if (optionCount <= 1)
         {
             throw new InvalidOperationException("Cannot resolve second place from fewer than two options.");
@@ -1411,10 +1412,14 @@ private static async Task<int> GetVoteForPlayer(
         var rng = CreateSecondPlaceTieBreakRng(
             runState,
             nextActIndex,
+            firstRoundPool,
             firstPlaceIndex,
-            votesInPlayerSlotOrder);
+            votesInPlayerSlotOrder,
+            leaders);
 
-        int chosenLeader = leaders[rng.NextInt(leaders.Count)];
+        List<int> shuffledLeaders = leaders.ToList();
+        rng.Shuffle(shuffledLeaders);
+        int chosenLeader = shuffledLeaders[0];
 
         if (ModLog.IsDebugEnabled)
         {
@@ -1424,10 +1429,18 @@ private static async Task<int> GetVoteForPlayer(
                     .OrderBy(kvp => kvp.Key)
                     .Select(kvp => $"{kvp.Key}:{kvp.Value}"));
 
-            string tiedLeaders = string.Join(",", leaders);
+            string tiedLeaders = string.Join(
+                ", ",
+                leaders.Select(index => $"{index}:{firstRoundPool[index].Id.Entry}"));
+
+            string shuffledLeaderOrder = string.Join(
+                ", ",
+                shuffledLeaders.Select(index => $"{index}:{firstRoundPool[index].Id.Entry}"));
+
             ModLog.Debug(
-                $"Second-place tie for act {nextActIndex + 1} after excluding first-place index {firstPlaceIndex}. " +
-                $"Counts={countSummary}; tied leaders=[{tiedLeaders}]; selected={chosenLeader}.");
+                $"Second-place tie for act {nextActIndex + 1} after excluding first-place index {firstPlaceIndex} " +
+                $"({firstRoundPool[firstPlaceIndex].Id.Entry}). Counts={countSummary}; " +
+                $"tied leaders=[{tiedLeaders}]; shuffled tie order=[{shuffledLeaderOrder}]; selected={chosenLeader}:{firstRoundPool[chosenLeader].Id.Entry}.");
         }
 
         return chosenLeader;
@@ -1436,14 +1449,28 @@ private static async Task<int> GetVoteForPlayer(
     private static Rng CreateSecondPlaceTieBreakRng(
         RunState runState,
         int nextActIndex,
+        IReadOnlyList<AncientEventModel> firstRoundPool,
         int firstPlaceIndex,
-        IReadOnlyList<int> votesInPlayerSlotOrder)
+        IReadOnlyList<int> votesInPlayerSlotOrder,
+        IReadOnlyList<int> tiedLeaderIndices)
     {
-        // Change the seed based on who was the first picked winner
-        Rng baseRng = ChooseTheAncientHelpers.CreateFinalVoteResolutionRng(runState, nextActIndex);
-        string voteSignature = $"{firstPlaceIndex}|{string.Join(",", votesInPlayerSlotOrder)}";
-        uint voteHash = unchecked((uint)StringHelper.GetDeterministicHashCode($"SecondPlace|{voteSignature}"));
-        return new Rng(unchecked(baseRng.Seed + voteHash));
+        string firstAncientId = firstRoundPool[firstPlaceIndex].Id.Entry;
+        string voteSignature = string.Join(",", votesInPlayerSlotOrder);
+        string poolSignature = string.Join(
+            "|",
+            firstRoundPool.Select((ancient, index) => $"{index}:{ancient.Id.Entry}"));
+        string tiedSignature = string.Join(
+            "|",
+            tiedLeaderIndices.Select(index => $"{index}:{firstRoundPool[index].Id.Entry}"));
+
+        string tieBreakName =
+            $"choose_the_ancient_second_place_tie_act_{nextActIndex}|" +
+            $"first={firstPlaceIndex}:{firstAncientId}|" +
+            $"votes={voteSignature}|" +
+            $"pool={poolSignature}|" +
+            $"tied={tiedSignature}";
+
+        return new Rng(runState.Rng.Seed, tieBreakName);
     }
 
     private static int ResolveMostVotedIndex(

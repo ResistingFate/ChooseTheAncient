@@ -55,9 +55,6 @@ public static class ChooseTheAncientHelpers
 
     private static bool IsAncientValidForAct(AncientEventModel ancient, ActModel act)
     {
-        /*
-         * Made to handle CustomAncients in BaseLib without using BaseLib
-         */
         MethodInfo? method = ancient.GetType().GetMethod(
             "IsValidForAct",
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
@@ -76,6 +73,43 @@ public static class ChooseTheAncientHelpers
         {
             ModLog.Error($"Failed to call IsValidForAct on {ancient.GetType().FullName}: {e}");
             return true;
+        }
+    }
+
+    private static bool IsBaseLibCustomAncient(AncientEventModel ancient)
+    {
+        for (Type? type = ancient.GetType(); type != null; type = type.BaseType)
+        {
+            if (string.Equals(type.FullName, "BaseLib.Abstracts.CustomAncientModel", StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ShouldForceSpawnForAct(
+        AncientEventModel ancient,
+        ActModel targetAct,
+        AncientEventModel? rngChosenAncient)
+    {
+        MethodInfo? method = ancient.GetType().GetMethod(
+            "ShouldForceSpawn",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            binder: null,
+            types: [typeof(ActModel), typeof(AncientEventModel)],
+            modifiers: null);
+
+        if (method == null || method.ReturnType != typeof(bool))
+            return false;
+
+        try
+        {
+            return (bool)method.Invoke(ancient, [targetAct, rngChosenAncient])!;
+        }
+        catch (Exception e)
+        {
+            ModLog.Error($"Failed to call ShouldForceSpawn on {ancient.GetType().FullName}: {e}");
+            return false;
         }
     }
 
@@ -253,7 +287,14 @@ public static class ChooseTheAncientHelpers
         if (!runState.UnlockState.SharedAncients.Any())
             ModLog.Debug("runState.UnlockState.SharedAncients is empty");
 
+        /*
+         * BaseLib registers custom ancients through ModelDb.AllSharedAncients and later injects them
+         * into an act's shared ancient subset while that act is generating rooms. CTA builds its ballot
+         * before it hands control back to vanilla EnterNextAct, so make sure BaseLib custom ancients are
+         * visible here even if they have not yet been copied into UnlockState.SharedAncients.
+         */
         List<AncientEventModel> allSharedAncients = runState.UnlockState.SharedAncients
+            .Concat(ModelDb.AllSharedAncients.Where(IsBaseLibCustomAncient))
             .DistinctBy(ancient => ancient.Id)
             .OrderBy(ancient => ancient.Id.Entry)
             .ToList();
@@ -429,10 +470,6 @@ private static bool ResolveSpecialAncientOverrideValue(
         int nextActIndex,
         List<AncientEventModel> pool, int ancientCount)
     {
-        /*
-         * Takes runstate, and act index, and available ancients, and number of ancients to return
-         * Returns the list of ancients that will be used be the ancient ban selection screen
-         */
         ModLog.Debug(
             $"LimitCandidatePoolForVote start for act {nextActIndex + 1}: requestedCount={ancientCount}, poolCount={pool.Count}, pool={DescribeAncients(pool)}");
 
@@ -454,12 +491,107 @@ private static bool ResolveSpecialAncientOverrideValue(
 
         LogPool($"Act {nextActIndex + 1} shuffled ballot pool", shuffled);
 
+        ActModel? targetAct = nextActIndex >= 0 && nextActIndex < runState.Acts.Count
+            ? runState.Acts[nextActIndex]
+            : null;
+
+        if (targetAct == null)
+        {
+            ModLog.Warn(
+                $"Could not resolve target act {nextActIndex + 1} while limiting the CTA ballot; " +
+                "falling back to an unprioritized shuffled ballot.");
+            List<AncientEventModel> fallbackLimited = shuffled
+                .Take(ancientCount)
+                .ToList();
+
+            LogPool($"Act {nextActIndex + 1} limited ballot", fallbackLimited);
+            return fallbackLimited;
+        }
+
+        AncientEventModel? rngChosenAncient = TryGetChosenAncient(targetAct);
+
+        List<AncientEventModel> forceSpawnAncients = shuffled
+            .Where(ancient => ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient))
+            .DistinctBy(ancient => ancient.Id)
+            .ToList();
+
+        List<AncientEventModel> customAncients = shuffled
+            .Where(IsBaseLibCustomAncient)
+            .Where(ancient => !forceSpawnAncients.Any(forced => forced.Id.Equals(ancient.Id)))
+            .DistinctBy(ancient => ancient.Id)
+            .ToList();
+
+        if (forceSpawnAncients.Count > 0)
+        {
+            LogPool(
+                $"Act {nextActIndex + 1} BaseLib custom ancients requesting forced spawn",
+                forceSpawnAncients);
+        }
+
+        if (customAncients.Count > 0)
+        {
+            LogPool(
+                $"Act {nextActIndex + 1} BaseLib custom ancients prioritized for CTA ballot",
+                customAncients);
+        }
+
+        HashSet<string> selectedIds = new(StringComparer.Ordinal);
+
+        foreach (AncientEventModel forced in forceSpawnAncients)
+        {
+            if (selectedIds.Count >= ancientCount)
+                break;
+
+            selectedIds.Add(forced.Id.Entry);
+        }
+
+        foreach (AncientEventModel customAncient in customAncients)
+        {
+            if (selectedIds.Count >= ancientCount)
+                break;
+
+            selectedIds.Add(customAncient.Id.Entry);
+        }
+
+        if (selectedIds.Count > 0)
+        {
+            ModLog.Info(
+                $"Reserved {selectedIds.Count} of {ancientCount} Act {nextActIndex + 1} CTA ballot slot(s) " +
+                $"for compatible custom ancient(s): {string.Join(",", selectedIds)}.");
+        }
+
+        foreach (AncientEventModel ancient in shuffled)
+        {
+            if (selectedIds.Count >= ancientCount)
+                break;
+
+            selectedIds.Add(ancient.Id.Entry);
+        }
+
         List<AncientEventModel> limited = shuffled
+            .Where(ancient => selectedIds.Contains(ancient.Id.Entry))
             .Take(ancientCount)
             .ToList();
 
         LogPool($"Act {nextActIndex + 1} limited ballot", limited);
         return limited;
+    }
+
+    private static AncientEventModel? TryGetChosenAncient(ActModel act)
+    {
+        try
+        {
+            RoomSet? rooms = Traverse.Create(act)
+                .Field("_rooms")
+                .GetValue<RoomSet>();
+
+            return rooms?.Ancient;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Debug($"Could not read the act's current RNG-chosen ancient while prioritizing CTA custom ancients: {ex.GetType().Name}");
+            return null;
+        }
     }
 
     public static void SetChosenAncient(ActModel act, AncientEventModel chosenAncient)
