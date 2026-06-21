@@ -27,6 +27,9 @@
 - I Want to Know Everything for greater than 3 ancients now uses vertical columns for Ancients.
 - Fixed bug on v1.1 of the mod caused Custom Ancients to not always show.
 - The second ancient selection should randomize propely, instead of always being the left or right option  you didn't pick.
+- Ancients don't repeat same combination of relic rewards in they show up in a later act
+- Other ancients in Act 1 don't heal more health than Neow on Weary Travelere
+- Neow does not heal less health than other ancients on act 2 plus.
 
 ### Technical
 - GenerateMapPatch changes the Act 1 starting node before the map is shown.
@@ -38,6 +41,8 @@
 - A Neow patch so Neow doesn't give modifiers twice
 - Also Neow Messages to fix their modifier desyncs in multiplayer.
 - Added sharedBuffer field to Custom Messages due to 1.05 update.
+- RewardRng prefix patch returning false was added so all ancient generate different reward seeds on different acts.
+- NeowHpResetPatch 
 
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 

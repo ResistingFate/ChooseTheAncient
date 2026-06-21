@@ -33,7 +33,6 @@ public static class ChooseTheAncientHelpers
     private static readonly FieldInfo EventRngBackingField =
         AccessTools.Field(typeof(EventModel), "<Rng>k__BackingField")
         ?? throw new InvalidOperationException("Could not locate EventModel RNG backing field.");
-
     public sealed class AncientPreviewData
     {
         public required AncientEventModel PreviewEvent { get; init; }
@@ -851,6 +850,35 @@ private static bool ResolveSpecialAncientOverrideValue(
                || string.Equals(ancient.Id.Entry, nameof(Neow), StringComparison.OrdinalIgnoreCase)
                || string.Equals(ancient.Id.Entry, "NEOW", StringComparison.OrdinalIgnoreCase);
     }
+
+
+    public static bool ShouldResetHpBeforeAncientHeal(AncientEventModel ancient)
+    /*
+     * Replaces vanilla's Neow-only HP reset condition before ancient healing runs.
+     * The Act 1 starting ancient always gets the start-of-run HP baseline, while Neow in later CTA acts heals like any other ancient.
+     */
+    {
+        RunState? runState = ancient.Owner?.RunState as RunState;
+        if (runState == null)
+            return IsNeowAncient(ancient);
+
+        bool shouldReset = IsAct1StartingMapPoint(runState);
+
+        if (shouldReset)
+        {
+            ModLog.Info(
+                $"Applying Act 1 starting HP baseline through vanilla ancient heal reset for {ancient.Id.Entry}.");
+        }
+        else if (IsNeowAncient(ancient))
+        {
+            ModLog.Info(
+                $"Skipping vanilla Neow HP reset outside Act 1 start so {ancient.Id.Entry} heals like a normal ancient. " +
+                $"Act={runState.CurrentActIndex + 1}.");
+        }
+
+        return shouldReset;
+    }
+
 
     public static bool IsDarvAncient(AncientEventModel ancient)
     /*

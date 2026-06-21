@@ -459,6 +459,7 @@ public static async Task RunAct1BeforeGenerateMapFlowAsync(
 
         flow.ResolvedActs.Add(0);
         flow.FlowInProgress = false;
+
         await runManager.GenerateMap();
     }
     catch (OperationCanceledException ex)
@@ -680,6 +681,7 @@ public static async Task RunAct1MapEntryFlowAsync(
         SetForceNeowBlessingModeIfNeeded(flow, chosen, "Act 1 map-entry choice resolved");
 
         flow.ResolvedActs.Add(0);
+
         flow.ContinueEnterMapCoord = true;
         await runManager.EnterMapCoord(startingCoord);
     }
