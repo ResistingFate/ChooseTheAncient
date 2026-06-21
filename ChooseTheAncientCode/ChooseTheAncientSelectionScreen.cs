@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,7 +58,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const float PreviewWidgetGapAt1080 = 8f;
     private const float PreviewWidgetGapCompactAt1080 = 6f;
     private const float PreviewWidgetMinScale = 0.46f;
-    private const bool ShowTopUiCutoffDebugLine = false;
     private static readonly string DialogueBubbleTexturePath = "res://images/ui/dialogue_nine_patch.png";
     private static readonly string DialogueTailTexturePath = "res://images/ui/dialogue_tail.png";
     private static readonly string DialogueRegularFontPath = "res://themes/kreon_regular_glyph_space_one.tres";
@@ -450,7 +449,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private float _initialSecondRoundWinnerEmphasisAmount;
     private Tween? _initialSecondRoundWinnerEmphasisFadeTween;
     private float _topUiCutoffYInStageSpace;
-    private ColorRect? _topUiCutoffDebugLine;
 
     private Control? _layoutRoot;
     private Control? _roundIntroAnchor;
@@ -517,9 +515,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Creates, initializes, and pushes a new selection screen onto the overlay stack.
          */
+        NOverlayStack? overlayStack = NOverlayStack.Instance;
+        if (overlayStack == null)
+        {
+            throw new InvalidOperationException("Cannot show Choose the Ancient selection screen before the overlay stack exists.");
+        }
+
         ChooseTheAncientSelectionScreen screen = new();
         screen.Initialize(nextActIndex, orderedPlayers);
-        NOverlayStack.Instance.Push(screen);
+        overlayStack.Push(screen);
         return screen;
     }
 
@@ -636,19 +640,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _hoverSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("HoverSfx");
         _clickSfx = _layoutRoot.GetNodeOrNull<AudioStreamPlayer>("ClickSfx");
 
-        _topUiCutoffDebugLine = new ColorRect
-        {
-            /*
-             * Handles the Games Top Menu
-             */
-            Name = "TopUiCutoffDebugLine",
-            Color = new Color(1f, 0.15f, 0.15f, 0.75f),
-            MouseFilter = MouseFilterEnum.Ignore,
-            ZIndex = 50,
-            Visible = ShowTopUiCutoffDebugLine
-        };
-        _stageArea.AddChild(_topUiCutoffDebugLine);
-        
         if (_clickSfx != null)
         {
             _clickSfx.VolumeDb = -16f;
@@ -742,9 +733,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         try
         {
-            if (IsInsideTree())
+            NOverlayStack? overlayStack = NOverlayStack.Instance;
+            if (IsInsideTree() && overlayStack != null)
             {
-                NOverlayStack.Instance.Remove(this);
+                overlayStack.Remove(this);
             }
             else
             {
@@ -2903,19 +2895,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         return ScaleFrom1080(TopUiFallbackBottomPxAt1080);
     }
 
-    private void UpdateTopUiCutoffDebugLine(float cutoffY)
-    {
-        if (_stageArea == null || _topUiCutoffDebugLine == null)
-            return;
-
-        _topUiCutoffDebugLine.Visible = ShowTopUiCutoffDebugLine;
-        if (!ShowTopUiCutoffDebugLine)
-            return;
-
-        _topUiCutoffDebugLine.Position = new Vector2(0f, cutoffY);
-        _topUiCutoffDebugLine.Size = new Vector2(_stageArea.Size.X, 2f);
-    }
-    
     /*
      * Handle the Layout of all nodes.
      */
@@ -2937,8 +2916,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
         
         _topUiCutoffYInStageSpace = ResolveTopUiCutoffInStageSpace();
-        UpdateTopUiCutoffDebugLine(_topUiCutoffYInStageSpace);
-
         float cardHeight = Math.Clamp(MathF.Round(area.Y * CardHeightRatio), 188f, 224f);
         float cardWidth = _slots.Count == 2
             ? Math.Clamp(area.X * 0.34f, 430f, 620f)
@@ -3951,14 +3928,21 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             HoverTipAlignment alignment = wrapperCenterX < viewportMid
                 ? HoverTipAlignment.Right
                 : HoverTipAlignment.Left;
-            NHoverTipSet hoverTipSet = NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, alignment);
+            NHoverTipSet? hoverTipSet = NHoverTipSet.CreateAndShow(widget.Wrapper, widget.Option.HoverTips, alignment);
+            if (hoverTipSet == null)
+            {
+                return;
+            }
+
             hoverTipSet.ZIndex = 9;
             hoverTipSet.TopLevel = true;
             hoverTipSet.ProcessMode = ProcessModeEnum.Always;
             hoverTipSet.Show();
-            if (hoverTipSet.GetParent() != null)
+
+            Node? hoverTipParent = hoverTipSet.GetParent();
+            if (hoverTipParent != null)
             {
-                hoverTipSet.GetParent().MoveChild(hoverTipSet, hoverTipSet.GetParent().GetChildCount() - 1);
+                hoverTipParent.MoveChild(hoverTipSet, hoverTipParent.GetChildCount() - 1);
             }
 
             foreach (Control tipChild in hoverTipSet.GetChildren().OfType<Control>())
@@ -4757,7 +4741,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
                     try
                     {
-                        NDebugAudioManager.Instance.Play("map_split_tick.mp3", 0.15f, PitchVariance.Small);
+                        NDebugAudioManager? debugAudio = NDebugAudioManager.Instance;
+                        if (debugAudio != null)
+                        {
+                            debugAudio.Play("map_split_tick.mp3", 0.15f, PitchVariance.Small);
+                        }
                     }
                     catch
                     {

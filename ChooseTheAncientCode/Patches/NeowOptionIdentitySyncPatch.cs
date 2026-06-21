@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -113,7 +114,7 @@ public static class NeowOptionIdentitySyncPatch
 
         ModLog.Info(
             $"Sent CTA-selected Neow option identity before raw option index sync. " +
-            $"Index={message.optionIndex}, Identity={message.optionIdentity}, Location={message.location}.");
+            $"Index={message.optionIndex}, Identity={message.OptionIdentityOrEmpty}, Location={message.location}.");
     }
 
     [HarmonyPatch(typeof(EventSynchronizer), "ChooseOptionForEvent")]
@@ -133,7 +134,8 @@ public static class NeowOptionIdentitySyncPatch
         if (!States.TryGetValue(__instance, out SynchronizerState? state))
             return;
 
-        if (!TryTakePendingIdentity(state, player.NetId, out PendingChoiceIdentity? pendingIdentity))
+        PendingChoiceIdentity? pendingIdentity = TakePendingIdentity(state, player.NetId);
+        if (pendingIdentity == null)
             return;
 
         if (!string.Equals(GetEventId(eventForPlayer), pendingIdentity.EventId, StringComparison.OrdinalIgnoreCase))
@@ -165,7 +167,7 @@ public static class NeowOptionIdentitySyncPatch
          * The identity message and the raw index message are separate network messages
          * and can arrive independently This lets us pair them up safely
          */
-        if (!string.Equals(message.eventId, "NEOW", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(message.EventIdOrEmpty, "NEOW", StringComparison.OrdinalIgnoreCase))
             return;
 
         ulong localPlayerId = Traverse.Create(synchronizer).Field("_localPlayerId").GetValue<ulong>();
@@ -183,15 +185,15 @@ public static class NeowOptionIdentitySyncPatch
 
         queue.Enqueue(new PendingChoiceIdentity
         {
-            EventId = message.eventId,
-            OptionIdentity = message.optionIdentity,
+            EventId = message.EventIdOrEmpty,
+            OptionIdentity = message.OptionIdentityOrEmpty,
             RawOptionIndex = message.optionIndex,
             Location = message.location
         });
 
         ModLog.Info(
             $"Queued CTA-selected Neow option identity sync from player {senderId}. " +
-            $"Identity={message.optionIdentity}, RawIndex={message.optionIndex}, QueueDepth={queue.Count}.");
+            $"Identity={message.OptionIdentityOrEmpty}, RawIndex={message.optionIndex}, QueueDepth={queue.Count}.");
     }
 
     private static bool TryBuildLocalIdentityMessage(
@@ -204,7 +206,7 @@ public static class NeowOptionIdentitySyncPatch
          */
         message = default;
 
-        EventModel localEvent = synchronizer.GetLocalEvent();
+        EventModel? localEvent = synchronizer.GetLocalEvent();
         if (!ShouldUseIdentitySync(localEvent))
             return false;
 
@@ -219,28 +221,29 @@ public static class NeowOptionIdentitySyncPatch
             return false;
 
         EventOption option = localEvent.CurrentOptions[index];
-        message = new ChooseTheAncientNeowOptionIdentityChosenMessage
-        {
-            eventId = GetEventId(localEvent),
-            optionIdentity = BuildOptionIdentity(option),
-            optionIndex = unchecked((uint)index),
-            location = buffer.CurrentLocation
-        };
+        message = ChooseTheAncientNeowOptionIdentityChosenMessage.Create(
+            GetEventId(localEvent),
+            BuildOptionIdentity(option),
+            unchecked((uint)index),
+            buffer.CurrentLocation);
 
-        return !string.IsNullOrWhiteSpace(message.optionIdentity);
+        return !string.IsNullOrWhiteSpace(message.OptionIdentityOrEmpty);
     }
 
     private static bool ShouldUseIdentitySyncForPlayer(
         EventSynchronizer synchronizer,
         Player player,
-        out EventModel? eventForPlayer)
+        [NotNullWhen(true)] out EventModel? eventForPlayer)
     {
         eventForPlayer = synchronizer.GetEventForPlayer(player);
         return ShouldUseIdentitySync(eventForPlayer);
     }
 
-    private static bool ShouldUseIdentitySync(EventModel eventModel)
+    private static bool ShouldUseIdentitySync([NotNullWhen(true)] EventModel? eventModel)
     {
+        if (eventModel == null)
+            return false;
+
         if (!string.Equals(GetEventId(eventModel), "NEOW", StringComparison.OrdinalIgnoreCase))
             return false;
 
@@ -251,29 +254,24 @@ public static class NeowOptionIdentitySyncPatch
         return ChooseTheAncientStateStore.Get(runState).ForceNeowBlessingMode;
     }
 
-    private static bool TryTakePendingIdentity(
-        SynchronizerState state,
-        ulong senderId,
-        out PendingChoiceIdentity? pendingIdentity)
+    private static PendingChoiceIdentity? TakePendingIdentity(SynchronizerState state, ulong senderId)
     {
         /*
-         * For ChooseOptionForEventPrefix to pair one received identity message with one incoming raw index message
+         * For ChooseOptionForEventPrefix to pair one received identity message with one incoming raw index message.
          */
-        pendingIdentity = null;
-
         if (!state.PendingChoicesBySender.TryGetValue(senderId, out Queue<PendingChoiceIdentity>? queue))
-            return false;
+            return null;
 
         if (queue.Count <= 0)
-            return false;
+            return null;
 
-        pendingIdentity = queue.Dequeue();
+        PendingChoiceIdentity pendingIdentity = queue.Dequeue();
         if (queue.Count <= 0)
         {
             state.PendingChoicesBySender.Remove(senderId);
         }
 
-        return true;
+        return pendingIdentity;
     }
 
     private static int FindOptionIndexByIdentity(IReadOnlyList<EventOption> options, string identity)
@@ -330,7 +328,7 @@ public static class NeowOptionIdentitySyncPatch
         return string.Join(", ", described);
     }
 
-    private static string GetEventId(EventModel eventModel)
+    private static string GetEventId(EventModel? eventModel)
     {
         return eventModel?.Id.Entry ?? eventModel?.GetType().Name ?? "<unknown_event>";
     }

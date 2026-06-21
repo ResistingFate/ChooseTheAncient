@@ -9,7 +9,7 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 public static class GenerateMapPatch
 {
     [HarmonyPriority(Priority.Low)]
-    static void Postfix(IRunState runState, ref ActMap __result, int actIndex)
+    private static void Postfix(IRunState runState, ref ActMap __result, int actIndex)
     {
         if (runState is not RunState mutableRunState)
             return;

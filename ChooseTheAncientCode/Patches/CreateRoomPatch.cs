@@ -10,7 +10,7 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 [HarmonyPatch(typeof(RunManager), "CreateRoom")]
 public static class CreateRoomPatch
 {
-    static bool Prefix(
+    private static bool Prefix(
         RunManager __instance,
         RoomType roomType,
         MapPointType mapPointType,

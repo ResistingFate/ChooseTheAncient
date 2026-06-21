@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -61,24 +62,55 @@ public static class ChooseTheAncientHelpers
      * This keeps CTA independent from BaseLib while still respecting custom ancient act restrictions.
      */
     {
-        MethodInfo? method = ancient.GetType().GetMethod(
+        return InvokeAncientBoolHookOrDefault(
+            ancient,
             "IsValidForAct",
+            [typeof(ActModel)],
+            [act],
+            fallback: true);
+    }
+
+    private static bool InvokeAncientBoolHookOrDefault(
+        AncientEventModel ancient,
+        string hookName,
+        Type[] parameterTypes,
+        object?[] arguments,
+        bool fallback)
+    /*
+     * Invokes optional ancient hooks through one validated bool-returning path.
+     */
+    {
+        MethodInfo? method = ancient.GetType().GetMethod(
+            hookName,
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             binder: null,
-            types: [typeof(ActModel)],
+            types: parameterTypes,
             modifiers: null);
 
-        if (method == null || method.ReturnType != typeof(bool))
-            return true;
+        if (method == null)
+            return fallback;
+
+        if (method.ReturnType != typeof(bool))
+        {
+            ModLog.Warn(
+                $"Ignoring {hookName} on {ancient.GetType().FullName} because it returns {method.ReturnType.FullName}; expected System.Boolean.");
+            return fallback;
+        }
 
         try
         {
-            return (bool)method.Invoke(ancient, [act])!;
+            object? result = method.Invoke(ancient, arguments);
+            if (result is bool value)
+                return value;
+
+            ModLog.Warn(
+                $"Ignoring {hookName} on {ancient.GetType().FullName} because it returned {result?.GetType().FullName ?? "<null>"}; expected System.Boolean.");
+            return fallback;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            ModLog.Error($"Failed to call IsValidForAct on {ancient.GetType().FullName}: {e}");
-            return true;
+            ModLog.Error($"Failed to call {hookName} on {ancient.GetType().FullName}: {UnwrapReflectionException(ex)}");
+            return fallback;
         }
     }
 
@@ -105,27 +137,47 @@ public static class ChooseTheAncientHelpers
      * Missing hooks are treated as not forced.
      */
     {
-        MethodInfo? method = ancient.GetType().GetMethod(
+        return InvokeAncientBoolHookOrDefault(
+            ancient,
             "ShouldForceSpawn",
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-            binder: null,
-            types: [typeof(ActModel), typeof(AncientEventModel)],
-            modifiers: null);
-
-        if (method == null || method.ReturnType != typeof(bool))
-            return false;
-
-        try
-        {
-            return (bool)method.Invoke(ancient, [targetAct, rngChosenAncient])!;
-        }
-        catch (Exception e)
-        {
-            ModLog.Error($"Failed to call ShouldForceSpawn on {ancient.GetType().FullName}: {e}");
-            return false;
-        }
+            [typeof(ActModel), typeof(AncientEventModel)],
+            [targetAct, rngChosenAncient],
+            fallback: false);
     }
 
+
+
+    public static Rng CreateRunScopedRng(RunState runState, params object?[] streamParts)
+    /*
+     * Creates a deterministic CTA RNG stream from the run seed without consuming mutable run RNG state.
+     */
+    {
+        if (streamParts.Length == 0)
+            throw new ArgumentException("At least one RNG stream part is required.", nameof(streamParts));
+
+        return new Rng(runState.Rng.Seed, BuildRngStreamName(streamParts));
+    }
+
+    public static string BuildRngStreamName(params object?[] streamParts)
+    /*
+     * Builds CTA RNG stream names through one formatting path so new streams keep the same prefix and deterministic culture.
+     */
+    {
+        return "choose_the_ancient_" + string.Join("_", streamParts.Select(FormatRngStreamPart));
+    }
+
+    private static string FormatRngStreamPart(object? streamPart)
+    /*
+     * Formats a single RNG stream-name part without culture-specific number formatting.
+     */
+    {
+        return streamPart switch
+        {
+            null => "null",
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty,
+            _ => streamPart.ToString() ?? string.Empty
+        };
+    }
 
 
     public static List<AncientEventModel> BuildCandidatePool(
@@ -441,15 +493,15 @@ public static class ChooseTheAncientHelpers
     }
 
 
-private static bool ResolveSpecialAncientOverrideValue(
-    IReadOnlyDictionary<string, bool> specialAncientOverrides,
-    string ancientId)
-/*
- * Returns whether a named special ancient override is enabled in the resolved override map.
- */
-{
-    return specialAncientOverrides.TryGetValue(ancientId, out bool enabled) && enabled;
-}
+    private static bool ResolveSpecialAncientOverrideValue(
+        IReadOnlyDictionary<string, bool> specialAncientOverrides,
+        string ancientId)
+    /*
+     * Returns whether a named special ancient override is enabled in the resolved override map.
+     */
+    {
+        return specialAncientOverrides.TryGetValue(ancientId, out bool enabled) && enabled;
+    }
 
     private static AncientEventModel? TryFindAncientForOverride(
         RunState runState,
@@ -786,13 +838,6 @@ private static bool ResolveSpecialAncientOverrideValue(
         runState.ExtraFields.StartedWithNeow = true;
     }
 
-    public static List<AncientEventModel> PreferNonNeowAncientsForActOne(IEnumerable<AncientEventModel> pool)
-    {
-        return pool
-            .DistinctBy(ancient => ancient.Id)
-            .OrderBy(ancient => ancient.Id.Entry)
-            .ToList();
-    }
 
     public static List<ModifierBootstrapAction> BuildModifierBootstrapActions(Player player)
     /*
@@ -889,13 +934,6 @@ private static bool ResolveSpecialAncientOverrideValue(
                || string.Equals(ancient.GetType().Name, "Darv", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static Rng CreateDisplayedPoolRng(RunState runState, int nextActIndex)
-    /*
-     * Creates the deterministic RNG used to shuffle the displayed CTA candidate ballot for a given target act.
-     */
-    {
-        return new Rng(runState.Rng.Seed, $"choose_the_ancient_display_pool_act_{nextActIndex}");
-    }
 
     private static Rng CreateBallotShuffleRng(
         RunState runState,
@@ -908,9 +946,16 @@ private static bool ResolveSpecialAncientOverrideValue(
      * Including the candidate-pool signature prevents unrelated pool changes from reusing the same permutation stream.
      */
     {
-        return new Rng(
-            runState.Rng.Seed,
-            $"choose_the_ancient_ballot_uniform_v3_{purpose}_act_{nextActIndex}_count_{ancientCount}_pool_{candidatePoolSignature}");
+        return CreateRunScopedRng(
+            runState,
+            "ballot_uniform_v3",
+            purpose,
+            "act",
+            nextActIndex,
+            "count",
+            ancientCount,
+            "pool",
+            candidatePoolSignature);
     }
 
     private static List<AncientEventModel> ShuffleBallotAncients(
@@ -958,7 +1003,11 @@ private static bool ResolveSpecialAncientOverrideValue(
      * Creates the deterministic RNG used to resolve tied final votes in a host/client-safe way.
      */
     {
-        return new Rng(runState.Rng.Seed, $"choose_the_ancient_final_vote_act_{nextActIndex}");
+        return CreateRunScopedRng(
+            runState,
+            "final_vote",
+            "act",
+            nextActIndex);
     }
 
     public static Rng CreateSecondRoundPresentationRng(RunState runState, int nextActIndex)
@@ -966,17 +1015,14 @@ private static bool ResolveSpecialAncientOverrideValue(
      * Creates the deterministic RNG used to choose second-round preview suppression presentation details.
      */
     {
-        return new Rng(runState.Rng.Seed, $"choose_the_ancient_second_vote_presentation_act_{nextActIndex}");
+        return CreateRunScopedRng(
+            runState,
+            "second_vote_presentation",
+            "act",
+            nextActIndex);
     }
     
-    public static Rng CreateAncientRelicOptionsRng(RunState runstate, int nextActIndex, ulong player, string ancient)
-    /*
-     * Creates a deterministic RNG stream for CTA-controlled ancient reward option generation.
-     */
-    {
-        return new Rng(runstate.Rng.Seed, $"choose_the_ancient_relic_options_{nextActIndex}_{ancient}_{player}");
-    }
-    
+
     public static uint ComputeVanillaEventSeed(RunState runState, Player player, EventModel eventModel)
     /*
      * Computes the vanilla event RNG seed for a player/event pair so previewed ancient rewards match the later revealed event.
@@ -1213,21 +1259,11 @@ private static bool ResolveSpecialAncientOverrideValue(
             {
                 runState.CurrentActIndex = nextActIndex;
                 EventOwnerBackingField.SetValue(previewEvent, player);
-                // I want to experiment with the relics rewards for all players being a shared event being a shared
-                // pool. Shared pools should have the same RNG for each player, where as independent offerings
-                // should have Rng based on their player ID.
-                /*
-                 * TODO implement patches so ancient events can be shared
-                 */
                 Rng previewRng = ResetPreviewEventRng(
                     runState,
                     player,
                     previewEvent,
                     nextActIndex);
-                //Rng previewRng = CreateAncientRelicOptionsRng(
-                //    runState, nextActIndex, (GroupAncientOptionsPool ? 0UL : player.NetId), previewEvent.Id.Entry);
-                // We use our new rng to change how the ancients randomness work and don't change it back
-
                 ModLog.Debug(
                     $"Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} " +
                     $"at act index {nextActIndex}. ActOffset={actOffset}.");
@@ -1352,9 +1388,10 @@ private static bool ResolveSpecialAncientOverrideValue(
                 player,
                 previewEvent,
                 nextActIndex);
-            IReadOnlyList<EventOption> options =
-                (GenerateInitialOptionsWrapperMethod.Invoke(previewEvent, Array.Empty<object>()) as IReadOnlyList<EventOption>)
-                ?? Array.Empty<EventOption>();
+            IReadOnlyList<EventOption> options = InvokeEventOptionGenerator(
+                GenerateInitialOptionsWrapperMethod,
+                previewEvent,
+                $"Preview generation attempt '{attemptName}' for {sourceAncient.Id.Entry}");
 
             if (!HasUsablePreviewOptions(options, requireRelicReward))
             {
@@ -1400,13 +1437,10 @@ private static bool ResolveSpecialAncientOverrideValue(
                 return Array.Empty<EventOption>();
             }
 
-            IReadOnlyList<EventOption> options =
-                (generateInitialOptionsMethod.Invoke(previewEvent, Array.Empty<object>()) as IReadOnlyList<EventOption>)
-                ?? Array.Empty<EventOption>();
-
-            List<EventOption> cleanedOptions = options
-                .Where(option => option != null)
-                .ToList();
+            IReadOnlyList<EventOption> cleanedOptions = InvokeEventOptionGenerator(
+                generateInitialOptionsMethod,
+                previewEvent,
+                $"Direct GenerateInitialOptions for {sourceAncient.Id.Entry}");
 
             if (!HasUsablePreviewOptions(cleanedOptions, requireRelicReward))
             {
@@ -1446,6 +1480,27 @@ private static bool ResolveSpecialAncientOverrideValue(
         int proceedCount = options.Count(option => option != null && option.IsProceed);
         int relicCount = options.Count(option => option?.Relic != null);
         return $"{options.Count} option(s), nonNull={nonNullCount}, proceed={proceedCount}, relic={relicCount}";
+    }
+
+    private static IReadOnlyList<EventOption> InvokeEventOptionGenerator(
+        MethodInfo method,
+        EventModel previewEvent,
+        string context)
+    /*
+     * Invokes an event option generator and normalizes missing or malformed results to an empty option list.
+     */
+    {
+        object? result = method.Invoke(previewEvent, Array.Empty<object>());
+        if (result is not IReadOnlyList<EventOption> options)
+        {
+            ModLog.Warn(
+                $"{context} returned {result?.GetType().FullName ?? "<null>"} instead of IReadOnlyList<EventOption>.");
+            return Array.Empty<EventOption>();
+        }
+
+        return options
+            .Where(option => option != null)
+            .ToList();
     }
 
     private static string UnwrapReflectionException(Exception ex)
@@ -1573,89 +1628,87 @@ private static bool ResolveSpecialAncientOverrideValue(
 
 
 
-public static bool IsAct1StartingMapPoint(RunState runState)
-/*
- * Checks whether the current map point is CTA's Act 1 starting shell location.
- */
-{
-    if (runState.CurrentActIndex != 0)
-        return false;
-
-    if (!runState.ExtraFields.StartedWithNeow)
-        return false;
-
-    MapCoord? currentCoord = runState.CurrentMapCoord;
-    if (!currentCoord.HasValue)
-        return false;
-
-    return currentCoord.Value == runState.Map.StartingMapPoint.coord;
-}
-
-public static bool ShouldUseAct1StartShell(RunState runState, ChooseTheAncientFlowState flow)
-/*
- * Determines whether CTA should replace the vanilla Act 1 start with its custom starting shell room.
- */
-{
-    if (flow.ResolvedActs.Contains(0))
-        return false;
-
-    if (runState.CurrentActIndex != 0)
-        return false;
-
-    if (!runState.ExtraFields.StartedWithNeow)
-        return false;
-
-    return true;
-}
-
-public static void ConvertAct1StartShellToChosenAncient(
-    RunState runState,
-    AncientEventModel chosenAncient)
-/*
- * Rewrites the Act 1 shell room into the chosen ancient room after CTA resolves the starting-room vote.
- */
-{
-    runState.Map.StartingMapPoint.PointType = MapPointType.Ancient;
-    RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
-    NMapScreen.Instance?.SetMap(runState.Map, runState.Rng.Seed, clearDrawings: true);
-}
-
-public static void RewriteCurrentMapPointHistoryToAncient(
-    RunState runState,
-    AncientEventModel chosenAncient)
-/*
- * Rewrites run-history entries for the current map point so history reflects the chosen ancient instead of the shell.
- */
-{
-    MapPointHistoryEntry? entry = runState.CurrentMapPointHistoryEntry;
-    if (entry == null)
-        return;
-
-    entry.MapPointType = MapPointType.Ancient;
-
-    if (entry.Rooms.Count == 0)
+    public static bool IsAct1StartingMapPoint(RunState runState)
+    /*
+     * Checks whether the current map point is CTA's Act 1 starting shell location.
+     */
     {
-        entry.Rooms.Add(new MapPointRoomHistoryEntry
+        if (runState.CurrentActIndex != 0)
+            return false;
+
+        if (!runState.ExtraFields.StartedWithNeow)
+            return false;
+
+        MapCoord? currentCoord = runState.CurrentMapCoord;
+        if (!currentCoord.HasValue)
+            return false;
+
+        return currentCoord.Value == runState.Map.StartingMapPoint.coord;
+    }
+
+    public static bool ShouldUseAct1StartShell(RunState runState, ChooseTheAncientFlowState flow)
+    /*
+     * Determines whether CTA should replace the vanilla Act 1 start with its custom starting shell room.
+     */
+    {
+        if (flow.ResolvedActs.Contains(0))
+            return false;
+
+        if (runState.CurrentActIndex != 0)
+            return false;
+
+        if (!runState.ExtraFields.StartedWithNeow)
+            return false;
+
+        return true;
+    }
+
+    public static void ConvertAct1StartShellToChosenAncient(
+        RunState runState,
+        AncientEventModel chosenAncient)
+    /*
+     * Rewrites the Act 1 shell room into the chosen ancient room after CTA resolves the starting-room vote.
+     */
+    {
+        runState.Map.StartingMapPoint.PointType = MapPointType.Ancient;
+        RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
+        NMapScreen.Instance?.SetMap(runState.Map, runState.Rng.Seed, clearDrawings: true);
+    }
+
+    public static void RewriteCurrentMapPointHistoryToAncient(
+        RunState runState,
+        AncientEventModel chosenAncient)
+    /*
+     * Rewrites run-history entries for the current map point so history reflects the chosen ancient instead of the shell.
+     */
+    {
+        MapPointHistoryEntry? entry = runState.CurrentMapPointHistoryEntry;
+        if (entry == null)
+            return;
+
+        entry.MapPointType = MapPointType.Ancient;
+
+        if (entry.Rooms.Count == 0)
         {
-            RoomType = RoomType.Event,
-            ModelId = chosenAncient.Id,
-        });
-        return;
+            entry.Rooms.Add(new MapPointRoomHistoryEntry
+            {
+                RoomType = RoomType.Event,
+                ModelId = chosenAncient.Id,
+            });
+            return;
+        }
+
+        MapPointRoomHistoryEntry room = entry.Rooms[0];
+        room.RoomType = RoomType.Event;
+        room.ModelId = chosenAncient.Id;
+        room.MonsterIds.Clear();
+        room.TurnsTaken = 0;
+
+        while (entry.Rooms.Count > 1)
+        {
+            entry.Rooms.RemoveAt(entry.Rooms.Count - 1);
+        }
     }
-
-    MapPointRoomHistoryEntry room = entry.Rooms[0];
-    room.RoomType = RoomType.Event;
-    room.ModelId = chosenAncient.Id;
-    room.MonsterIds.Clear();
-    room.TurnsTaken = 0;
-
-    while (entry.Rooms.Count > 1)
-    {
-        entry.Rooms.RemoveAt(entry.Rooms.Count - 1);
-    }
-}
-
-    public static bool GroupAncientOptionsPool { get; set; } = false;
 
     // Log stuff below
 

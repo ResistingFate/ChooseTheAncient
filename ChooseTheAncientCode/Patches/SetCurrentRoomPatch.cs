@@ -11,7 +11,7 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 [HarmonyPatch(typeof(NRun), nameof(NRun.SetCurrentRoom))]
 public static class SetCurrentRoomPatch
 {
-    static void Postfix(Control? node)
+    private static void Postfix(Control? node)
     {
         if (node is not ChooseTheAncientStartRoomNode)
             return;

@@ -7,10 +7,15 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Messages;
 
 public struct ChooseTheAncientNeowOptionIdentityChosenMessage : INetMessage, IRunLocationTargetedMessage
 {
+    private const string MessageName = nameof(ChooseTheAncientNeowOptionIdentityChosenMessage);
+
     public string eventId;
     public string optionIdentity;
     public uint optionIndex;
     public RunLocation location;
+
+    public readonly string EventIdOrEmpty => eventId ?? string.Empty;
+    public readonly string OptionIdentityOrEmpty => optionIdentity ?? string.Empty;
 
     public bool ShouldBroadcast => true;
     public NetTransferMode Mode => NetTransferMode.Reliable;
@@ -20,8 +25,8 @@ public struct ChooseTheAncientNeowOptionIdentityChosenMessage : INetMessage, IRu
 
     public void Serialize(PacketWriter writer)
     {
-        writer.WriteString(eventId ?? string.Empty);
-        writer.WriteString(optionIdentity ?? string.Empty);
+        writer.WriteString(EventIdOrEmpty);
+        writer.WriteString(OptionIdentityOrEmpty);
         writer.WriteUInt(optionIndex, 32);
         writer.Write(location);
     }
@@ -34,8 +39,23 @@ public struct ChooseTheAncientNeowOptionIdentityChosenMessage : INetMessage, IRu
         location = reader.Read<RunLocation>();
     }
 
-    public override string ToString()
+    public static ChooseTheAncientNeowOptionIdentityChosenMessage Create(
+        string eventId,
+        string optionIdentity,
+        uint optionIndex,
+        RunLocation location)
     {
-        return $"{"ChooseTheAncientNeowOptionIdentityChosenMessage"} event {eventId} identity {optionIdentity} index {optionIndex}";
+        return new ChooseTheAncientNeowOptionIdentityChosenMessage
+        {
+            eventId = eventId ?? string.Empty,
+            optionIdentity = optionIdentity ?? string.Empty,
+            optionIndex = optionIndex,
+            location = location
+        };
+    }
+
+    public readonly override string ToString()
+    {
+        return $"{MessageName} event {EventIdOrEmpty} identity {OptionIdentityOrEmpty} index {optionIndex}";
     }
 }
