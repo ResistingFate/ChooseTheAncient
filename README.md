@@ -67,7 +67,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Log locations on Windows:
 - C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
-## New features Roadmap and fixes
+## New features Roadmap
 - selection animation highlights the winner  and not the loser
 - Nicer transition between moments in the flow like changing rooms in the base game. Right now if the loading takes a bit longer we get an empty black screen with the game's toolbar still in view.
 - Fix {suppressedAnicent} formating defaulting when it shouldn't
