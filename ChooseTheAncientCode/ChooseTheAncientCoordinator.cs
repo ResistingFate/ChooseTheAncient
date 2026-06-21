@@ -50,6 +50,9 @@ public static class ChooseTheAncientCoordinator
 
 
     private static async Task PrepareAct1SelectionUiAsync(RunManager runManager)
+    /*
+     * Mirrors the vanilla EnterAct screen cleanup before showing the CTA Act 1 starting-room selection UI.
+     */
     {
         ModLog.Info("Preparing Act 1 selection UI by mirroring RunManager.EnterAct screen cleanup.");
 
@@ -68,6 +71,9 @@ public static class ChooseTheAncientCoordinator
         RunState runState,
         ChooseTheAncientFlowState flow,
         IReadOnlyList<Player> orderedPlayers)
+    /*
+     * Starts a multiplayer barrier for the Act 1 bootstrap shell so all players complete modifier setup before map generation continues.
+     */
     {
         EnsureStartupBootstrapStepHandlerRegistered(runState, flow, orderedPlayers);
         int syncEpoch = flow.BeginAct1StartupBootstrapSyncEpoch();
@@ -86,6 +92,9 @@ public static class ChooseTheAncientCoordinator
 public static async Task RunAct1StartingRoomFlowAsync(
     RunState runState,
     ChooseTheAncientFlowState flow)
+/*
+ * Runs CTA's Act 1 starting-room replacement flow, including modifier bootstrap, ballot construction, voting, and room transition.
+ */
 {
     ChooseTheAncientSelectionScreen? localScreen = null;
 
@@ -342,6 +351,9 @@ private static void SetForceNeowBlessingModeIfNeeded(
     ChooseTheAncientFlowState flow,
     AncientEventModel chosenAncient,
     string reason)
+/*
+ * Enables the Neow blessing-mode compatibility flag when CTA selected Neow outside vanilla's normal Act 1 entry path.
+ */
 {
     if (!ChooseTheAncientHelpers.IsNeowAncient(chosenAncient))
         return;
@@ -890,6 +902,9 @@ private static async Task RunModifierBootstrapAsync(
         ChooseTheAncientFlowState flow,
         IReadOnlyList<Player> orderedPlayers,
         int syncEpoch)
+    /*
+     * Applies custom-game modifier bootstrap actions before CTA builds the Act 1 selection.
+     */
     {
         EnsureStartupBootstrapStepHandlerRegistered(runState, flow, orderedPlayers);
 
@@ -943,6 +958,9 @@ private static async Task RunModifierBootstrapAsync(
         RunState runState,
         ChooseTheAncientFlowState flow,
         IReadOnlyList<Player> orderedPlayers)
+    /*
+     * Registers the temporary network message handler used to track Act 1 bootstrap step completion.
+     */
     {
         RunManager runManager = RunManager.Instance;
         INetGameService netService = runManager.NetService;
@@ -977,6 +995,9 @@ private static async Task RunModifierBootstrapAsync(
 
     private static void ReleaseStartupBootstrapStepHandlerContext(
         ChooseTheAncientFlowState flow)
+    /*
+     * Clears the active bootstrap sync context after the Act 1 startup barrier is no longer needed.
+     */
     {
         lock (StartupBootstrapSyncLock)
         {
@@ -1004,6 +1025,9 @@ private static async Task RunModifierBootstrapAsync(
     private static void HandleStartupBootstrapStepCompletedMessage(
         ChooseTheAncientStartupStepCompletedMessage message,
         ulong senderId)
+    /*
+     * Handles a remote player's Act 1 bootstrap step-complete message and advances the shared barrier state.
+     */
     {
         RunState? runStateForAlignment = null;
         bool shouldAlign = false;
@@ -1064,6 +1088,9 @@ private static async Task RunModifierBootstrapAsync(
         int stepIndex,
         int totalStepCount,
         string modifierId)
+    /*
+     * Broadcasts or records a player's modifier bootstrap completion and waits until all expected players have reported.
+     */
     {
         uint localNextChoiceId = GetNextChoiceIdForPlayer(runState, localPlayer);
 
@@ -1132,6 +1159,9 @@ private static async Task RunModifierBootstrapAsync(
         RunState runState,
         IReadOnlyList<Player> orderedPlayers,
         IReadOnlyDictionary<ulong, StartupStepCompletionInfo> completions)
+    /*
+     * Replays reserved startup-step choice IDs so later CTA choices stay aligned across host and clients.
+     */
     {
         foreach (Player player in orderedPlayers)
         {
@@ -1151,6 +1181,9 @@ private static async Task RunModifierBootstrapAsync(
         ulong playerNetId,
         uint targetNextChoiceId,
         string reason)
+    /*
+     * Reserves missing choice IDs for one player until their local synchronizer baseline reaches the expected value.
+     */
     {
         Player? player = runState.Players.FirstOrDefault(candidate => candidate.NetId == playerNetId);
         if (player == null)
@@ -1187,6 +1220,9 @@ private static async Task RunModifierBootstrapAsync(
     }
 
     private static uint GetNextChoiceIdForPlayer(RunState runState, Player player)
+    /*
+     * Reads the next synchronized choice ID for a player from the PlayerChoiceSynchronizer slot list.
+     */
     {
         int slotIndex = runState.GetPlayerSlotIndex(player);
         IReadOnlyList<uint> choiceIds = RunManager.Instance.PlayerChoiceSynchronizer.ChoiceIds;
@@ -1196,6 +1232,9 @@ private static async Task RunModifierBootstrapAsync(
     }
 
     private static string GetModifierBootstrapId(ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
+    /*
+     * Produces a stable identifier for a modifier bootstrap action for logging and deterministic ordering.
+     */
     {
         string entry = bootstrapAction.Modifier.Id.Entry;
         return string.IsNullOrWhiteSpace(entry)
@@ -1204,6 +1243,9 @@ private static async Task RunModifierBootstrapAsync(
     }
 
     private static int GetModifierBootstrapPriority(ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
+    /*
+     * Sorts modifier bootstrap actions so modifiers that affect deck construction run in a predictable order.
+     */
     {
         string modifierId = GetModifierBootstrapId(bootstrapAction);
 
@@ -1220,6 +1262,9 @@ private static async Task<List<int>> CollectVotes(
     IReadOnlyList<Player> orderedPlayers,
     ChooseTheAncientSelectionScreen.RoundDefinition round,
     ChooseTheAncientSelectionScreen? localScreen)
+/*
+ * Collects a vote for the supplied round from each player in slot order, using the local UI in singleplayer and synchronized choices in multiplayer.
+ */
 {
     if (orderedPlayers.Count == 0)
         throw new InvalidOperationException("No players available for vote collection.");
@@ -1268,6 +1313,9 @@ private static async Task<int> GetVoteForPlayer(
     uint choiceId,
     ChooseTheAncientSelectionScreen.RoundDefinition round,
     ChooseTheAncientSelectionScreen? localScreen)
+/*
+ * Runs the local selection UI or waits for a remote synchronized choice for a single player.
+ */
 {
     RunState? runState = player.RunState as RunState;
     bool isSinglePlayer = runState != null && RunManager.Instance.NetService.Type == NetGameType.Singleplayer;
@@ -1303,6 +1351,9 @@ private static async Task<int> GetVoteForPlayer(
 }
 
     private static bool ShouldSelectLocally(Player player)
+    /*
+     * Determines whether this client is responsible for presenting the selection UI for the given player.
+     */
     {
         if (LocalContext.IsMe(player))
         {
@@ -1318,6 +1369,9 @@ private static async Task<int> GetVoteForPlayer(
         IReadOnlyList<AncientEventModel> firstRoundPool,
         IReadOnlyList<AncientEventModel> finalists,
         IReadOnlyList<int> firstVotes)
+    /*
+     * Chooses which finalist has its reward preview hidden and which finalist reacts during the second round presentation.
+     */
     {
         if (finalists.Count != 2)
         {
@@ -1371,6 +1425,11 @@ private static async Task<int> GetVoteForPlayer(
         IReadOnlyList<AncientEventModel> firstRoundPool,
         int firstPlaceIndex,
         IReadOnlyList<int> votesInPlayerSlotOrder)
+    /*
+     * Resolves the runner-up from the first-round vote after removing the winning index.
+     * Tied non-winners are shuffled with a dedicated deterministic RNG based on the run seed, displayed pool,
+     * tied candidate IDs, first-place ancient, and vote signature, so the tie is not resolved by sorted screen index.
+     */
     {
         int optionCount = firstRoundPool.Count;
         if (optionCount <= 1)
@@ -1453,6 +1512,11 @@ private static async Task<int> GetVoteForPlayer(
         int firstPlaceIndex,
         IReadOnlyList<int> votesInPlayerSlotOrder,
         IReadOnlyList<int> tiedLeaderIndices)
+    /*
+     * Creates the deterministic RNG used only for shuffling tied runner-up candidates in the first CTA round.
+     * The seed name includes the displayed pool and tied candidate IDs so the tie-break is not just a stable
+     * left-to-right index pick, while still remaining synchronized for multiplayer and replay paths.
+     */
     {
         string firstAncientId = firstRoundPool[firstPlaceIndex].Id.Entry;
         string voteSignature = string.Join(",", votesInPlayerSlotOrder);
@@ -1478,6 +1542,9 @@ private static async Task<int> GetVoteForPlayer(
         int nextActIndex,
         int optionCount,
         IReadOnlyList<int> votesInPlayerSlotOrder)
+    /*
+     * Resolves the winning option index from a vote list, using the final-vote RNG when multiple options tie for first.
+     */
     {
         List<int> leaders = ResolveIndicesWithTargetCount(
             optionCount,
@@ -1497,6 +1564,9 @@ private static async Task<int> GetVoteForPlayer(
         int optionCount,
         IReadOnlyList<int> votesInPlayerSlotOrder,
         bool selectMinimum)
+    /*
+     * Counts valid votes by option index and returns every index matching either the highest or lowest vote count.
+     */
     {
         if (optionCount <= 0)
         {
@@ -1526,6 +1596,9 @@ private static async Task<int> GetVoteForPlayer(
     }
     
     private static Player GetHostPlayer(IReadOnlyList<Player> orderedPlayers)
+    /*
+     * Resolves the host player for configuration synchronization, falling back to slot zero when host metadata is unavailable.
+     */
     {
         switch (RunManager.Instance.NetService.Type)
         {
@@ -1553,6 +1626,9 @@ private static async Task<int> GetVoteForPlayer(
     private static async Task<IReadOnlyList<int>?> GetEffectiveAncientPoolSourceActsAsync(
         IReadOnlyList<Player> orderedPlayers,
         int targetActIndex)
+    /*
+     * Collects and resolves the active ancient source-act filter across players before building the CTA ballot.
+     */
     {
         ChooseTheAncientConfig.RefreshFromModConfig();
 
@@ -1613,6 +1689,9 @@ private static async Task<int> GetVoteForPlayer(
 private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecialAncientOverridesAsync(
     IReadOnlyList<Player> orderedPlayers,
     int targetActIndex)
+/*
+ * Collects and resolves per-player special ancient override toggles such as Neow and Darv.
+ */
 {
     ChooseTheAncientConfig.RefreshFromModConfig();
 
@@ -1667,6 +1746,9 @@ private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecial
 
     private static async Task<ChooseTheAncientConfig.SelectionGameMode> GetEffectiveGameModeAsync(
         IReadOnlyList<Player> orderedPlayers)
+    /*
+     * Collects and resolves the effective CTA game mode across players.
+     */
     {
         ChooseTheAncientConfig.RefreshFromModConfig();
 
@@ -1703,6 +1785,9 @@ private static async Task<IReadOnlyDictionary<string, bool>> GetEffectiveSpecial
     }
 
     private static async Task<int> GetEffectiveAncientCountAsync(IReadOnlyList<Player> orderedPlayers)
+    /*
+     * Collects and resolves how many ancients should appear on the CTA ballot.
+     */
     {
         ChooseTheAncientConfig.RefreshFromModConfig();
 

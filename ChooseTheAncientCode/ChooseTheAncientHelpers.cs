@@ -47,6 +47,9 @@ public static class ChooseTheAncientHelpers
     }
 
     public static RunState? GetRunState(RunManager runManager)
+    /*
+     * Reads the active RunState from RunManager through reflection.
+     */
     {
         return Traverse.Create(runManager)
             .Property("State")
@@ -54,6 +57,10 @@ public static class ChooseTheAncientHelpers
     }
 
     private static bool IsAncientValidForAct(AncientEventModel ancient, ActModel act)
+    /*
+     * Calls a vanilla or BaseLib custom ancient's IsValidForAct method by reflection and treats missing methods as valid.
+     * This keeps CTA independent from BaseLib while still respecting custom ancient act restrictions.
+     */
     {
         MethodInfo? method = ancient.GetType().GetMethod(
             "IsValidForAct",
@@ -77,6 +84,9 @@ public static class ChooseTheAncientHelpers
     }
 
     private static bool IsBaseLibCustomAncient(AncientEventModel ancient)
+    /*
+     * Detects BaseLib CustomAncientModel instances without taking a compile-time dependency on BaseLib.
+     */
     {
         for (Type? type = ancient.GetType(); type != null; type = type.BaseType)
         {
@@ -91,6 +101,10 @@ public static class ChooseTheAncientHelpers
         AncientEventModel ancient,
         ActModel targetAct,
         AncientEventModel? rngChosenAncient)
+    /*
+     * Calls BaseLib's ShouldForceSpawn hook by reflection so forced custom ancients keep priority on the CTA ballot.
+     * Missing hooks are treated as not forced.
+     */
     {
         MethodInfo? method = ancient.GetType().GetMethod(
             "ShouldForceSpawn",
@@ -121,6 +135,9 @@ public static class ChooseTheAncientHelpers
         int targetActIndex,
         IReadOnlyList<int>? enabledSourceActsOverride = null,
         IReadOnlyDictionary<string, bool>? specialAncientOverridesOverride = null)
+    /*
+     * Builds the full CTA candidate pool for a target act using the configured source acts and special ancient overrides.
+     */
     {
         ChooseTheAncientConfig.RefreshFromModConfig();
 
@@ -191,6 +208,9 @@ public static class ChooseTheAncientHelpers
         RunState runState,
         int targetActIndex,
         IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    /*
+     * Builds the vanilla-like candidate pool for the target act, then applies CTA's special ancient overrides.
+     */
     {
         List<AncientEventModel> targetActUnlockedAncients = targetAct
             .GetUnlockedAncients(runState.UnlockState)
@@ -227,6 +247,9 @@ public static class ChooseTheAncientHelpers
         int targetActIndex,
         IReadOnlyList<int> enabledSourceActs,
         IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    /*
+     * Builds a candidate pool from the user-selected source acts and shared ancients that are valid for the target act.
+     */
     {
         List<AncientEventModel> configuredPool = new();
 
@@ -283,6 +306,9 @@ public static class ChooseTheAncientHelpers
     }
 
     private static List<AncientEventModel> GetSharedAncientsValidForTargetAct(ActModel targetAct, RunState runState)
+    /*
+     * Collects shared ancients, including BaseLib custom shared ancients, that are valid for the target act.
+     */
     {
         if (!runState.UnlockState.SharedAncients.Any())
             ModLog.Debug("runState.UnlockState.SharedAncients is empty");
@@ -320,6 +346,9 @@ public static class ChooseTheAncientHelpers
         int targetActIndex,
         IEnumerable<AncientEventModel> pool,
         IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    /*
+     * Applies CTA's hard-coded special ancient toggles to add or remove special ancients from a candidate pool.
+     */
     {
         List<AncientEventModel> adjustedPool = pool
             .DistinctBy(ancient => ancient.Id)
@@ -361,6 +390,9 @@ public static class ChooseTheAncientHelpers
         string ancientId,
         Func<AncientEventModel, bool> matcher,
         IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    /*
+     * Applies one special ancient toggle by removing a disabled ancient or locating and adding an enabled one.
+     */
     {
         bool shouldInclude = ResolveSpecialAncientOverrideValue(specialAncientOverrides, ancientId);
         bool isPresent = pool.Any(matcher);
@@ -413,6 +445,9 @@ public static class ChooseTheAncientHelpers
 private static bool ResolveSpecialAncientOverrideValue(
     IReadOnlyDictionary<string, bool> specialAncientOverrides,
     string ancientId)
+/*
+ * Returns whether a named special ancient override is enabled in the resolved override map.
+ */
 {
     return specialAncientOverrides.TryGetValue(ancientId, out bool enabled) && enabled;
 }
@@ -422,6 +457,9 @@ private static bool ResolveSpecialAncientOverrideValue(
         ActModel targetAct,
         string ancientId,
         Func<AncientEventModel, bool> matcher)
+    /*
+     * Searches every known ancient for a special override target, preferring a candidate valid for the target act.
+     */
     {
         List<AncientEventModel> allKnownAncients = EnumerateAllKnownAncients(runState)
             .DistinctBy(ancient => ancient.Id)
@@ -454,6 +492,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     private static IEnumerable<AncientEventModel> EnumerateAllKnownAncients(RunState runState)
+    /*
+     * Enumerates shared and act-specific ancients known to the current run state.
+     */
     {
         foreach (AncientEventModel sharedAncient in runState.UnlockState.SharedAncients)
             yield return sharedAncient;
@@ -469,6 +510,10 @@ private static bool ResolveSpecialAncientOverrideValue(
         RunState runState,
         int nextActIndex,
         List<AncientEventModel> pool, int ancientCount)
+    /*
+     * Reduces the full candidate pool to the displayed CTA ballot while preserving deterministic shuffle order.
+     * BaseLib custom ancients, especially forced-spawn custom ancients, reserve slots before vanilla candidates fill the remainder.
+     */
     {
         ModLog.Debug(
             $"LimitCandidatePoolForVote start for act {nextActIndex + 1}: requestedCount={ancientCount}, poolCount={pool.Count}, pool={DescribeAncients(pool)}");
@@ -578,6 +623,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     private static AncientEventModel? TryGetChosenAncient(ActModel act)
+    /*
+     * Reads the act's currently RNG-chosen ancient so BaseLib ShouldForceSpawn checks receive the same context vanilla passes.
+     */
     {
         try
         {
@@ -595,6 +643,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     public static void SetChosenAncient(ActModel act, AncientEventModel chosenAncient)
+    /*
+     * Replaces the target act's selected ancient room model with the ancient chosen by CTA.
+     */
     {
         RoomSet? rooms = Traverse.Create(act)
             .Field("_rooms")
@@ -610,6 +661,9 @@ private static bool ResolveSpecialAncientOverrideValue(
 
 
     public static AncientEventModel GetChosenAncient(ActModel act)
+    /*
+     * Reads the target act's currently selected ancient room model and throws if no ancient is present.
+     */
     {
         RoomSet? rooms = Traverse.Create(act)
             .Field("_rooms")
@@ -624,6 +678,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     public static AncientEventModel ResolveVanillaAct1FallbackAncient(ActModel act, RunState runState)
+    /*
+     * Finds the vanilla Act 1 ancient to use when CTA cannot present a valid Act 1 ballot.
+     */
     {
         try
         {
@@ -674,6 +731,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     public static void ForceAct1AncientStart(RunState runState)
+    /*
+     * Forces the current run into an Act 1 ancient start state for CTA's starting-room replacement.
+     */
     {
         runState.ExtraFields.StartedWithNeow = true;
     }
@@ -687,6 +747,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     public static List<ModifierBootstrapAction> BuildModifierBootstrapActions(Player player)
+    /*
+     * Builds deferred actions that apply start-of-run custom-game modifier options before CTA resolves Act 1.
+     */
     {
         RunState runState = player.RunState as RunState
             ?? throw new InvalidOperationException("Player is not attached to a mutable RunState.");
@@ -711,6 +774,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     private static EventModel CreateSyntheticNeowForModifierBootstrap(Player player, RunState runState)
+    /*
+     * Creates a temporary Neow event instance used only to ask modifiers for their bootstrap actions.
+     */
     {
         AncientEventModel syntheticNeow = (AncientEventModel)ModelDb.AncientEvent<Neow>().ToMutable();
         EventOwnerBackingField.SetValue(syntheticNeow, player);
@@ -728,6 +794,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     public static bool IsNeowAncient(AncientEventModel ancient)
+    /*
+     * Identifies Neow by type or model ID across vanilla and reflected contexts.
+     */
     {
         return ancient is Neow
                || string.Equals(ancient.Id.Entry, nameof(Neow), StringComparison.OrdinalIgnoreCase)
@@ -735,32 +804,50 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     public static bool IsDarvAncient(AncientEventModel ancient)
+    /*
+     * Identifies Darv by type or model ID for CTA's special ancient override.
+     */
     {
         return string.Equals(ancient.Id.Entry, "DARV", StringComparison.OrdinalIgnoreCase)
                || string.Equals(ancient.GetType().Name, "Darv", StringComparison.OrdinalIgnoreCase);
     }
 
     public static Rng CreateDisplayedPoolRng(RunState runState, int nextActIndex)
+    /*
+     * Creates the deterministic RNG used to shuffle the displayed CTA candidate ballot for a given target act.
+     */
     {
         return new Rng(runState.Rng.Seed, $"choose_the_ancient_display_pool_act_{nextActIndex}");
     }
 
     public static Rng CreateFinalVoteResolutionRng(RunState runState, int nextActIndex)
+    /*
+     * Creates the deterministic RNG used to resolve tied final votes in a host/client-safe way.
+     */
     {
         return new Rng(runState.Rng.Seed, $"choose_the_ancient_final_vote_act_{nextActIndex}");
     }
 
     public static Rng CreateSecondRoundPresentationRng(RunState runState, int nextActIndex)
+    /*
+     * Creates the deterministic RNG used to choose second-round preview suppression presentation details.
+     */
     {
         return new Rng(runState.Rng.Seed, $"choose_the_ancient_second_vote_presentation_act_{nextActIndex}");
     }
     
     public static Rng CreateAncientRelicOptionsRng(RunState runstate, int nextActIndex, ulong player, string ancient)
+    /*
+     * Creates a deterministic RNG stream for CTA-controlled ancient reward option generation.
+     */
     {
         return new Rng(runstate.Rng.Seed, $"choose_the_ancient_relic_options_{nextActIndex}_{ancient}_{player}");
     }
     
     public static uint ComputeVanillaEventSeed(RunState runState, Player player, EventModel eventModel)
+    /*
+     * Computes the vanilla event RNG seed for a player/event pair so previewed ancient rewards match the later revealed event.
+     */
     {
         /*
          * Goal here is to copy the RNG method vanilla uses, so it'll be the same as when the ancient
@@ -775,6 +862,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     public static Rng CreatePreviewEventRng(RunState runState, Player player, EventModel eventModel)
+    /*
+     * Creates the event RNG used when simulating reward previews for an ancient.
+     */
     {
         return new Rng(ComputeVanillaEventSeed(runState, player, eventModel));
     }
@@ -783,6 +873,9 @@ private static bool ResolveSpecialAncientOverrideValue(
         Player player,
         IEnumerable<AncientEventModel> ancients,
         int nextActIndex)
+    /*
+     * Generates preview data for every displayed ancient and indexes successful previews by ancient ID.
+     */
     {
         Dictionary<string, AncientPreviewData> previews = new();
 
@@ -803,6 +896,9 @@ private static bool ResolveSpecialAncientOverrideValue(
         Player player,
         AncientEventModel ancient,
         int nextActIndex)
+    /*
+     * Simulates an ancient event at the target act and returns the reward options that should later be revealed.
+     */
     {
         /* simulate the next act, and what the relic options are going to be.*/ 
         try
@@ -869,6 +965,9 @@ private static bool ResolveSpecialAncientOverrideValue(
         AncientEventModel previewEvent,
         AncientEventModel sourceAncient,
         int nextActIndex)
+    /*
+     * Attempts preview option generation through vanilla wrapper and direct concrete methods, masking Neow modifiers when needed.
+     */
     {
         bool isNeowPreview = IsNeowAncient(previewEvent);
         IReadOnlyList<ModifierModel>? originalModifiers = null;
@@ -939,6 +1038,9 @@ private static bool ResolveSpecialAncientOverrideValue(
         int nextActIndex,
         bool requireRelicReward,
         string attemptName)
+    /*
+     * Runs AncientEventModel.GenerateInitialOptionsWrapper for preview generation and validates the returned options.
+     */
     {
         try
         {
@@ -972,6 +1074,9 @@ private static bool ResolveSpecialAncientOverrideValue(
         AncientEventModel sourceAncient,
         int nextActIndex,
         bool requireRelicReward)
+    /*
+     * Invokes the concrete GenerateInitialOptions method as a fallback when the wrapper produces no usable preview rewards.
+     */
     {
         try
         {
@@ -1013,12 +1118,18 @@ private static bool ResolveSpecialAncientOverrideValue(
     private static bool HasUsablePreviewOptions(
         IReadOnlyList<EventOption> options,
         bool requireRelicReward)
+    /*
+     * Checks whether generated preview options contain at least one selectable reward, optionally requiring a relic reward.
+     */
     {
         return options.Count > 0
                && options.Any(option => option != null && !option.IsProceed && (!requireRelicReward || option.Relic != null));
     }
 
     private static string DescribePreviewOptionCount(IReadOnlyList<EventOption> options)
+    /*
+     * Formats a compact count summary for preview option diagnostics.
+     */
     {
         int nonNullCount = options.Count(option => option != null);
         int proceedCount = options.Count(option => option != null && option.IsProceed);
@@ -1027,6 +1138,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     private static string UnwrapReflectionException(Exception ex)
+    /*
+     * Returns the inner exception text from reflected calls so logs show the real preview-generation failure.
+     */
     {
         return ex is TargetInvocationException { InnerException: not null }
             ? ex.InnerException.ToString()
@@ -1037,6 +1151,9 @@ private static bool ResolveSpecialAncientOverrideValue(
         RunState runState,
         Player player,
         EventModel previewEvent)
+    /*
+     * Recreates and assigns the preview event RNG so each generation attempt starts from the same seed.
+     */
     {
         Rng previewRng = CreatePreviewEventRng(runState, player, previewEvent);
         EventRngBackingField.SetValue(previewEvent, previewRng);
@@ -1046,6 +1163,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     private static bool TrySetRunStateModifiers(
         RunState runState,
         IReadOnlyList<ModifierModel> modifiers)
+    /*
+     * Temporarily replaces RunState.Modifiers through reflection while generating Neow previews.
+     */
     {
         try
         {
@@ -1063,6 +1183,9 @@ private static bool ResolveSpecialAncientOverrideValue(
 
 
     public static async Task WaitForProcessFramesAsync(int frameCount)
+    /*
+     * Waits for a number of Godot process frames without blocking the main thread.
+     */
     {
         SceneTree? tree = Engine.GetMainLoop() as SceneTree;
         if (tree == null)
@@ -1076,6 +1199,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     public static async Task WarmAncientVisualAssetsAsync(IEnumerable<AncientEventModel> ancients)
+    /*
+     * Preloads visual assets for candidate ancients so the selection screen can render them smoothly.
+     */
     {
         foreach (AncientEventModel ancient in ancients
                      .DistinctBy(candidate => candidate.Id.Entry)
@@ -1087,6 +1213,9 @@ private static bool ResolveSpecialAncientOverrideValue(
     }
 
     private static void TryWarmAncientVisualAssets(AncientEventModel ancient)
+    /*
+     * Best-effort warms one ancient's scene/art assets and logs failures without aborting the selection flow.
+     */
     {
         try
         {
@@ -1127,6 +1256,9 @@ private static bool ResolveSpecialAncientOverrideValue(
 
 
 public static bool IsAct1StartingMapPoint(RunState runState)
+/*
+ * Checks whether the current map point is CTA's Act 1 starting shell location.
+ */
 {
     if (runState.CurrentActIndex != 0)
         return false;
@@ -1142,6 +1274,9 @@ public static bool IsAct1StartingMapPoint(RunState runState)
 }
 
 public static bool ShouldUseAct1StartShell(RunState runState, ChooseTheAncientFlowState flow)
+/*
+ * Determines whether CTA should replace the vanilla Act 1 start with its custom starting shell room.
+ */
 {
     if (flow.ResolvedActs.Contains(0))
         return false;
@@ -1158,6 +1293,9 @@ public static bool ShouldUseAct1StartShell(RunState runState, ChooseTheAncientFl
 public static void ConvertAct1StartShellToChosenAncient(
     RunState runState,
     AncientEventModel chosenAncient)
+/*
+ * Rewrites the Act 1 shell room into the chosen ancient room after CTA resolves the starting-room vote.
+ */
 {
     runState.Map.StartingMapPoint.PointType = MapPointType.Ancient;
     RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
@@ -1167,6 +1305,9 @@ public static void ConvertAct1StartShellToChosenAncient(
 public static void RewriteCurrentMapPointHistoryToAncient(
     RunState runState,
     AncientEventModel chosenAncient)
+/*
+ * Rewrites run-history entries for the current map point so history reflects the chosen ancient instead of the shell.
+ */
 {
     MapPointHistoryEntry? entry = runState.CurrentMapPointHistoryEntry;
     if (entry == null)
@@ -1201,6 +1342,9 @@ public static void RewriteCurrentMapPointHistoryToAncient(
     // Log stuff below
 
     private static string SafeFormatLoc(LocString? loc)
+    /*
+     * Formats a localized string for logs while tolerating null or formatting failures.
+     */
     {
         if (loc == null)
         {
@@ -1218,6 +1362,9 @@ public static void RewriteCurrentMapPointHistoryToAncient(
     }
 
     private static void LogPreviewOptions(AncientEventModel previewEvent, AncientEventModel ancient, IReadOnlyList<EventOption> options)
+    /*
+     * Logs generated preview options with enough detail to compare predicted rewards against the later event.
+     */
     {
         if (!ModLog.IsDebugEnabled)
             return;
@@ -1249,11 +1396,17 @@ public static void RewriteCurrentMapPointHistoryToAncient(
     }
 
     public static string DescribeAncients(IEnumerable<AncientEventModel> ancients)
+    /*
+     * Formats a comma-separated list of ancient IDs for diagnostic logs.
+     */
     {
         return string.Join(", ", ancients.Select(a => $"{a.Id.Entry} ({a.Title.GetFormattedText()})"));
     }
 
     public static void LogPool(string context, IEnumerable<AncientEventModel> ancients)
+    /*
+     * Logs a named ancient pool using the shared ancient-list formatter.
+     */
     {
         if (!ModLog.IsDebugEnabled)
             return;
