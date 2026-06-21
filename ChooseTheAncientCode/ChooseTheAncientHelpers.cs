@@ -511,30 +511,83 @@ private static bool ResolveSpecialAncientOverrideValue(
         int nextActIndex,
         List<AncientEventModel> pool, int ancientCount)
     /*
-     * Reduces the full candidate pool to the displayed CTA ballot while preserving deterministic shuffle order.
-     * BaseLib custom ancients, especially forced-spawn custom ancients, reserve slots before vanilla candidates fill the remainder.
+     * Reduces the full candidate pool to the CTA ballot, then uniformly shuffles every displayed ancient.
+     * BaseLib custom ancients can still reserve inclusion slots, but custom/vanilla status no longer affects display position.
      */
     {
+        ModLog.Info(
+            $"CTA ballot uniform-v3 active for act {nextActIndex + 1}; requestedCount={ancientCount}, poolCount={pool.Count}.");
         ModLog.Debug(
             $"LimitCandidatePoolForVote start for act {nextActIndex + 1}: requestedCount={ancientCount}, poolCount={pool.Count}, pool={DescribeAncients(pool)}");
 
-        if (pool.Count <= ancientCount)
+        if (pool.Count == 0 || ancientCount <= 0)
         {
             ModLog.Debug(
-                $"Skipping ballot limiting for act {nextActIndex + 1} because poolCount={pool.Count} <= requestedCount={ancientCount}.");
-            return pool;
+                $"Returning an empty CTA ballot for act {nextActIndex + 1} because poolCount={pool.Count}, requestedCount={ancientCount}.");
+            return new List<AncientEventModel>();
         }
 
-        if (pool.Count < ancientCount)
+        List<AncientEventModel> distinctPool = pool
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry, StringComparer.Ordinal)
+            .ToList();
+
+        ancientCount = Math.Min(ancientCount, distinctPool.Count);
+
+        string candidatePoolSignature = BuildAncientIdSignature(distinctPool);
+        List<AncientEventModel> includedAncients;
+
+        if (distinctPool.Count <= ancientCount)
         {
-            ancientCount = pool.Count;
+            ModLog.Debug(
+                $"Including all {distinctPool.Count} candidate(s) for act {nextActIndex + 1} because requestedCount={ancientCount}; " +
+                "the full candidate set will still be uniformly shuffled for display.");
+            includedAncients = distinctPool;
+        }
+        else
+        {
+            includedAncients = SelectAncientsForLimitedBallot(
+                runState,
+                nextActIndex,
+                distinctPool,
+                ancientCount,
+                candidatePoolSignature);
         }
 
-        List<AncientEventModel> shuffled = pool.ToList();
-        var rng = CreateDisplayedPoolRng(runState, nextActIndex);
-        rng.Shuffle(shuffled);
+        LogPool($"Act {nextActIndex + 1} included CTA ballot before display shuffle", includedAncients);
 
-        LogPool($"Act {nextActIndex + 1} shuffled ballot pool", shuffled);
+        List<AncientEventModel> displayOrder = ShuffleBallotAncients(
+            runState,
+            nextActIndex,
+            includedAncients,
+            ancientCount,
+            candidatePoolSignature,
+            "display");
+
+        LogPool($"Act {nextActIndex + 1} uniformly shuffled CTA ballot display order", displayOrder);
+        return displayOrder;
+    }
+
+    private static List<AncientEventModel> SelectAncientsForLimitedBallot(
+        RunState runState,
+        int nextActIndex,
+        List<AncientEventModel> distinctPool,
+        int ancientCount,
+        string candidatePoolSignature)
+    /*
+     * Chooses which ancients make the ballot when more candidates exist than display slots.
+     * Forced custom ancients and then other custom ancients reserve slots, but final display order is shuffled separately.
+     */
+    {
+        List<AncientEventModel> inclusionOrder = ShuffleBallotAncients(
+            runState,
+            nextActIndex,
+            distinctPool,
+            ancientCount,
+            candidatePoolSignature,
+            "inclusion");
+
+        LogPool($"Act {nextActIndex + 1} randomized CTA ballot inclusion order", inclusionOrder);
 
         ActModel? targetAct = nextActIndex >= 0 && nextActIndex < runState.Acts.Count
             ? runState.Acts[nextActIndex]
@@ -544,23 +597,20 @@ private static bool ResolveSpecialAncientOverrideValue(
         {
             ModLog.Warn(
                 $"Could not resolve target act {nextActIndex + 1} while limiting the CTA ballot; " +
-                "falling back to an unprioritized shuffled ballot.");
-            List<AncientEventModel> fallbackLimited = shuffled
+                "falling back to the first entries from the randomized inclusion order.");
+            return inclusionOrder
                 .Take(ancientCount)
                 .ToList();
-
-            LogPool($"Act {nextActIndex + 1} limited ballot", fallbackLimited);
-            return fallbackLimited;
         }
 
         AncientEventModel? rngChosenAncient = TryGetChosenAncient(targetAct);
 
-        List<AncientEventModel> forceSpawnAncients = shuffled
+        List<AncientEventModel> forceSpawnAncients = inclusionOrder
             .Where(ancient => ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient))
             .DistinctBy(ancient => ancient.Id)
             .ToList();
 
-        List<AncientEventModel> customAncients = shuffled
+        List<AncientEventModel> customAncients = inclusionOrder
             .Where(IsBaseLibCustomAncient)
             .Where(ancient => !forceSpawnAncients.Any(forced => forced.Id.Equals(ancient.Id)))
             .DistinctBy(ancient => ancient.Id)
@@ -576,7 +626,7 @@ private static bool ResolveSpecialAncientOverrideValue(
         if (customAncients.Count > 0)
         {
             LogPool(
-                $"Act {nextActIndex + 1} BaseLib custom ancients prioritized for CTA ballot",
+                $"Act {nextActIndex + 1} BaseLib custom ancients available for CTA ballot",
                 customAncients);
         }
 
@@ -605,7 +655,7 @@ private static bool ResolveSpecialAncientOverrideValue(
                 $"for compatible custom ancient(s): {string.Join(",", selectedIds)}.");
         }
 
-        foreach (AncientEventModel ancient in shuffled)
+        foreach (AncientEventModel ancient in inclusionOrder)
         {
             if (selectedIds.Count >= ancientCount)
                 break;
@@ -613,13 +663,12 @@ private static bool ResolveSpecialAncientOverrideValue(
             selectedIds.Add(ancient.Id.Entry);
         }
 
-        List<AncientEventModel> limited = shuffled
+        List<AncientEventModel> includedAncients = distinctPool
             .Where(ancient => selectedIds.Contains(ancient.Id.Entry))
-            .Take(ancientCount)
             .ToList();
 
-        LogPool($"Act {nextActIndex + 1} limited ballot", limited);
-        return limited;
+        LogPool($"Act {nextActIndex + 1} limited CTA ballot included ancients", includedAncients);
+        return includedAncients;
     }
 
     private static AncientEventModel? TryGetChosenAncient(ActModel act)
@@ -818,6 +867,63 @@ private static bool ResolveSpecialAncientOverrideValue(
      */
     {
         return new Rng(runState.Rng.Seed, $"choose_the_ancient_display_pool_act_{nextActIndex}");
+    }
+
+    private static Rng CreateBallotShuffleRng(
+        RunState runState,
+        int nextActIndex,
+        int ancientCount,
+        string candidatePoolSignature,
+        string purpose)
+    /*
+     * Creates an isolated deterministic RNG stream for CTA ballot inclusion or display shuffling.
+     * Including the candidate-pool signature prevents unrelated pool changes from reusing the same permutation stream.
+     */
+    {
+        return new Rng(
+            runState.Rng.Seed,
+            $"choose_the_ancient_ballot_uniform_v3_{purpose}_act_{nextActIndex}_count_{ancientCount}_pool_{candidatePoolSignature}");
+    }
+
+    private static List<AncientEventModel> ShuffleBallotAncients(
+        RunState runState,
+        int nextActIndex,
+        IEnumerable<AncientEventModel> ancients,
+        int ancientCount,
+        string candidatePoolSignature,
+        string purpose)
+    /*
+     * Uniformly shuffles a distinct set of ancients with Fisher-Yates (picks elements randomly until empty)
+     * choice while starting from a stable ID-sorted order.
+     * This gives every included ancient the same chance at every display slot without consuming mutable run RNG state.
+     */
+    {
+        List<AncientEventModel> shuffled = ancients
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry, StringComparer.Ordinal)
+            .ToList();
+
+        Rng rng = CreateBallotShuffleRng(
+            runState,
+            nextActIndex,
+            ancientCount,
+            candidatePoolSignature,
+            purpose);
+
+        rng.Shuffle(shuffled);
+        return shuffled;
+    }
+
+    private static string BuildAncientIdSignature(IEnumerable<AncientEventModel> ancients)
+    /*
+     * Creates a stable ID signature for the candidate set so deterministic shuffle streams change when the candidate set changes.
+     */
+    {
+        return string.Join(
+            "|",
+            ancients
+                .Select(ancient => ancient.Id.Entry)
+                .OrderBy(id => id, StringComparer.Ordinal));
     }
 
     public static Rng CreateFinalVoteResolutionRng(RunState runState, int nextActIndex)

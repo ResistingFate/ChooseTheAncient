@@ -68,6 +68,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 
 ## New features Roadmap
 - Act 1 ancients no longer healing, Neow healing in later acts
+- Ancient's don't repeat options if the show up again
 - selection animation highlights the winner  and not the loser
 - Nicer transition between moments in the flow like changing rooms in the base game. Right now if the loading takes a bit longer we get an empty black screen with the game's toolbar still in view.
 - left and right constantly go up against eachother in monty hall mode? Bug or rng seed issue?
