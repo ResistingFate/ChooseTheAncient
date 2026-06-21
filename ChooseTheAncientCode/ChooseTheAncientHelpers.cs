@@ -1,18 +1,23 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Localization;
+using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Events;
+using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Runs.History;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -29,14 +34,22 @@ public static class ChooseTheAncientHelpers
     private static readonly FieldInfo EventRngBackingField =
         AccessTools.Field(typeof(EventModel), "<Rng>k__BackingField")
         ?? throw new InvalidOperationException("Could not locate EventModel RNG backing field.");
-
     public sealed class AncientPreviewData
     {
         public required AncientEventModel PreviewEvent { get; init; }
         public required IReadOnlyList<EventOption> Options { get; init; }
     }
 
+    public sealed class ModifierBootstrapAction
+    {
+        public required ModifierModel Modifier { get; init; }
+        public required Func<Task> ApplyAsync { get; init; }
+    }
+
     public static RunState? GetRunState(RunManager runManager)
+    /*
+     * Reads the active RunState from RunManager through reflection.
+     */
     {
         return Traverse.Create(runManager)
             .Property("State")
@@ -44,46 +57,171 @@ public static class ChooseTheAncientHelpers
     }
 
     private static bool IsAncientValidForAct(AncientEventModel ancient, ActModel act)
+    /*
+     * Calls a vanilla or BaseLib custom ancient's IsValidForAct method by reflection and treats missing methods as valid.
+     * This keeps CTA independent from BaseLib while still respecting custom ancient act restrictions.
+     */
     {
-        /*
-         * Made to handle CustomAncients in BaseLib without using BaseLib
-         */
-        MethodInfo? method = ancient.GetType().GetMethod(
+        return InvokeAncientBoolHookOrDefault(
+            ancient,
             "IsValidForAct",
+            [typeof(ActModel)],
+            [act],
+            fallback: true);
+    }
+
+    private static bool InvokeAncientBoolHookOrDefault(
+        AncientEventModel ancient,
+        string hookName,
+        Type[] parameterTypes,
+        object?[] arguments,
+        bool fallback)
+    /*
+     * Invokes optional ancient hooks through one validated bool-returning path.
+     */
+    {
+        MethodInfo? method = ancient.GetType().GetMethod(
+            hookName,
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             binder: null,
-            types: [typeof(ActModel)],
+            types: parameterTypes,
             modifiers: null);
 
-        if (method == null || method.ReturnType != typeof(bool))
-            return true;
+        if (method == null)
+            return fallback;
+
+        if (method.ReturnType != typeof(bool))
+        {
+            ModLog.Warn(
+                $"Ignoring {hookName} on {ancient.GetType().FullName} because it returns {method.ReturnType.FullName}; expected System.Boolean.");
+            return fallback;
+        }
 
         try
         {
-            return (bool)method.Invoke(ancient, [act])!;
+            object? result = method.Invoke(ancient, arguments);
+            if (result is bool value)
+                return value;
+
+            ModLog.Warn(
+                $"Ignoring {hookName} on {ancient.GetType().FullName} because it returned {result?.GetType().FullName ?? "<null>"}; expected System.Boolean.");
+            return fallback;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            ModLog.Error($"Failed to call IsValidForAct on {ancient.GetType().FullName}: {e}");
-            return true;
+            ModLog.Error($"Failed to call {hookName} on {ancient.GetType().FullName}: {UnwrapReflectionException(ex)}");
+            return fallback;
         }
     }
 
+    private static bool IsBaseLibCustomAncient(AncientEventModel ancient)
+    /*
+     * Detects BaseLib CustomAncientModel instances without taking a compile-time dependency on BaseLib.
+     */
+    {
+        for (Type? type = ancient.GetType(); type != null; type = type.BaseType)
+        {
+            if (string.Equals(type.FullName, "BaseLib.Abstracts.CustomAncientModel", StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ShouldForceSpawnForAct(
+        AncientEventModel ancient,
+        ActModel targetAct,
+        AncientEventModel? rngChosenAncient)
+    /*
+     * Calls BaseLib's ShouldForceSpawn hook by reflection so forced custom ancients keep priority on the CTA ballot.
+     * Missing hooks are treated as not forced.
+     */
+    {
+        return InvokeAncientBoolHookOrDefault(
+            ancient,
+            "ShouldForceSpawn",
+            [typeof(ActModel), typeof(AncientEventModel)],
+            [targetAct, rngChosenAncient],
+            fallback: false);
+    }
+
+
+
+    public static Rng CreateRunScopedRng(RunState runState, params object?[] streamParts)
+    /*
+     * Creates a deterministic CTA RNG stream from the run seed without consuming mutable run RNG state.
+     */
+    {
+        if (streamParts.Length == 0)
+            throw new ArgumentException("At least one RNG stream part is required.", nameof(streamParts));
+
+        return new Rng(runState.Rng.Seed, BuildRngStreamName(streamParts));
+    }
+
+    public static string BuildRngStreamName(params object?[] streamParts)
+    /*
+     * Builds CTA RNG stream names through one formatting path so new streams keep the same prefix and deterministic culture.
+     */
+    {
+        return "choose_the_ancient_" + string.Join("_", streamParts.Select(FormatRngStreamPart));
+    }
+
+    private static string FormatRngStreamPart(object? streamPart)
+    /*
+     * Formats a single RNG stream-name part without culture-specific number formatting.
+     */
+    {
+        return streamPart switch
+        {
+            null => "null",
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty,
+            _ => streamPart.ToString() ?? string.Empty
+        };
+    }
 
 
     public static List<AncientEventModel> BuildCandidatePool(
         ActModel act,
         RunState runState,
         int targetActIndex,
-        IReadOnlyList<int>? enabledSourceActsOverride = null)
+        IReadOnlyList<int>? enabledSourceActsOverride = null,
+        IReadOnlyDictionary<string, bool>? specialAncientOverridesOverride = null)
+    /*
+     * Builds the full CTA candidate pool for a target act using the configured source acts and special ancient overrides.
+     */
     {
-        List<AncientEventModel> defaultPool = BuildDefaultCandidatePool(act, runState);
+        ChooseTheAncientConfig.RefreshFromModConfig();
+
+        IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides = specialAncientOverridesOverride
+            ?? ChooseTheAncientConfig.GetSpecialAncientOverridesSnapshot(targetActIndex);
+
+        ModLog.Debug(
+            $"BuildCandidatePool start: targetActIndex={targetActIndex + 1}, " +
+            $"targetAct={act.Id.Entry}, currentActIndex={runState.CurrentActIndex + 1}, " +
+            $"enabledSourceActsOverride={(enabledSourceActsOverride == null ? "<null>" : ChooseTheAncientConfig.DescribeAncientPoolSourceActs(enabledSourceActsOverride))}, " +
+            $"localSourceActs={ChooseTheAncientConfig.DescribeAncientPoolSourceActs(ChooseTheAncientConfig.GetEnabledAncientPoolSourceActs(targetActIndex))}, " +
+            $"effectiveSpecialAncientOverrides={ChooseTheAncientConfig.DescribeSpecialAncientOverrides(effectiveSpecialAncientOverrides)}");
+
+        List<AncientEventModel> defaultPool = BuildDefaultCandidatePool(
+            act,
+            runState,
+            targetActIndex,
+            effectiveSpecialAncientOverrides);
 
         if (!ChooseTheAncientConfig.HasAncientPoolSourceActConfig(targetActIndex))
+        {
+            ModLog.Warn(
+                $"Act {targetActIndex + 1} has no configured source-act row. " +
+                $"Using default candidate pool for {act.Id.Entry}.");
             return defaultPool;
+        }
 
         IReadOnlyList<int> enabledSourceActs = enabledSourceActsOverride
             ?? ChooseTheAncientConfig.GetEnabledAncientPoolSourceActs(targetActIndex);
+
+        ModLog.Debug(
+            $"{(enabledSourceActsOverride != null ? "Using override ancient pool source acts" : "Using local ancient pool source acts")} " +
+            $"for act {targetActIndex + 1}: {ChooseTheAncientConfig.DescribeAncientPoolSourceActs(enabledSourceActs)}");
 
         if (enabledSourceActs.Count == 0)
         {
@@ -97,7 +235,8 @@ public static class ChooseTheAncientHelpers
             act,
             runState,
             targetActIndex,
-            enabledSourceActs);
+            enabledSourceActs,
+            effectiveSpecialAncientOverrides);
 
         if (filteredPool.Count == 0)
         {
@@ -115,23 +254,53 @@ public static class ChooseTheAncientHelpers
         return filteredPool;
     }
 
-    private static List<AncientEventModel> BuildDefaultCandidatePool(ActModel targetAct, RunState runState)
+    private static List<AncientEventModel> BuildDefaultCandidatePool(
+        ActModel targetAct,
+        RunState runState,
+        int targetActIndex,
+        IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    /*
+     * Builds the vanilla-like candidate pool for the target act, then applies CTA's special ancient overrides.
+     */
     {
+        List<AncientEventModel> targetActUnlockedAncients = targetAct
+            .GetUnlockedAncients(runState.UnlockState)
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        LogPool($"Act {targetActIndex + 1} unlocked ancients from target act {targetAct.Id.Entry}", targetActUnlockedAncients);
+
         List<AncientEventModel> sharedSubset = GetSharedAncientsValidForTargetAct(targetAct, runState);
 
-        return targetAct
-            .GetUnlockedAncients(runState.UnlockState)
+        List<AncientEventModel> defaultPool = targetActUnlockedAncients
             .Concat(sharedSubset)
             .DistinctBy(a => a.Id)
             .OrderBy(a => a.Id.Entry)
             .ToList();
+
+        LogPool($"Act {targetActIndex + 1} default pool before special overrides for target {targetAct.Id.Entry}", defaultPool);
+
+        defaultPool = ApplySpecialAncientOverrides(
+            targetAct,
+            runState,
+            targetActIndex,
+            defaultPool,
+            specialAncientOverrides);
+
+        LogPool($"Act {runState.CurrentActIndex + 1} default pool for target {targetAct.Id.Entry}", defaultPool);
+        return defaultPool;
     }
 
     private static List<AncientEventModel> BuildConfiguredCandidatePool(
         ActModel targetAct,
         RunState runState,
         int targetActIndex,
-        IReadOnlyList<int> enabledSourceActs)
+        IReadOnlyList<int> enabledSourceActs,
+        IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    /*
+     * Builds a candidate pool from the user-selected source acts and shared ancients that are valid for the target act.
+     */
     {
         List<AncientEventModel> configuredPool = new();
 
@@ -146,8 +315,17 @@ public static class ChooseTheAncientHelpers
             }
 
             ActModel sourceAct = runState.Acts[sourceActIndex];
-            List<AncientEventModel> sourceActAncients = sourceAct
+            List<AncientEventModel> rawSourceActAncients = sourceAct
                 .GetUnlockedAncients(runState.UnlockState)
+                .DistinctBy(ancient => ancient.Id)
+                .OrderBy(ancient => ancient.Id.Entry)
+                .ToList();
+
+            LogPool(
+                $"Act {targetActIndex + 1} raw source act {sourceActIndex + 1} unlocked ancients",
+                rawSourceActAncients);
+
+            List<AncientEventModel> sourceActAncients = rawSourceActAncients
                 .Where(ancient => IsAncientValidForAct(ancient, targetAct))
                 .ToList();
 
@@ -160,18 +338,47 @@ public static class ChooseTheAncientHelpers
 
         configuredPool.AddRange(GetSharedAncientsValidForTargetAct(targetAct, runState));
 
-        return configuredPool
+        List<AncientEventModel> distinctPool = configuredPool
             .DistinctBy(a => a.Id)
             .OrderBy(a => a.Id.Entry)
             .ToList();
+
+        LogPool($"Act {targetActIndex + 1} combined configured pool before special overrides", distinctPool);
+
+        distinctPool = ApplySpecialAncientOverrides(
+            targetAct,
+            runState,
+            targetActIndex,
+            distinctPool,
+            specialAncientOverrides);
+
+        LogPool($"Act {targetActIndex + 1} combined configured pool before limiting", distinctPool);
+        return distinctPool;
     }
 
     private static List<AncientEventModel> GetSharedAncientsValidForTargetAct(ActModel targetAct, RunState runState)
+    /*
+     * Collects shared ancients, including BaseLib custom shared ancients, that are valid for the target act.
+     */
     {
         if (!runState.UnlockState.SharedAncients.Any())
             ModLog.Debug("runState.UnlockState.SharedAncients is empty");
 
-        List<AncientEventModel> sharedSubset = runState.UnlockState.SharedAncients
+        /*
+         * BaseLib registers custom ancients through ModelDb.AllSharedAncients and later injects them
+         * into an act's shared ancient subset while that act is generating rooms. CTA builds its ballot
+         * before it hands control back to vanilla EnterNextAct, so make sure BaseLib custom ancients are
+         * visible here even if they have not yet been copied into UnlockState.SharedAncients.
+         */
+        List<AncientEventModel> allSharedAncients = runState.UnlockState.SharedAncients
+            .Concat(ModelDb.AllSharedAncients.Where(IsBaseLibCustomAncient))
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        LogPool($"All shared ancients before validity filtering for {targetAct.Id.Entry}", allSharedAncients);
+
+        List<AncientEventModel> sharedSubset = allSharedAncients
             .Where(ancient => IsAncientValidForAct(ancient, targetAct))
             .ToList();
 
@@ -184,38 +391,361 @@ public static class ChooseTheAncientHelpers
         return sharedSubset;
     }
     
+    private static List<AncientEventModel> ApplySpecialAncientOverrides(
+        ActModel targetAct,
+        RunState runState,
+        int targetActIndex,
+        IEnumerable<AncientEventModel> pool,
+        IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    /*
+     * Applies CTA's hard-coded special ancient toggles to add or remove special ancients from a candidate pool.
+     */
+    {
+        List<AncientEventModel> adjustedPool = pool
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        LogPool($"Act {targetActIndex + 1} pool entering special overrides", adjustedPool);
+        ModLog.Debug(
+            $"Act {targetActIndex + 1} special override states before application: " +
+            $"NEOW={ResolveSpecialAncientOverrideValue(specialAncientOverrides, "NEOW")}, " +
+            $"DARV={ResolveSpecialAncientOverrideValue(specialAncientOverrides, "DARV")}");
+
+        adjustedPool = ApplySpecialAncientOverride(
+            targetAct,
+            runState,
+            targetActIndex,
+            adjustedPool,
+            "NEOW",
+            IsNeowAncient,
+            specialAncientOverrides);
+        adjustedPool = ApplySpecialAncientOverride(
+            targetAct,
+            runState,
+            targetActIndex,
+            adjustedPool,
+            "DARV",
+            IsDarvAncient,
+            specialAncientOverrides);
+
+        LogPool($"Act {targetActIndex + 1} pool after special overrides", adjustedPool);
+        return adjustedPool;
+    }
+
+    private static List<AncientEventModel> ApplySpecialAncientOverride(
+        ActModel targetAct,
+        RunState runState,
+        int targetActIndex,
+        List<AncientEventModel> pool,
+        string ancientId,
+        Func<AncientEventModel, bool> matcher,
+        IReadOnlyDictionary<string, bool> specialAncientOverrides)
+    /*
+     * Applies one special ancient toggle by removing a disabled ancient or locating and adding an enabled one.
+     */
+    {
+        bool shouldInclude = ResolveSpecialAncientOverrideValue(specialAncientOverrides, ancientId);
+        bool isPresent = pool.Any(matcher);
+
+        ModLog.Debug(
+            $"Evaluating special override for {ancientId} in Act {targetActIndex + 1}: " +
+            $"shouldInclude={shouldInclude}, presentBefore={isPresent}, poolBefore={DescribeAncients(pool)}");
+
+        if (!shouldInclude)
+        {
+            if (isPresent)
+            {
+                pool = pool.Where(ancient => !matcher(ancient)).ToList();
+                ModLog.Info($"Removed {ancientId} from the Act {targetActIndex + 1} CTA pool due to the special override toggle.");
+                LogPool($"Act {targetActIndex + 1} pool after removing {ancientId}", pool);
+            }
+            else
+            {
+                ModLog.Debug($"No removal needed for {ancientId} in Act {targetActIndex + 1}; it was already absent.");
+            }
+
+            return pool;
+        }
+
+        if (isPresent)
+        {
+            ModLog.Debug($"{ancientId} was already present in the Act {targetActIndex + 1} CTA pool. No addition needed.");
+            return pool;
+        }
+
+        AncientEventModel? ancientToAdd = TryFindAncientForOverride(runState, targetAct, ancientId, matcher);
+        if (ancientToAdd == null)
+        {
+            ModLog.Warn($"Could not find {ancientId} while applying the Act {targetActIndex + 1} special override.");
+            return pool;
+        }
+
+        pool.Add(ancientToAdd);
+        pool = pool
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        ModLog.Info($"Added {ancientId} to the Act {targetActIndex + 1} CTA pool due to the special override toggle.");
+        LogPool($"Act {targetActIndex + 1} pool after adding {ancientId}", pool);
+        return pool;
+    }
+
+
+    private static bool ResolveSpecialAncientOverrideValue(
+        IReadOnlyDictionary<string, bool> specialAncientOverrides,
+        string ancientId)
+    /*
+     * Returns whether a named special ancient override is enabled in the resolved override map.
+     */
+    {
+        return specialAncientOverrides.TryGetValue(ancientId, out bool enabled) && enabled;
+    }
+
+    private static AncientEventModel? TryFindAncientForOverride(
+        RunState runState,
+        ActModel targetAct,
+        string ancientId,
+        Func<AncientEventModel, bool> matcher)
+    /*
+     * Searches every known ancient for a special override target, preferring a candidate valid for the target act.
+     */
+    {
+        List<AncientEventModel> allKnownAncients = EnumerateAllKnownAncients(runState)
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        LogPool($"All known ancients while resolving the {ancientId} special override for {targetAct.Id.Entry}", allKnownAncients);
+
+        AncientEventModel? validMatch = allKnownAncients
+            .FirstOrDefault(ancient => matcher(ancient) && IsAncientValidForAct(ancient, targetAct));
+        if (validMatch != null)
+        {
+            ModLog.Debug($"Resolved {ancientId} special override with valid target-act match {validMatch.Id.Entry} for {targetAct.Id.Entry}.");
+            return validMatch;
+        }
+
+        AncientEventModel? anyMatch = allKnownAncients.FirstOrDefault(matcher);
+        if (anyMatch != null)
+        {
+            ModLog.Warn(
+                $"Adding {ancientId} to the CTA pool even though IsValidForAct returned false for target act {targetAct.Id.Entry}, " +
+                "because the special override toggle is enabled.");
+        }
+        else
+        {
+            ModLog.Warn($"Could not find any known ancient matching {ancientId} while resolving the special override.");
+        }
+
+        return anyMatch;
+    }
+
+    private static IEnumerable<AncientEventModel> EnumerateAllKnownAncients(RunState runState)
+    /*
+     * Enumerates shared and act-specific ancients known to the current run state.
+     */
+    {
+        foreach (AncientEventModel sharedAncient in runState.UnlockState.SharedAncients)
+            yield return sharedAncient;
+
+        foreach (ActModel act in runState.Acts)
+        {
+            foreach (AncientEventModel actAncient in act.GetUnlockedAncients(runState.UnlockState))
+                yield return actAncient;
+        }
+    }
+
     public static List<AncientEventModel> LimitCandidatePoolForVote(
         RunState runState,
         int nextActIndex,
         List<AncientEventModel> pool, int ancientCount)
+    /*
+     * Reduces the full candidate pool to the CTA ballot, then uniformly shuffles every displayed ancient.
+     * BaseLib custom ancients can still reserve inclusion slots, but custom/vanilla status no longer affects display position.
+     */
     {
-        /*
-         * Takes runstate, and act index, and available ancients, and number of ancients to return
-         * Returns the list of ancients that will be used be the ancient ban selection screen
-         */
-        if (pool.Count <= ancientCount)
+        ModLog.Info(
+            $"CTA ballot uniform-v3 active for act {nextActIndex + 1}; requestedCount={ancientCount}, poolCount={pool.Count}.");
+        ModLog.Debug(
+            $"LimitCandidatePoolForVote start for act {nextActIndex + 1}: requestedCount={ancientCount}, poolCount={pool.Count}, pool={DescribeAncients(pool)}");
+
+        if (pool.Count == 0 || ancientCount <= 0)
         {
-            return pool;
+            ModLog.Debug(
+                $"Returning an empty CTA ballot for act {nextActIndex + 1} because poolCount={pool.Count}, requestedCount={ancientCount}.");
+            return new List<AncientEventModel>();
         }
 
-        if (pool.Count < ancientCount)
-        {
-            ancientCount = pool.Count;
-        }
-
-        List<AncientEventModel> shuffled = pool.ToList();
-        var rng = CreateDisplayedPoolRng(runState, nextActIndex);
-        rng.Shuffle(shuffled);
-
-        List<AncientEventModel> limited = shuffled
-            .Take(ancientCount)
+        List<AncientEventModel> distinctPool = pool
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry, StringComparer.Ordinal)
             .ToList();
 
-        LogPool($"Act {nextActIndex + 1} limited ballot", limited);
-        return limited;
+        ancientCount = Math.Min(ancientCount, distinctPool.Count);
+
+        string candidatePoolSignature = BuildAncientIdSignature(distinctPool);
+        List<AncientEventModel> includedAncients;
+
+        if (distinctPool.Count <= ancientCount)
+        {
+            ModLog.Debug(
+                $"Including all {distinctPool.Count} candidate(s) for act {nextActIndex + 1} because requestedCount={ancientCount}; " +
+                "the full candidate set will still be uniformly shuffled for display.");
+            includedAncients = distinctPool;
+        }
+        else
+        {
+            includedAncients = SelectAncientsForLimitedBallot(
+                runState,
+                nextActIndex,
+                distinctPool,
+                ancientCount,
+                candidatePoolSignature);
+        }
+
+        LogPool($"Act {nextActIndex + 1} included CTA ballot before display shuffle", includedAncients);
+
+        List<AncientEventModel> displayOrder = ShuffleBallotAncients(
+            runState,
+            nextActIndex,
+            includedAncients,
+            ancientCount,
+            candidatePoolSignature,
+            "display");
+
+        LogPool($"Act {nextActIndex + 1} uniformly shuffled CTA ballot display order", displayOrder);
+        return displayOrder;
+    }
+
+    private static List<AncientEventModel> SelectAncientsForLimitedBallot(
+        RunState runState,
+        int nextActIndex,
+        List<AncientEventModel> distinctPool,
+        int ancientCount,
+        string candidatePoolSignature)
+    /*
+     * Chooses which ancients make the ballot when more candidates exist than display slots.
+     * Forced custom ancients and then other custom ancients reserve slots, but final display order is shuffled separately.
+     */
+    {
+        List<AncientEventModel> inclusionOrder = ShuffleBallotAncients(
+            runState,
+            nextActIndex,
+            distinctPool,
+            ancientCount,
+            candidatePoolSignature,
+            "inclusion");
+
+        LogPool($"Act {nextActIndex + 1} randomized CTA ballot inclusion order", inclusionOrder);
+
+        ActModel? targetAct = nextActIndex >= 0 && nextActIndex < runState.Acts.Count
+            ? runState.Acts[nextActIndex]
+            : null;
+
+        if (targetAct == null)
+        {
+            ModLog.Warn(
+                $"Could not resolve target act {nextActIndex + 1} while limiting the CTA ballot; " +
+                "falling back to the first entries from the randomized inclusion order.");
+            return inclusionOrder
+                .Take(ancientCount)
+                .ToList();
+        }
+
+        AncientEventModel? rngChosenAncient = TryGetChosenAncient(targetAct);
+
+        List<AncientEventModel> forceSpawnAncients = inclusionOrder
+            .Where(ancient => ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient))
+            .DistinctBy(ancient => ancient.Id)
+            .ToList();
+
+        List<AncientEventModel> customAncients = inclusionOrder
+            .Where(IsBaseLibCustomAncient)
+            .Where(ancient => !forceSpawnAncients.Any(forced => forced.Id.Equals(ancient.Id)))
+            .DistinctBy(ancient => ancient.Id)
+            .ToList();
+
+        if (forceSpawnAncients.Count > 0)
+        {
+            LogPool(
+                $"Act {nextActIndex + 1} BaseLib custom ancients requesting forced spawn",
+                forceSpawnAncients);
+        }
+
+        if (customAncients.Count > 0)
+        {
+            LogPool(
+                $"Act {nextActIndex + 1} BaseLib custom ancients available for CTA ballot",
+                customAncients);
+        }
+
+        HashSet<string> selectedIds = new(StringComparer.Ordinal);
+
+        foreach (AncientEventModel forced in forceSpawnAncients)
+        {
+            if (selectedIds.Count >= ancientCount)
+                break;
+
+            selectedIds.Add(forced.Id.Entry);
+        }
+
+        foreach (AncientEventModel customAncient in customAncients)
+        {
+            if (selectedIds.Count >= ancientCount)
+                break;
+
+            selectedIds.Add(customAncient.Id.Entry);
+        }
+
+        if (selectedIds.Count > 0)
+        {
+            ModLog.Info(
+                $"Reserved {selectedIds.Count} of {ancientCount} Act {nextActIndex + 1} CTA ballot slot(s) " +
+                $"for compatible custom ancient(s): {string.Join(",", selectedIds)}.");
+        }
+
+        foreach (AncientEventModel ancient in inclusionOrder)
+        {
+            if (selectedIds.Count >= ancientCount)
+                break;
+
+            selectedIds.Add(ancient.Id.Entry);
+        }
+
+        List<AncientEventModel> includedAncients = distinctPool
+            .Where(ancient => selectedIds.Contains(ancient.Id.Entry))
+            .ToList();
+
+        LogPool($"Act {nextActIndex + 1} limited CTA ballot included ancients", includedAncients);
+        return includedAncients;
+    }
+
+    private static AncientEventModel? TryGetChosenAncient(ActModel act)
+    /*
+     * Reads the act's currently RNG-chosen ancient so BaseLib ShouldForceSpawn checks receive the same context vanilla passes.
+     */
+    {
+        try
+        {
+            RoomSet? rooms = Traverse.Create(act)
+                .Field("_rooms")
+                .GetValue<RoomSet>();
+
+            return rooms?.Ancient;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Debug($"Could not read the act's current RNG-chosen ancient while prioritizing CTA custom ancients: {ex.GetType().Name}");
+            return null;
+        }
     }
 
     public static void SetChosenAncient(ActModel act, AncientEventModel chosenAncient)
+    /*
+     * Replaces the target act's selected ancient room model with the ancient chosen by CTA.
+     */
     {
         RoomSet? rooms = Traverse.Create(act)
             .Field("_rooms")
@@ -229,54 +759,465 @@ public static class ChooseTheAncientHelpers
         rooms.Ancient = chosenAncient;
     }
 
-    public static Rng CreateDisplayedPoolRng(RunState runState, int nextActIndex)
+
+    public static AncientEventModel GetChosenAncient(ActModel act)
+    /*
+     * Reads the target act's currently selected ancient room model and throws if no ancient is present.
+     */
     {
-        return new Rng(runState.Rng.Seed, $"choose_the_ancient_display_pool_act_{nextActIndex}");
+        RoomSet? rooms = Traverse.Create(act)
+            .Field("_rooms")
+            .GetValue<RoomSet>();
+
+        if (rooms?.Ancient == null)
+        {
+            throw new InvalidOperationException("Could not get the act's current ancient.");
+        }
+
+        return rooms.Ancient;
     }
 
-    public static Rng CreateEliminationResolutionRng(RunState runState, int nextActIndex)
+    public static AncientEventModel ResolveVanillaAct1FallbackAncient(ActModel act, RunState runState)
+    /*
+     * Finds the vanilla Act 1 ancient to use when CTA cannot present a valid Act 1 ballot.
+     */
     {
-        return new Rng(runState.Rng.Seed, $"choose_the_ancient_elimination_vote_act_{nextActIndex}");
+        try
+        {
+            AncientEventModel currentAncient = GetChosenAncient(act);
+            if (currentAncient != null)
+            {
+                ModLog.Info($"Resolved Act 1 vanilla fallback ancient from the act's current ancient: {currentAncient.Id.Entry}");
+                return currentAncient;
+            }
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Could not read the act's current ancient while resolving the Act 1 vanilla fallback: {ex.GetType().Name}");
+        }
+
+        AncientEventModel? unlockedNeow = act
+            .GetUnlockedAncients(runState.UnlockState)
+            .FirstOrDefault(IsNeowAncient);
+
+        if (unlockedNeow != null)
+        {
+            ModLog.Info($"Resolved Act 1 vanilla fallback ancient from the target act's unlocked ancients: {unlockedNeow.Id.Entry}");
+            return unlockedNeow;
+        }
+
+        AncientEventModel? sharedNeow = runState.UnlockState.SharedAncients
+            .FirstOrDefault(IsNeowAncient);
+
+        if (sharedNeow != null)
+        {
+            ModLog.Info($"Resolved Act 1 vanilla fallback ancient from shared ancients: {sharedNeow.Id.Entry}");
+            return sharedNeow;
+        }
+
+        AncientEventModel? firstUnlocked = act
+            .GetUnlockedAncients(runState.UnlockState)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .FirstOrDefault();
+
+        if (firstUnlocked != null)
+        {
+            ModLog.Warn($"Resolved Act 1 vanilla fallback ancient from the first unlocked target-act ancient: {firstUnlocked.Id.Entry}");
+            return firstUnlocked;
+        }
+
+        ModLog.Warn("Resolved Act 1 vanilla fallback ancient from ModelDb.AncientEvent<Neow>().");
+        return ModelDb.AncientEvent<Neow>();
+    }
+
+    public static void ForceAct1AncientStart(RunState runState)
+    /*
+     * Forces the current run into an Act 1 ancient start state for CTA's starting-room replacement.
+     */
+    {
+        runState.ExtraFields.StartedWithNeow = true;
+    }
+
+
+    public static List<ModifierBootstrapAction> BuildModifierBootstrapActions(Player player)
+    /*
+     * Builds deferred actions that apply start-of-run custom-game modifier options before CTA resolves Act 1.
+     */
+    {
+        RunState runState = player.RunState as RunState
+            ?? throw new InvalidOperationException("Player is not attached to a mutable RunState.");
+
+        EventModel syntheticNeow = CreateSyntheticNeowForModifierBootstrap(player, runState);
+        List<ModifierBootstrapAction> actions = new();
+
+        foreach (ModifierModel modifier in runState.Modifiers)
+        {
+            Func<Task>? applyAsync = modifier.GenerateNeowOption(syntheticNeow);
+            if (applyAsync == null)
+                continue;
+
+            actions.Add(new ModifierBootstrapAction
+            {
+                Modifier = modifier,
+                ApplyAsync = applyAsync
+            });
+        }
+
+        return actions;
+    }
+
+    private static EventModel CreateSyntheticNeowForModifierBootstrap(Player player, RunState runState)
+    /*
+     * Creates a temporary Neow event instance used only to ask modifiers for their bootstrap actions.
+     */
+    {
+        AncientEventModel syntheticNeow = (AncientEventModel)ModelDb.AncientEvent<Neow>().ToMutable();
+        EventOwnerBackingField.SetValue(syntheticNeow, player);
+
+        Rng bootstrapRng = CreatePreviewEventRng(runState, player, syntheticNeow);
+        EventRngBackingField.SetValue(syntheticNeow, bootstrapRng);
+
+        syntheticNeow.CalculateVars();
+
+        ModLog.Debug(
+            $"Created synthetic Neow for modifier bootstrap with seed {bootstrapRng.Seed} " +
+            $"for player {player.NetId}.");
+
+        return syntheticNeow;
+    }
+
+    public static bool IsNeowAncient(AncientEventModel ancient)
+    /*
+     * Identifies Neow by type or model ID across vanilla and reflected contexts.
+     */
+    {
+        return ancient is Neow
+               || string.Equals(ancient.Id.Entry, nameof(Neow), StringComparison.OrdinalIgnoreCase)
+               || string.Equals(ancient.Id.Entry, "NEOW", StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    public static bool ShouldResetHpBeforeAncientHeal(AncientEventModel ancient)
+    /*
+     * Replaces vanilla's Neow-only HP reset condition before ancient healing runs.
+     * The Act 1 starting ancient always gets the start-of-run HP baseline, while Neow in later CTA acts heals like any other ancient.
+     */
+    {
+        RunState? runState = ancient.Owner?.RunState as RunState;
+        if (runState == null)
+            return IsNeowAncient(ancient);
+
+        bool shouldReset = IsAct1StartingMapPoint(runState);
+
+        if (shouldReset)
+        {
+            ModLog.Info(
+                $"Applying Act 1 starting HP baseline through vanilla ancient heal reset for {ancient.Id.Entry}.");
+        }
+        else if (IsNeowAncient(ancient))
+        {
+            ModLog.Info(
+                $"Skipping vanilla Neow HP reset outside Act 1 start so {ancient.Id.Entry} heals like a normal ancient. " +
+                $"Act={runState.CurrentActIndex + 1}.");
+        }
+
+        return shouldReset;
+    }
+
+
+    public static bool IsDarvAncient(AncientEventModel ancient)
+    /*
+     * Identifies Darv by type or model ID for CTA's special ancient override.
+     */
+    {
+        return string.Equals(ancient.Id.Entry, "DARV", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(ancient.GetType().Name, "Darv", StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    private static Rng CreateBallotShuffleRng(
+        RunState runState,
+        int nextActIndex,
+        int ancientCount,
+        string candidatePoolSignature,
+        string purpose)
+    /*
+     * Creates an isolated deterministic RNG stream for CTA ballot inclusion or display shuffling.
+     * Including the candidate-pool signature prevents unrelated pool changes from reusing the same permutation stream.
+     */
+    {
+        return CreateRunScopedRng(
+            runState,
+            "ballot_uniform_v3",
+            purpose,
+            "act",
+            nextActIndex,
+            "count",
+            ancientCount,
+            "pool",
+            candidatePoolSignature);
+    }
+
+    private static List<AncientEventModel> ShuffleBallotAncients(
+        RunState runState,
+        int nextActIndex,
+        IEnumerable<AncientEventModel> ancients,
+        int ancientCount,
+        string candidatePoolSignature,
+        string purpose)
+    /*
+     * Uniformly shuffles a distinct set of ancients with Fisher-Yates while starting from a stable ID-sorted order.
+     * This gives every included ancient the same chance at every display slot without consuming mutable run RNG state.
+     */
+    {
+        List<AncientEventModel> shuffled = ancients
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry, StringComparer.Ordinal)
+            .ToList();
+
+        Rng rng = CreateBallotShuffleRng(
+            runState,
+            nextActIndex,
+            ancientCount,
+            candidatePoolSignature,
+            purpose);
+
+        rng.Shuffle(shuffled);
+        return shuffled;
+    }
+
+    private static string BuildAncientIdSignature(IEnumerable<AncientEventModel> ancients)
+    /*
+     * Creates a stable ID signature for the candidate set so deterministic shuffle streams change when the candidate set changes.
+     */
+    {
+        return string.Join(
+            "|",
+            ancients
+                .Select(ancient => ancient.Id.Entry)
+                .OrderBy(id => id, StringComparer.Ordinal));
     }
 
     public static Rng CreateFinalVoteResolutionRng(RunState runState, int nextActIndex)
+    /*
+     * Creates the deterministic RNG used to resolve tied final votes in a host/client-safe way.
+     */
     {
-        return new Rng(runState.Rng.Seed, $"choose_the_ancient_final_vote_act_{nextActIndex}");
+        return CreateRunScopedRng(
+            runState,
+            "final_vote",
+            "act",
+            nextActIndex);
     }
 
     public static Rng CreateSecondRoundPresentationRng(RunState runState, int nextActIndex)
+    /*
+     * Creates the deterministic RNG used to choose second-round preview suppression presentation details.
+     */
     {
-        return new Rng(runState.Rng.Seed, $"choose_the_ancient_second_vote_presentation_act_{nextActIndex}");
+        return CreateRunScopedRng(
+            runState,
+            "second_vote_presentation",
+            "act",
+            nextActIndex);
     }
     
-    public static Rng CreateAncientRelicOptionsRng(RunState runstate, int nextActIndex, ulong player, string ancient)
-    {
-        return new Rng(runstate.Rng.Seed, $"choose_the_ancient_relic_options_{nextActIndex}_{ancient}_{player}");
-    }
-    
+
     public static uint ComputeVanillaEventSeed(RunState runState, Player player, EventModel eventModel)
+    /*
+     * Computes the vanilla event RNG seed for a player/event pair so previewed ancient rewards match the later revealed event.
+     */
     {
         /*
          * Goal here is to copy the RNG method vanilla uses, so it'll be the same as when the ancient
          * reveals the reward
          */
-        ulong ownerContribution = eventModel.IsShared ? 0UL : player.NetId;
+        int  ownerContribution = eventModel.IsShared ? 0 : runState.GetPlayerSlotIndex(player);
 
         return unchecked((uint)(
-            runState.Rng.Seed
+            (int)runState.Rng.Seed
             + ownerContribution
-            + (ulong)StringHelper.GetDeterministicHashCode(eventModel.Id.Entry)));
+            + StringHelper.GetDeterministicHashCode(eventModel.Id.Entry)));
     }
 
     public static Rng CreatePreviewEventRng(RunState runState, Player player, EventModel eventModel)
+    /*
+     * Creates the vanilla event RNG used when simulating reward previews or modifier bootstrap events that should not use CTA reward offsets.
+     */
     {
         return new Rng(ComputeVanillaEventSeed(runState, player, eventModel));
+    }
+
+    public static Rng CreateAncientEventRngForTargetAct(
+        RunState runState,
+        Player player,
+        EventModel eventModel,
+        int targetActIndex)
+    /*
+     * Creates the RNG CTA should use for ancient reward previews or reveals in a target act.
+     * Offset zero exactly matches vanilla; earlier/later-than-normal appearances add only the signed act offset to the vanilla seed.
+     */
+    {
+        uint seed = ComputeVanillaEventSeed(runState, player, eventModel);
+        int normalActIndex = GetNormalMinimumActIndexForAncient(runState, eventModel);
+        int actOffset = targetActIndex - normalActIndex;
+
+        if (actOffset != 0)
+        {
+            seed = unchecked(seed + (uint)actOffset);
+        }
+
+        return new Rng(seed);
+    }
+
+    public static int GetRewardActOffsetForTargetAct(
+        RunState runState,
+        EventModel eventModel,
+        int targetActIndex)
+    /*
+     * Returns how far the target act is from the ancient's normal minimum act.
+     * Zero means vanilla reward RNG should be preserved.
+     */
+    {
+        int normalActIndex = GetNormalMinimumActIndexForAncient(runState, eventModel);
+        return targetActIndex - normalActIndex;
+    }
+
+    private static int GetNormalMinimumActIndexForAncient(RunState runState, EventModel eventModel)
+    /*
+     * Finds the earliest act where an ancient belongs under vanilla room-generation rules, ignoring CTA source-act settings.
+     * Act-specific ancients can start in their owning act; shared ancients are never considered normal before Act 2.
+     */
+    {
+        int? minimumActIndex = null;
+
+        for (int actIndex = 0; actIndex < runState.Acts.Count; actIndex++)
+        {
+            ActModel act = runState.Acts[actIndex];
+
+            if (act.GetUnlockedAncients(runState.UnlockState)
+                .Any(ancient => AncientIdsMatch(ancient, eventModel)))
+            {
+                minimumActIndex = MinActIndex(minimumActIndex, actIndex);
+            }
+        }
+
+        List<AncientEventModel> sharedAncients = runState.UnlockState.SharedAncients
+            .Concat(ModelDb.AllSharedAncients.Where(ancient => AncientIdsMatch(ancient, eventModel) || IsBaseLibCustomAncient(ancient)))
+            .DistinctBy(ancient => ancient.Id)
+            .ToList();
+
+        AncientEventModel? sharedAncient = sharedAncients
+            .FirstOrDefault(ancient => AncientIdsMatch(ancient, eventModel));
+
+        if (sharedAncient == null && eventModel is AncientEventModel ancientEventModel && IsBaseLibCustomAncient(ancientEventModel))
+        {
+            sharedAncient = ancientEventModel;
+        }
+
+        if (sharedAncient != null)
+        {
+            for (int actIndex = 1; actIndex < runState.Acts.Count; actIndex++)
+            {
+                if (IsAncientValidForAct(sharedAncient, runState.Acts[actIndex]))
+                {
+                    minimumActIndex = MinActIndex(minimumActIndex, actIndex);
+                    break;
+                }
+            }
+        }
+
+        if (minimumActIndex.HasValue)
+            return minimumActIndex.Value;
+
+        int fallbackActIndex = Math.Clamp(runState.CurrentActIndex, 0, Math.Max(0, runState.Acts.Count - 1));
+        ModLog.Warn(
+            $"Could not determine normal minimum act for ancient {eventModel.Id.Entry}; " +
+            $"falling back to current act {fallbackActIndex + 1} so CTA reward RNG remains vanilla.");
+
+        return fallbackActIndex;
+    }
+
+    private static bool AncientIdsMatch(EventModel left, EventModel right)
+    /*
+     * Compares event IDs by entry so mutable preview copies and canonical models match reliably.
+     */
+    {
+        return string.Equals(left.Id.Entry, right.Id.Entry, StringComparison.Ordinal);
+    }
+
+    private static int MinActIndex(int? existing, int candidate)
+    /*
+     * Updates a nullable minimum act index without allocating helper collections.
+     */
+    {
+        return existing.HasValue ? Math.Min(existing.Value, candidate) : candidate;
+    }
+
+    public static bool TryApplyCtaAncientRewardActOffsetRng(AncientEventModel ancient, string context)
+    /*
+     * Applies CTA's act-offset reward RNG to a real ancient immediately before its options are generated.
+     */
+    {
+        try
+        {
+            Player? owner = ancient.Owner;
+            if (owner == null)
+            {
+                ModLog.Debug(
+                    $"CTA act-offset reward RNG skipped for {ancient.Id.Entry}: ancient has no owner. Context={context}.");
+                return false;
+            }
+
+            RunState? runState = owner.RunState as RunState;
+            if (runState == null)
+            {
+                ModLog.Debug(
+                    $"CTA act-offset reward RNG skipped for {ancient.Id.Entry}: owner RunState is not a mutable RunState. " +
+                    $"RuntimeType={owner.RunState?.GetType().FullName ?? "null"}, Context={context}.");
+                return false;
+            }
+
+            int targetActIndex = runState.CurrentActIndex;
+            int normalActIndex = GetNormalMinimumActIndexForAncient(runState, ancient);
+            int actOffset = targetActIndex - normalActIndex;
+
+            if (actOffset == 0)
+            {
+                ModLog.Debug(
+                    $"CTA reward RNG for {ancient.Id.Entry} at act {targetActIndex + 1} remains vanilla. " +
+                    $"NormalAct={normalActIndex + 1}, ActOffset=0, Context={context}.");
+                return false;
+            }
+
+            Rng rng = CreateAncientEventRngForTargetAct(
+                runState,
+                owner,
+                ancient,
+                targetActIndex);
+
+            EventRngBackingField.SetValue(ancient, rng);
+
+            ModLog.Info(
+                $"Applied CTA act-offset ancient reward RNG for {ancient.Id.Entry}. " +
+                $"TargetAct={targetActIndex + 1}, NormalAct={normalActIndex + 1}, ActOffset={actOffset}, Seed={rng.Seed}, Context={context}.");
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Could not apply CTA act-offset ancient reward RNG for {ancient.Id.Entry}: {ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
     }
 
     public static Dictionary<string, AncientPreviewData> BuildPreviewDataByAncientId(
         Player player,
         IEnumerable<AncientEventModel> ancients,
         int nextActIndex)
+    /*
+     * Generates preview data for every displayed ancient and indexes successful previews by ancient ID.
+     */
     {
         Dictionary<string, AncientPreviewData> previews = new();
 
@@ -287,18 +1228,8 @@ public static class ChooseTheAncientHelpers
             if (preview != null)
             {
                 previews[ancient.Id.Entry] = preview;
-                ModLog.Trace($"BuildPreviewDataByAncientId added {ancient.Id.Entry} with {preview.Options.Count} option(s).");
-            }
-            else
-            {
-                ModLog.Trace($"BuildPreviewDataByAncientId produced no preview for {ancient.Id.Entry}.");
             }
         }
-
-        ModLog.Debug(
-            $"BuildPreviewDataByAncientId complete: nextAct={nextActIndex}, " +
-            $"player={player.NetId}, " +
-            $"keys={(previews.Count == 0 ? "<empty>" : string.Join(", ", previews.Keys))}");
 
         return previews;
     }
@@ -307,12 +1238,21 @@ public static class ChooseTheAncientHelpers
         Player player,
         AncientEventModel ancient,
         int nextActIndex)
+    /*
+     * Simulates an ancient event at the target act and returns the reward options that should later be revealed.
+     */
     {
         /* simulate the next act, and what the relic options are going to be.*/ 
         try
         {
             AncientEventModel previewEvent = (AncientEventModel)ancient.ToMutable();
-            RunState runState = player.RunState as RunState;
+            if (player.RunState is not RunState runState)
+            {
+                ModLog.Warn($"Could not generate preview data for ancient {ancient.Id.Entry}: player is not attached to a mutable RunState.");
+                return null;
+            }
+
+            int actOffset = GetRewardActOffsetForTargetAct(runState, previewEvent, nextActIndex);
             int originalActIndex = runState.CurrentActIndex;
 
             var playerRngSnapshot = player.PlayerRng.ToSerializable();
@@ -323,26 +1263,24 @@ public static class ChooseTheAncientHelpers
             {
                 runState.CurrentActIndex = nextActIndex;
                 EventOwnerBackingField.SetValue(previewEvent, player);
-                // I want to experiment with the relics rewards for all players being a shared event being a shared
-                // pool. Shared pools should have the same RNG for each player, where as independent offerings
-                // should have Rng based on their player ID.
-                /*
-                 * TODO implement patches so ancient events can be shared
-                 */
-                Rng previewRng = CreatePreviewEventRng(runState, player, previewEvent);
-                //Rng previewRng = CreateAncientRelicOptionsRng(
-                //    runState, nextActIndex, (GroupAncientOptionsPool ? 0UL : player.NetId), previewEvent.Id.Entry);
-                // We use are new rng to change how the ancients randomness work and don't change it back
-                EventRngBackingField.SetValue(previewEvent, previewRng);
-
-                ModLog.Debug($"Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} at act index {nextActIndex}.");
+                Rng previewRng = ResetPreviewEventRng(
+                    runState,
+                    player,
+                    previewEvent,
+                    nextActIndex);
+                ModLog.Debug(
+                    $"Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} " +
+                    $"at act index {nextActIndex}. ActOffset={actOffset}.");
 
                 // This is what BeginEvents does in Megacritic EventModel
                 previewEvent.CalculateVars();
 
-                IReadOnlyList<EventOption> options =
-                    (GenerateInitialOptionsWrapperMethod.Invoke(previewEvent, Array.Empty<object>()) as IReadOnlyList<EventOption>)
-                    ?? Array.Empty<EventOption>();
+                IReadOnlyList<EventOption> options = GeneratePreviewOptionsRobustly(
+                    player,
+                    runState,
+                    previewEvent,
+                    ancient,
+                    nextActIndex);
 
                 LogPreviewOptions(previewEvent, ancient, options);
 
@@ -373,11 +1311,424 @@ public static class ChooseTheAncientHelpers
         }
     }
 
-    public static bool GroupAncientOptionsPool { get; set; } = false;
+    private static IReadOnlyList<EventOption> GeneratePreviewOptionsRobustly(
+        Player player,
+        RunState runState,
+        AncientEventModel previewEvent,
+        AncientEventModel sourceAncient,
+        int nextActIndex)
+    /*
+     * Attempts preview option generation through vanilla wrapper and direct concrete methods, masking Neow modifiers when needed.
+     */
+    {
+        bool isNeowPreview = IsNeowAncient(previewEvent);
+        IReadOnlyList<ModifierModel>? originalModifiers = null;
+        bool maskedModifiers = false;
+
+        try
+        {
+            if (isNeowPreview && runState.Modifiers.Count > 0)
+            {
+                originalModifiers = runState.Modifiers;
+                maskedModifiers = TrySetRunStateModifiers(runState, Array.Empty<ModifierModel>());
+                if (maskedModifiers)
+                {
+                    ModLog.Info(
+                        $"Temporarily masked {originalModifiers.Count} run modifier(s) while generating the Neow preview for act {nextActIndex + 1}. " +
+                        "This forces Neow to build blessing reward options instead of custom-game modifier bootstrap options.");
+                }
+            }
+
+            IReadOnlyList<EventOption> options = TryGeneratePreviewOptionsViaWrapper(
+                player,
+                runState,
+                previewEvent,
+                sourceAncient,
+                nextActIndex,
+                requireRelicReward: isNeowPreview,
+                attemptName: maskedModifiers ? "wrapper with modifiers masked" : "wrapper");
+
+            if (HasUsablePreviewOptions(options, requireRelicReward: isNeowPreview))
+                return options;
+
+            ModLog.Warn(
+                $"Preview option generation for {sourceAncient.Id.Entry} returned no usable reward options via the wrapper " +
+                $"at act {nextActIndex + 1}; attempting the concrete GenerateInitialOptions method directly.");
+
+            options = TryGeneratePreviewOptionsDirectly(
+                player,
+                runState,
+                previewEvent,
+                sourceAncient,
+                nextActIndex,
+                requireRelicReward: isNeowPreview);
+
+            if (HasUsablePreviewOptions(options, requireRelicReward: isNeowPreview))
+                return options;
+
+            ModLog.Warn(
+                $"Preview option generation for {sourceAncient.Id.Entry} still returned no usable reward options " +
+                $"at act {nextActIndex + 1}; could not predict the rewards so will show none.");
+
+            return Array.Empty<EventOption>();
+        }
+        finally
+        {
+            if (maskedModifiers)
+            {
+                TrySetRunStateModifiers(runState, originalModifiers ?? Array.Empty<ModifierModel>());
+                ModLog.Debug("Restored RunState.Modifiers after robust preview generation.");
+            }
+        }
+    }
+
+    private static IReadOnlyList<EventOption> TryGeneratePreviewOptionsViaWrapper(
+        Player player,
+        RunState runState,
+        AncientEventModel previewEvent,
+        AncientEventModel sourceAncient,
+        int nextActIndex,
+        bool requireRelicReward,
+        string attemptName)
+    /*
+     * Runs AncientEventModel.GenerateInitialOptionsWrapper for preview generation and validates the returned options.
+     */
+    {
+        try
+        {
+            ResetPreviewEventRng(
+                runState,
+                player,
+                previewEvent,
+                nextActIndex);
+            IReadOnlyList<EventOption> options = InvokeEventOptionGenerator(
+                GenerateInitialOptionsWrapperMethod,
+                previewEvent,
+                $"Preview generation attempt '{attemptName}' for {sourceAncient.Id.Entry}");
+
+            if (!HasUsablePreviewOptions(options, requireRelicReward))
+            {
+                ModLog.Warn(
+                    $"Preview generation attempt '{attemptName}' for {sourceAncient.Id.Entry} produced " +
+                    $"{DescribePreviewOptionCount(options)} at act {nextActIndex + 1}.");
+            }
+
+            return options.Where(option => option != null).ToList();
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Preview generation attempt '{attemptName}' for {sourceAncient.Id.Entry} failed " +
+                $"at act {nextActIndex + 1}: {UnwrapReflectionException(ex)}");
+            return Array.Empty<EventOption>();
+        }
+    }
+
+    private static IReadOnlyList<EventOption> TryGeneratePreviewOptionsDirectly(
+        Player player,
+        RunState runState,
+        AncientEventModel previewEvent,
+        AncientEventModel sourceAncient,
+        int nextActIndex,
+        bool requireRelicReward)
+    /*
+     * Invokes the concrete GenerateInitialOptions method as a fallback when the wrapper produces no usable preview rewards.
+     */
+    {
+        try
+        {
+            ResetPreviewEventRng(
+                runState,
+                player,
+                previewEvent,
+                nextActIndex);
+
+            MethodInfo? generateInitialOptionsMethod = AccessTools.Method(previewEvent.GetType(), "GenerateInitialOptions");
+            if (generateInitialOptionsMethod == null)
+            {
+                ModLog.Warn($"Could not locate GenerateInitialOptions on {previewEvent.GetType().FullName} while previewing {sourceAncient.Id.Entry}.");
+                return Array.Empty<EventOption>();
+            }
+
+            IReadOnlyList<EventOption> cleanedOptions = InvokeEventOptionGenerator(
+                generateInitialOptionsMethod,
+                previewEvent,
+                $"Direct GenerateInitialOptions for {sourceAncient.Id.Entry}");
+
+            if (!HasUsablePreviewOptions(cleanedOptions, requireRelicReward))
+            {
+                ModLog.Warn(
+                    $"Direct GenerateInitialOptions for {sourceAncient.Id.Entry} produced " +
+                    $"{DescribePreviewOptionCount(cleanedOptions)} at act {nextActIndex + 1}.");
+            }
+
+            return cleanedOptions;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Direct GenerateInitialOptions for {sourceAncient.Id.Entry} failed " +
+                $"at act {nextActIndex + 1}: {UnwrapReflectionException(ex)}");
+            return Array.Empty<EventOption>();
+        }
+    }
+
+    private static bool HasUsablePreviewOptions(
+        IReadOnlyList<EventOption> options,
+        bool requireRelicReward)
+    /*
+     * Checks whether generated preview options contain at least one selectable reward, optionally requiring a relic reward.
+     */
+    {
+        return options.Count > 0
+               && options.Any(option => option != null && !option.IsProceed && (!requireRelicReward || option.Relic != null));
+    }
+
+    private static string DescribePreviewOptionCount(IReadOnlyList<EventOption> options)
+    /*
+     * Formats a compact count summary for preview option diagnostics.
+     */
+    {
+        int nonNullCount = options.Count(option => option != null);
+        int proceedCount = options.Count(option => option != null && option.IsProceed);
+        int relicCount = options.Count(option => option?.Relic != null);
+        return $"{options.Count} option(s), nonNull={nonNullCount}, proceed={proceedCount}, relic={relicCount}";
+    }
+
+    private static IReadOnlyList<EventOption> InvokeEventOptionGenerator(
+        MethodInfo method,
+        EventModel previewEvent,
+        string context)
+    /*
+     * Invokes an event option generator and normalizes missing or malformed results to an empty option list.
+     */
+    {
+        object? result = method.Invoke(previewEvent, Array.Empty<object>());
+        if (result is not IReadOnlyList<EventOption> options)
+        {
+            ModLog.Warn(
+                $"{context} returned {result?.GetType().FullName ?? "<null>"} instead of IReadOnlyList<EventOption>.");
+            return Array.Empty<EventOption>();
+        }
+
+        return options
+            .Where(option => option != null)
+            .ToList();
+    }
+
+    private static string UnwrapReflectionException(Exception ex)
+    /*
+     * Returns the inner exception text from reflected calls so logs show the real preview-generation failure.
+     */
+    {
+        return ex is TargetInvocationException { InnerException: not null }
+            ? ex.InnerException.ToString()
+            : ex.ToString();
+    }
+
+    private static Rng ResetPreviewEventRng(
+        RunState runState,
+        Player player,
+        EventModel previewEvent,
+        int targetActIndex)
+    /*
+     * Recreates and assigns the preview event RNG so each generation attempt starts from the same seed.
+     * Target acts at the ancient's normal minimum act match vanilla exactly; earlier/later target acts use the signed act offset.
+     */
+    {
+        Rng previewRng = CreateAncientEventRngForTargetAct(
+            runState,
+            player,
+            previewEvent,
+            targetActIndex);
+
+        EventRngBackingField.SetValue(previewEvent, previewRng);
+        return previewRng;
+    }
+
+    private static bool TrySetRunStateModifiers(
+        RunState runState,
+        IReadOnlyList<ModifierModel> modifiers)
+    /*
+     * Temporarily replaces RunState.Modifiers through reflection while generating Neow previews.
+     */
+    {
+        try
+        {
+            Traverse.Create(runState)
+                .Property<IReadOnlyList<ModifierModel>>(nameof(RunState.Modifiers))
+                .Value = modifiers;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Failed to set RunState.Modifiers while generating ancient preview options: {ex}");
+            return false;
+        }
+    }
+
+
+    public static async Task WaitForProcessFramesAsync(int frameCount)
+    /*
+     * Waits for a number of Godot process frames without blocking the main thread.
+     */
+    {
+        SceneTree? tree = Engine.GetMainLoop() as SceneTree;
+        if (tree == null)
+            return;
+
+        int framesToWait = Math.Max(1, frameCount);
+        for (int i = 0; i < framesToWait; i++)
+        {
+            await tree.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+        }
+    }
+
+    public static async Task WarmAncientVisualAssetsAsync(IEnumerable<AncientEventModel> ancients)
+    /*
+     * Preloads visual assets for candidate ancients so the selection screen can render them smoothly.
+     */
+    {
+        foreach (AncientEventModel ancient in ancients
+                     .DistinctBy(candidate => candidate.Id.Entry)
+                     .OrderBy(candidate => candidate.Id.Entry))
+        {
+            TryWarmAncientVisualAssets(ancient);
+            await WaitForProcessFramesAsync(1);
+        }
+    }
+
+    private static void TryWarmAncientVisualAssets(AncientEventModel ancient)
+    /*
+     * Best-effort warms one ancient's scene/art assets and logs failures without aborting the selection flow.
+     */
+    {
+        try
+        {
+            _ = ancient.MapIcon;
+            _ = ancient.MapIconOutline;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Failed to warm map icon assets for {ancient.Id.Entry}: {ex.GetType().Name}");
+        }
+
+        try
+        {
+            string? scenePath = Traverse.Create(ancient)
+                .Property("BackgroundScenePath")
+                .GetValue<string?>();
+
+            if (string.IsNullOrWhiteSpace(scenePath) || !scenePath.StartsWith("res://", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            PackedScene? scene = GD.Load<PackedScene>(scenePath);
+            if (scene == null)
+            {
+                ModLog.Warn($"Could not preload ancient scene for {ancient.Id.Entry} at '{scenePath}'.");
+                return;
+            }
+
+            ModLog.Debug($"Preloaded ancient scene for {ancient.Id.Entry} at '{scenePath}'.");
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Failed to warm scene assets for {ancient.Id.Entry}: {ex.GetType().Name}");
+        }
+    }
+
+
+
+    public static bool IsAct1StartingMapPoint(RunState runState)
+    /*
+     * Checks whether the current map point is CTA's Act 1 starting shell location.
+     */
+    {
+        if (runState.CurrentActIndex != 0)
+            return false;
+
+        if (!runState.ExtraFields.StartedWithNeow)
+            return false;
+
+        MapCoord? currentCoord = runState.CurrentMapCoord;
+        if (!currentCoord.HasValue)
+            return false;
+
+        return currentCoord.Value == runState.Map.StartingMapPoint.coord;
+    }
+
+    public static bool ShouldUseAct1StartShell(RunState runState, ChooseTheAncientFlowState flow)
+    /*
+     * Determines whether CTA should replace the vanilla Act 1 start with its custom starting shell room.
+     */
+    {
+        if (flow.ResolvedActs.Contains(0))
+            return false;
+
+        if (runState.CurrentActIndex != 0)
+            return false;
+
+        if (!runState.ExtraFields.StartedWithNeow)
+            return false;
+
+        return true;
+    }
+
+    public static void ConvertAct1StartShellToChosenAncient(
+        RunState runState,
+        AncientEventModel chosenAncient)
+    /*
+     * Rewrites the Act 1 shell room into the chosen ancient room after CTA resolves the starting-room vote.
+     */
+    {
+        runState.Map.StartingMapPoint.PointType = MapPointType.Ancient;
+        RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
+        NMapScreen.Instance?.SetMap(runState.Map, runState.Rng.Seed, clearDrawings: true);
+    }
+
+    public static void RewriteCurrentMapPointHistoryToAncient(
+        RunState runState,
+        AncientEventModel chosenAncient)
+    /*
+     * Rewrites run-history entries for the current map point so history reflects the chosen ancient instead of the shell.
+     */
+    {
+        MapPointHistoryEntry? entry = runState.CurrentMapPointHistoryEntry;
+        if (entry == null)
+            return;
+
+        entry.MapPointType = MapPointType.Ancient;
+
+        if (entry.Rooms.Count == 0)
+        {
+            entry.Rooms.Add(new MapPointRoomHistoryEntry
+            {
+                RoomType = RoomType.Event,
+                ModelId = chosenAncient.Id,
+            });
+            return;
+        }
+
+        MapPointRoomHistoryEntry room = entry.Rooms[0];
+        room.RoomType = RoomType.Event;
+        room.ModelId = chosenAncient.Id;
+        room.MonsterIds.Clear();
+        room.TurnsTaken = 0;
+
+        while (entry.Rooms.Count > 1)
+        {
+            entry.Rooms.RemoveAt(entry.Rooms.Count - 1);
+        }
+    }
 
     // Log stuff below
 
     private static string SafeFormatLoc(LocString? loc)
+    /*
+     * Formats a localized string for logs while tolerating null or formatting failures.
+     */
     {
         if (loc == null)
         {
@@ -395,6 +1746,9 @@ public static class ChooseTheAncientHelpers
     }
 
     private static void LogPreviewOptions(AncientEventModel previewEvent, AncientEventModel ancient, IReadOnlyList<EventOption> options)
+    /*
+     * Logs generated preview options with enough detail to compare predicted rewards against the later event.
+     */
     {
         if (!ModLog.IsDebugEnabled)
             return;
@@ -426,11 +1780,17 @@ public static class ChooseTheAncientHelpers
     }
 
     public static string DescribeAncients(IEnumerable<AncientEventModel> ancients)
+    /*
+     * Formats a comma-separated list of ancient IDs for diagnostic logs.
+     */
     {
         return string.Join(", ", ancients.Select(a => $"{a.Id.Entry} ({a.Title.GetFormattedText()})"));
     }
 
     public static void LogPool(string context, IEnumerable<AncientEventModel> ancients)
+    /*
+     * Logs a named ancient pool using the shared ancient-list formatter.
+     */
     {
         if (!ModLog.IsDebugEnabled)
             return;

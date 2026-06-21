@@ -2,6 +2,7 @@
 
 No longer do you stumble upon the Ancients, now they come to you.
 At the end of each act, vote the ancient you want for the start of the next.
+(Updated for STS2 v1.07.1)
 
 <img src="ChooseTheAncient/Choose_The_Ancients_Custom_Short_Decision.gif" alt="Alt Text" width="480" />
 
@@ -28,6 +29,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
     - I Want To Know Everything
     - Simple Picker
   - Ancient Pool
+    - Whether Act 1 has Act 1, 2, or 3 Ancients
     - Whether Act 2 has Act 1, 2, or 3 Ancients
     - Whether Act 3 has Act 1, 2, or 3 Ancients
   - Controller tooltips 
@@ -65,27 +67,19 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Log locations on Windows:
 - C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
-## New features Roadmap
-- left and right constantly go  up against eachother in monty hall mode? Bug or rng seed issue?
-- Support Custom Ancient Options not matching Custom Ancient's actual options in hovertips for cards
+## New features Roadmap and fixes
+- selection animation highlights the winner  and not the loser
+- Nicer transition between moments in the flow like changing rooms in the base game. Right now if the loading takes a bit longer we get an empty black screen with the game's toolbar still in view.
 - Fix {suppressedAnicent} formating defaulting when it shouldn't
 - Ask help for good zhs translation
 - Language localizing for mod config option texts
 - Update mod description for zhs too in ChooseTheAncient.json or wherever translations for that go.
-- Gameplay Options
-  - Support for Pre Act 1, for the inevitable Act 1 Ancient mods
-    - Compatability with other mods is annoying.
-      - Wouldn't make it a Neow Option. Could Do Extra UI.
-      - Changing before Neow is annoying, however Custom Ancient's might replace him.
-        - OnModifierOptions for Custom Games doesn't work in other mods that do this yet
-      - I'd wait for BaseLib and RitsuLib to work out what they are doing with forcestart ancient
 - Add shadow to Ancient Icon on card
 - Implement Log switcher when game in VeryDebug state
 - Touch up Ancient Dialouge in English
 - Add Override for sets of ancients mods to pool from only that class
   - With priority system between mods
-  - maybe picking from modconfigh
-- Support for Ancients in Ritsulib (Might work already. Looks promising)
+  - maybe picking from modconfig
 - Compatability with Slay the Player
 - Compatability with local multiplayer
 - Compatability with infinate acts

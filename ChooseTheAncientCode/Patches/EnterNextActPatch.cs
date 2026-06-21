@@ -7,7 +7,7 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.EnterNextAct))]
 public static class EnterNextActPatch
 {
-    static bool Prefix(RunManager __instance, ref Task __result)
+    private static bool Prefix(RunManager __instance, ref Task __result)
     {
         RunState? runState = ChooseTheAncientHelpers.GetRunState(__instance);
         if (runState == null)

@@ -2,15 +2,18 @@
 
 ## Unrelesaed
 
-## [v1.2.0] - Added Game Modes, Ancient Pool Options, fast mode and fixes
+## [v1.2.0] - Added Act 1, Game Modes, Ancient Pool Options, fast mode and fixes. Requires sts2 v1.07.1 minimum
 
 ### Features
+- Now works for Act 1
+  - Defaults to skipping to Neow like Vanilla unless you add Act 1 Ancients or use the settings to add vanilla ancients to act 1 pool 
 - GameModes
   - Monty hall (default)
   - Fair Fight
   - I Want To Know Everything
   - Simple Picker
 - Ancient Pool
+  - Whether Act 1 has Act 1, 2, or 3 Ancients
   - Whether Act 2 has Act 1, 2, or 3 Ancients
   - Whether Act 3 has Act 1, 2, or 3 Ancients
 - Added fast mode support
@@ -22,6 +25,25 @@
 - Increased the font outline thickness of the card title and text
 - Preview Options scale slightly better for more than 3 ancients
 - I Want to Know Everything for greater than 3 ancients now uses vertical columns for Ancients.
+- Fixed bug on v1.1 of the mod caused Custom Ancients to not always show.
+- The second ancient selection should randomize propely, instead of always being the left or right option  you didn't pick.
+- Ancients don't repeat same combination of relic rewards in they show up in a later act
+- Other ancients in Act 1 don't heal more health than Neow on Weary Travelere
+- Neow does not heal less health than other ancients on act 2 plus.
+- Custom Act 1 Ancients do not need to set health to 0, it's done through the mod now.
+
+### Technical
+- GenerateMapPatch changes the Act 1 starting node before the map is shown.
+- CreateRoomPatch stops vanilla from creating the normal room for that start node.
+- It returns a custom ChooseTheAncientStartRoom shell instead.
+- SetCurrentRoomPatch waits until that shell room is the current room, then launches the chooser.
+- After the vote, it jumps straight into the chosen ancient room.
+- Also Messages to fix Sealed Deck and other card stacking modifiers from desyncing in multiplayer
+- A Neow patch so Neow doesn't give modifiers twice
+- Also Neow Messages to fix their modifier desyncs in multiplayer.
+- Added sharedBuffer field to Custom Messages due to 1.05 update.
+- RewardRng prefix patch returning false was added so all ancient generate different reward seeds on different acts.
+- NeowHpBaselineTranspilerPatch is used to replace the line to set health to 0 so it's controlled by the mod.
 
 ## [v1.1.0] - Specific Ancient Text andSmall fixes
 
