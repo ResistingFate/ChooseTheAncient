@@ -2,6 +2,13 @@
 
 ## Unrelesaed
 
+## [v1.2.1] - Added compatability to Ancient Config Plus
+
+### Technical Details
+- Made the Ancient's selection pool weighted but uniform
+- Made an interop so that if Ancient Conif Plus is installed use that mods setting to adjust the weighted selection pool and remove ancients deselected by Ancient config Plus
+
+
 ## [v1.2.0] - Added Act 1, Game Modes, Ancient Pool Options, fast mode and fixes. Requires sts2 v1.07.1 minimum
 
 ### Features

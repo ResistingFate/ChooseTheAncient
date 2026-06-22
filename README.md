@@ -43,9 +43,11 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 ## Optional  Requirements
 - Modconfig for settings
 - BaseLib and CustomAncients if you want more ancients
+- Ancient Config Plus to weight or disable which Ancients show
 
 ## Mods Compatability list
 - BaseLib Custom Acients
+- Ancient Config Plus
 
 ## Technical
 - I patch the EnterNextAct method in RunManager.cs so that this mod loads before the next act starts

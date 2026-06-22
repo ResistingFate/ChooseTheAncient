@@ -5,9 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncient.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncient.Tests.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,7 +74,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected=".NET Executable.clean rebuild tests">
+  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
       <method v="2" />
@@ -224,7 +224,7 @@
       <workItem from="1782152318796" duration="133000" />
       <workItem from="1782152473655" duration="1611000" />
       <workItem from="1782155940830" duration="3591000" />
-      <workItem from="1782163646372" duration="3013000" />
+      <workItem from="1782163646372" duration="3537000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -274,7 +274,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782164833673</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="updated csproj files to help improve the testing framework">
+      <option name="closed" value="true" />
+      <created>1782167535935</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1782167535935</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -301,7 +309,8 @@
     <MESSAGE value="fix: collect multiplayer ancient ban votes concurrently" />
     <MESSAGE value="feat: keep ancient vote overlay open until all multiplayer votes arrive" />
     <MESSAGE value="Implemented compatability with Ancient Config Plus and added unit test to test the weighted ancient selection pool as a result. Without the mod all ancients have the same probability so behaves like a normal shuffle.&#10;&#10;Change My Rider Settings so the sln has the main project and the test project that runs all the unit tests." />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented compatability with Ancient Config Plus and added unit test to test the weighted ancient selection pool as a result. Without the mod all ancients have the same probability so behaves like a normal shuffle.&#10;&#10;Change My Rider Settings so the sln has the main project and the test project that runs all the unit tests." />
+    <MESSAGE value="updated csproj files to help improve the testing framework" />
+    <option name="LAST_COMMIT_MESSAGE" value="" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
