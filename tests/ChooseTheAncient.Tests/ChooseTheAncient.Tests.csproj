@@ -3,12 +3,14 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\ChooseTheAncientCode\Compatibility\AncientConfigsPlusWeightingCore.cs"
-             Link="Compatibility\AncientConfigsPlusWeightingCore.cs" />
+    <ProjectReference Include="..\..\ChooseTheAncient.csproj"
+                      AdditionalProperties="SkipModDeploy=true;CopyModOnBuild=false;PublishModPck=false;SkipDependencyPathCheck=true" />
   </ItemGroup>
 
   <ItemGroup>
