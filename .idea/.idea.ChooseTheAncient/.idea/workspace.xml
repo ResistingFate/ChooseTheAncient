@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncient.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncient.Tests.csproj" afterDir="false" />
-    </list>
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -74,7 +70,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected=".NET Executable.clean rebuild tests">
+  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
       <method v="2" />
@@ -122,7 +118,7 @@
     <configuration name="Editor" type="RunExe" factoryName=".NET Executable">
       <option name="EXE_PATH" value="$USER_HOME$/Downloads/megadot-4.5.1-m.13/MegaDot_v4.5.1-stable_mono_win64.exe" />
       <option name="PROGRAM_PARAMETERS" value="--path &quot;ChooseTheAncient&quot; --editor" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient" />
       <option name="PASS_PARENT_ENVS" value="1" />
       <option name="ENV_FILE_PATHS" value="" />
       <option name="REDIRECT_INPUT_PATH" value="" />
@@ -138,7 +134,7 @@
     <configuration name="Player" type="RunExe" factoryName=".NET Executable">
       <option name="EXE_PATH" value="$USER_HOME$/Downloads/megadot-4.5.1-m.13/MegaDot_v4.5.1-stable_mono_win64.exe" />
       <option name="PROGRAM_PARAMETERS" value="--path &quot;ChooseTheAncient&quot;" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient" />
       <option name="PASS_PARENT_ENVS" value="1" />
       <option name="ENV_FILE_PATHS" value="" />
       <option name="REDIRECT_INPUT_PATH" value="" />
@@ -224,7 +220,7 @@
       <workItem from="1782152318796" duration="133000" />
       <workItem from="1782152473655" duration="1611000" />
       <workItem from="1782155940830" duration="3591000" />
-      <workItem from="1782163646372" duration="3013000" />
+      <workItem from="1782163646372" duration="3699000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -274,7 +270,23 @@
       <option name="project" value="LOCAL" />
       <updated>1782164833673</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="updated csproj files to help improve the testing framework">
+      <option name="closed" value="true" />
+      <created>1782167535935</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1782167535935</updated>
+    </task>
+    <task id="LOCAL-00008" summary="[v1.2.1] Added compatability to Ancient Config Plus">
+      <option name="closed" value="true" />
+      <created>1782167913663</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1782167913663</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -301,7 +313,9 @@
     <MESSAGE value="fix: collect multiplayer ancient ban votes concurrently" />
     <MESSAGE value="feat: keep ancient vote overlay open until all multiplayer votes arrive" />
     <MESSAGE value="Implemented compatability with Ancient Config Plus and added unit test to test the weighted ancient selection pool as a result. Without the mod all ancients have the same probability so behaves like a normal shuffle.&#10;&#10;Change My Rider Settings so the sln has the main project and the test project that runs all the unit tests." />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented compatability with Ancient Config Plus and added unit test to test the weighted ancient selection pool as a result. Without the mod all ancients have the same probability so behaves like a normal shuffle.&#10;&#10;Change My Rider Settings so the sln has the main project and the test project that runs all the unit tests." />
+    <MESSAGE value="updated csproj files to help improve the testing framework" />
+    <MESSAGE value="[v1.2.1] Added compatability to Ancient Config Plus" />
+    <option name="LAST_COMMIT_MESSAGE" value="[v1.2.1] Added compatability to Ancient Config Plus" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

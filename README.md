@@ -2,7 +2,7 @@
 
 No longer do you stumble upon the Ancients, now they come to you.
 At the end of each act, vote the ancient you want for the start of the next.
-(Updated for STS2 v1.07.1)
+(Updated for STS2 v0.107.1)
 
 <img src="ChooseTheAncient/Choose_The_Ancients_Custom_Short_Decision.gif" alt="Alt Text" width="480" />
 
@@ -43,9 +43,11 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 ## Optional  Requirements
 - Modconfig for settings
 - BaseLib and CustomAncients if you want more ancients
+- Ancient Config Plus to weight or disable which Ancients show
 
 ## Mods Compatability list
 - BaseLib Custom Acients
+- Ancient Config Plus
 
 ## Technical
 - I patch the EnterNextAct method in RunManager.cs so that this mod loads before the next act starts
