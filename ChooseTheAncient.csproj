@@ -82,6 +82,10 @@
         <None Remove="**/*.uid" />
         <AdditionalFiles Remove="**/*.uid" />
         <Compile Remove="mod_page_resources\**" />
+        <Compile Remove="tests\**" />
+        <EmbeddedResource Remove="tests\**" />
+        <None Remove="tests\**" />
+        <Content Remove="tests\**" />
     </ItemGroup>
     
     <ItemGroup Condition="Exists('$(Sts2DataDir)')">

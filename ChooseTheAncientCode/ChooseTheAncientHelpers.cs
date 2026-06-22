@@ -18,6 +18,8 @@ using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Runs.History;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
+using ChooseTheAncient.ChooseTheAncientCode.Interop;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -583,6 +585,36 @@ public static class ChooseTheAncientHelpers
             .OrderBy(ancient => ancient.Id.Entry, StringComparer.Ordinal)
             .ToList();
 
+        IReadOnlyDictionary<string, int>? ancientConfigsPlusWeights =
+            AncientConfigsPlusInterop.TryParseWeights(nextActIndex + 1);
+
+        bool useAncientConfigsPlusWeights =
+            ancientConfigsPlusWeights is { Count: > 0 };
+
+        if (useAncientConfigsPlusWeights)
+        {
+            List<AncientEventModel> weightedPool = FilterCandidatePoolWithAncientConfigsPlusWeights(
+                runState,
+                nextActIndex,
+                distinctPool,
+                ancientConfigsPlusWeights!);
+
+            if (weightedPool.Count == 0)
+            {
+                ModLog.Warn(
+                    $"AncientConfigsPlus has weights for act {nextActIndex + 1}, but every CTA candidate had weight 0 or no configured weight. " +
+                    "Returning an empty ballot so CTA's existing fallback path can handle this safely.");
+                return new List<AncientEventModel>();
+            }
+
+            distinctPool = weightedPool;
+        }
+        else if (ancientConfigsPlusWeights != null)
+        {
+            ModLog.Debug(
+                $"AncientConfigsPlus returned no configured weights for act {nextActIndex + 1}; CTA will use its normal uniform ballot limiting.");
+        }
+
         ancientCount = Math.Min(ancientCount, distinctPool.Count);
 
         string candidatePoolSignature = BuildAncientIdSignature(distinctPool);
@@ -594,6 +626,16 @@ public static class ChooseTheAncientHelpers
                 $"Including all {distinctPool.Count} candidate(s) for act {nextActIndex + 1} because requestedCount={ancientCount}; " +
                 "the full candidate set will still be uniformly shuffled for display.");
             includedAncients = distinctPool;
+        }
+        else if (useAncientConfigsPlusWeights)
+        {
+            includedAncients = SelectAncientsForLimitedBallotWithAncientConfigsPlusWeights(
+                runState,
+                nextActIndex,
+                distinctPool,
+                ancientConfigsPlusWeights!,
+                ancientCount,
+                candidatePoolSignature);
         }
         else
         {
@@ -618,6 +660,94 @@ public static class ChooseTheAncientHelpers
         LogPool($"Act {nextActIndex + 1} uniformly shuffled CTA ballot display order", displayOrder);
         return displayOrder;
     }
+
+    private static List<AncientEventModel> FilterCandidatePoolWithAncientConfigsPlusWeights(
+        RunState runState,
+        int nextActIndex,
+        IReadOnlyList<AncientEventModel> collectedPool,
+        IReadOnlyDictionary<string, int> weights)
+    /*
+     * Applies AncientConfigsPlus enable/disable semantics after CTA has collected its valid candidates.
+     * ACP keys ancients by runtime type name and treats missing keys as weight 0.
+     */
+    {
+        List<AncientConfigsPlusCandidate<AncientEventModel>> candidates =
+            BuildAncientConfigsPlusWeightCandidates(runState, nextActIndex, collectedPool);
+
+        List<AncientEventModel> filteredPool =
+            AncientConfigsPlusWeightingCore.FilterCandidatesWithPositiveWeights(candidates, weights);
+
+        ModLog.Info(
+            $"AncientConfigsPlus filtered Act {nextActIndex + 1} CTA candidates from {collectedPool.Count} to {filteredPool.Count} " +
+            "using positive configured weights.");
+
+        LogPool($"Act {nextActIndex + 1} AncientConfigsPlus-positive CTA candidates", filteredPool);
+        return filteredPool;
+    }
+
+    private static List<AncientEventModel> SelectAncientsForLimitedBallotWithAncientConfigsPlusWeights(
+        RunState runState,
+        int nextActIndex,
+        IReadOnlyList<AncientEventModel> distinctPool,
+        IReadOnlyDictionary<string, int> weights,
+        int ancientCount,
+        string candidatePoolSignature)
+    /*
+     * Uses AncientConfigsPlus weights for CTA ballot inclusion while leaving CTA's display-order shuffle unchanged.
+     */
+    {
+        Rng inclusionRng = CreateRunScopedRng(
+            runState,
+            "ballot",
+            nextActIndex + 1,
+            ancientCount,
+            candidatePoolSignature,
+            "ancient_configs_plus_weighted_inclusion");
+
+        List<AncientConfigsPlusCandidate<AncientEventModel>> candidates =
+            BuildAncientConfigsPlusWeightCandidates(runState, nextActIndex, distinctPool);
+
+        List<AncientEventModel> includedAncients =
+            AncientConfigsPlusWeightingCore.SelectWeightedBallotWithoutReplacement(
+                candidates,
+                weights,
+                ancientCount,
+                inclusionRng.NextInt);
+
+        LogPool($"Act {nextActIndex + 1} AncientConfigsPlus-weighted CTA ballot included ancients", includedAncients);
+        return includedAncients;
+    }
+
+    private static List<AncientConfigsPlusCandidate<AncientEventModel>> BuildAncientConfigsPlusWeightCandidates(
+        RunState runState,
+        int nextActIndex,
+        IEnumerable<AncientEventModel> collectedPool)
+    /*
+     * Converts collected CTA ancient candidates into the small testable shape used by the ACP weighting core.
+     */
+    {
+        ActModel? targetAct = nextActIndex >= 0 && nextActIndex < runState.Acts.Count
+            ? runState.Acts[nextActIndex]
+            : null;
+
+        AncientEventModel? rngChosenAncient = targetAct == null
+            ? null
+            : TryGetChosenAncient(targetAct);
+
+        List<AncientConfigsPlusCandidate<AncientEventModel>> candidates = new();
+
+        foreach (AncientEventModel ancient in collectedPool)
+        {
+            candidates.Add(new AncientConfigsPlusCandidate<AncientEventModel>(
+                ancient,
+                ancient.Id.Entry,
+                ancient.GetType().Name,
+                targetAct != null && ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient)));
+        }
+
+        return candidates;
+    }
+
 
     private static List<AncientEventModel> SelectAncientsForLimitedBallot(
         RunState runState,
