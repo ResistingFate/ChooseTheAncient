@@ -5,11 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientAct1ModifierBootstrapTests.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientCoopModifierBootstrapTests.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,7 +42,7 @@
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="Toolset" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
@@ -53,30 +52,31 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient Tests to folder.executor&quot;: &quot;Run&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient to folder.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;RiderUnitTestingPageId&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    ".NET Executable.clean rebuild tests.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
+    "Publish to folder.Publish ChooseTheAncient to folder.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "RiderUnitTestingPageId",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
-  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
+}]]></component>
+  <component name="RunManager" selected=".NET Executable.clean rebuild tests">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
       <method v="2" />
@@ -231,7 +231,7 @@
       <workItem from="1782181595814" duration="10000" />
       <workItem from="1782192676064" duration="391000" />
       <workItem from="1782232839810" duration="724000" />
-      <workItem from="1782432669852" duration="7436000" />
+      <workItem from="1782432669852" duration="9228000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -313,7 +313,31 @@
       <option name="project" value="LOCAL" />
       <updated>1782441711881</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1.">
+      <option name="closed" value="true" />
+      <created>1782444945685</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1782444945685</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1.">
+      <option name="closed" value="true" />
+      <created>1782444996269</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1782444996269</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1.">
+      <option name="closed" value="true" />
+      <created>1782445001163</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1782445001163</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -328,7 +352,7 @@
       <expand>
         <path>
           <item name="rootNode" type="c53c71d1:RiderDotCoverCoverageTreeModel$RootNode" />
-          <item name="Total 0% 7891/7891" type="8b8fad3a:RiderDotCoverCoverageTreeNode" />
+          <item name="Total 0% 8131/8131" type="8b8fad3a:RiderDotCoverCoverageTreeNode" />
         </path>
       </expand>
       <select />
@@ -358,7 +382,8 @@
     <MESSAGE value="updated csproj files to help improve the testing framework" />
     <MESSAGE value="[v1.2.1] Added compatability to Ancient Config Plus" />
     <MESSAGE value="Attempting an implementation to allow unknown modifiers presumably from mods to activate During act 1 with our Neow Patch. Neow Patch is called in helper." />
-    <option name="LAST_COMMIT_MESSAGE" value="Attempting an implementation to allow unknown modifiers presumably from mods to activate During act 1 with our Neow Patch. Neow Patch is called in helper." />
+    <MESSAGE value="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1." />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
