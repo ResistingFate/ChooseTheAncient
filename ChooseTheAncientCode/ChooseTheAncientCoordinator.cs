@@ -616,9 +616,29 @@ public static class ChooseTheAncientCoordinator
                 await localScreen.PlayInitialVoteResolutionAsync(firstVotes, firstPlaceIndex);
             }
 
-            finalists = [firstAncient, secondAncient];
+            string finalistSignature = string.Join(
+                "|",
+                new[] { firstAncient.Id.Entry, secondAncient.Id.Entry }
+                    .OrderBy(id => id, StringComparer.Ordinal));
 
-            ModLog.Info($"First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}.");
+            var secondRoundDisplayRng = ChooseTheAncientHelpers.CreateRunScopedRng(
+                runState,
+                "second_round_finalist_display",
+                "act",
+                targetActIndex,
+                "finalists",
+                finalistSignature,
+                "votes",
+                string.Join(",", firstVotes));
+
+            finalists = BuildSecondRoundFinalistDisplayOrder(
+                [firstAncient, secondAncient],
+                ancient => ancient.Id.Entry,
+                secondRoundDisplayRng.Shuffle);
+
+            ModLog.Info(
+                $"First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}; " +
+                $"second-round display order is {string.Join(", ", finalists.Select(ancient => ancient.Id.Entry))}.");
             ChooseTheAncientHelpers.LogPool($"Act {targetActIndex + 1} finalists", finalists);
 
             Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
@@ -635,7 +655,8 @@ public static class ChooseTheAncientCoordinator
                 targetActIndex,
                 pool,
                 finalists,
-                firstVotes);
+                firstVotes,
+                firstAncient.Id.Entry);
 
             if (gameMode == ChooseTheAncientConfig.SelectionGameMode.FairFight)
             {
@@ -1213,12 +1234,138 @@ public static class ChooseTheAncientCoordinator
         return false;
     }
 
+    public static List<T> BuildSecondRoundFinalistDisplayOrder<T>(
+        IEnumerable<T>? finalists,
+        Func<T, string>? getAncientId,
+        Action<List<T>>? shuffle)
+    /*
+     * Builds the displayed order for the two second-round finalists using the same shape as the first-round
+     * ballot shuffle: start from a stable ID-sorted order, then apply the supplied deterministic shuffle.
+     * If the input is unexpectedly malformed, fail soft and keep the existing order rather than crashing the event.
+     */
+    {
+        List<T> originalOrder = finalists?.ToList() ?? [];
+
+        if (getAncientId == null)
+        {
+            ModLog.Warn("Second-round finalist display order could not be ID-sorted because getAncientId was null; keeping existing order.");
+            return originalOrder;
+        }
+
+        if (shuffle == null)
+        {
+            ModLog.Warn("Second-round finalist display order could not be shuffled because shuffle was null; keeping existing order.");
+            return originalOrder;
+        }
+
+        List<T> displayOrder = originalOrder
+            .DistinctBy(getAncientId)
+            .OrderBy(getAncientId, StringComparer.Ordinal)
+            .ToList();
+
+        if (displayOrder.Count != 2)
+        {
+            ModLog.Warn(
+                $"Second-round finalist display order expected exactly two unique finalists, got {displayOrder.Count}; keeping existing order.");
+            return originalOrder;
+        }
+
+        try
+        {
+            shuffle(displayOrder);
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn($"Second-round finalist display shuffle failed; keeping existing order. {ex}");
+            return originalOrder;
+        }
+
+        return displayOrder;
+    }
+
+    public static string? ResolveSuppressedPreviewAncientIdForSecondRound(
+        IReadOnlyList<string>? firstRoundPoolAncientIds,
+        IReadOnlyList<string>? finalistAncientIds,
+        IReadOnlyList<int>? firstVotes,
+        string? firstRoundWinnerAncientId)
+    /*
+     * Resolves which finalist should keep its preview suppressed in the second round.
+     * When the finalists are tied on first-round votes, reuse the already-resolved first-round winner so the
+     * vote-resolution highlight and the suppressed preview ancient cannot disagree.
+     * If data is unexpectedly malformed, fail soft and fall back to a finalist instead of crashing the event.
+     */
+    {
+        List<string> uniqueFinalists = finalistAncientIds?
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList() ?? [];
+
+        if (uniqueFinalists.Count == 0)
+        {
+            ModLog.Warn("Second-round preview suppression could not resolve a finalist because no finalist IDs were provided.");
+            return firstRoundWinnerAncientId;
+        }
+
+        bool winnerIsFinalist = firstRoundWinnerAncientId != null
+            && uniqueFinalists.Contains(firstRoundWinnerAncientId, StringComparer.Ordinal);
+
+        if (uniqueFinalists.Count != 2)
+        {
+            ModLog.Warn(
+                $"Second-round preview suppression expected exactly two unique finalists, got {uniqueFinalists.Count}; falling back to first available finalist.");
+            return winnerIsFinalist ? firstRoundWinnerAncientId : uniqueFinalists[0];
+        }
+
+        if (!winnerIsFinalist)
+        {
+            ModLog.Warn(
+                $"First-round winner {firstRoundWinnerAncientId ?? "<null>"} was not one of the second-round finalists; falling back to first available finalist.");
+            return uniqueFinalists[0];
+        }
+
+        if (firstRoundPoolAncientIds == null || firstVotes == null)
+        {
+            ModLog.Warn("Second-round preview suppression could not count first-round votes; falling back to the first-round winner.");
+            return firstRoundWinnerAncientId;
+        }
+
+        Dictionary<string, int> finalistVoteCounts = uniqueFinalists
+            .ToDictionary(id => id, _ => 0, StringComparer.Ordinal);
+
+        foreach (int vote in firstVotes)
+        {
+            if (vote < 0 || vote >= firstRoundPoolAncientIds.Count)
+            {
+                continue;
+            }
+
+            string votedAncientId = firstRoundPoolAncientIds[vote];
+            if (finalistVoteCounts.ContainsKey(votedAncientId))
+            {
+                finalistVoteCounts[votedAncientId]++;
+            }
+        }
+
+        int maxVotes = finalistVoteCounts.Values.Max();
+        List<string> leaders = finalistVoteCounts
+            .Where(kvp => kvp.Value == maxVotes)
+            .Select(kvp => kvp.Key)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList();
+
+        return leaders.Count == 1
+            ? leaders[0]
+            : firstRoundWinnerAncientId;
+    }
+
+
     private static (AncientEventModel? suppressedPreviewAncient, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) ResolveSecondRoundPresentation(
         RunState runState,
         int nextActIndex,
         IReadOnlyList<AncientEventModel> firstRoundPool,
         IReadOnlyList<AncientEventModel> finalists,
-        IReadOnlyList<int> firstVotes)
+        IReadOnlyList<int> firstVotes,
+        string firstRoundWinnerAncientId)
     /*
      * Chooses which finalist has its reward preview hidden and which finalist reacts during the second round presentation.
      */
@@ -1245,24 +1392,22 @@ public static class ChooseTheAncientCoordinator
             }
         }
 
-        AncientEventModel suppressedPreviewAncient;
+        string? suppressedPreviewAncientId = ResolveSuppressedPreviewAncientIdForSecondRound(
+            firstRoundPool.Select(ancient => ancient.Id.Entry).ToList(),
+            finalists.Select(ancient => ancient.Id.Entry).ToList(),
+            firstVotes,
+            firstRoundWinnerAncientId);
+
+        AncientEventModel suppressedPreviewAncient = finalists
+            .FirstOrDefault(ancient => ancient.Id.Entry == suppressedPreviewAncientId)
+            ?? finalists[0];
+
         int leftCount = finalistVoteCounts[finalists[0].Id.Entry];
         int rightCount = finalistVoteCounts[finalists[1].Id.Entry];
 
-        if (leftCount == rightCount)
-        {
-            var rng = ChooseTheAncientHelpers.CreateSecondRoundPresentationRng(runState, nextActIndex);
-            suppressedPreviewAncient = finalists[rng.NextInt(finalists.Count)];
-        }
-        else
-        {
-            suppressedPreviewAncient = leftCount > rightCount
-                ? finalists[0]
-                : finalists[1];
-        }
-
         AncientEventModel reactionAncient = finalists
-            .First(ancient => ancient.Id.Entry != suppressedPreviewAncient.Id.Entry);
+            .FirstOrDefault(ancient => ancient.Id.Entry != suppressedPreviewAncient.Id.Entry)
+            ?? finalists[1];
 
         ModLog.Debug($"Second vote presentation decided from round-one votes: suppress={suppressedPreviewAncient.Id.Entry}, reaction={reactionAncient.Id.Entry}, voteCounts={leftCount}/{rightCount}");
         // return SuppressedPreviewAncient to pass on to the selection screen

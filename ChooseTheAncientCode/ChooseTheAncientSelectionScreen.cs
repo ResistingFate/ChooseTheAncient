@@ -135,7 +135,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         string? SuppressedPreviewAncientId,
         AncientEventModel? SuppressedPreviewAncient,
         string? ReactionAncientId,
-        AncientEventModel? ReactionAncient);
+        AncientEventModel? ReactionAncient,
+        string? InitialFocusAncientId = null);
 
     private readonly record struct AncientSceneConfig(
         Vector2 BaseSize,
@@ -429,6 +430,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData> _previewDataByAncientId = new();
     private string? _suppressedPreviewAncientId; // ancient that does not reveal options, the initial vote
     private string? _reactionAncientId; // ancient that reacts with dialogue on the final preview vote
+    private string? _initialFocusAncientId; // ancient that should receive initial second-round focus/emphasis
     private int _nextActIndex;
     private int? _pendingPoolIndex;
     private int? _selectedPoolIndex;
@@ -966,12 +968,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _suppressedPreviewAncient = round.SuppressedPreviewAncient;
         _reactionAncientId = round.ReactionAncientId;
         _reactionAncient = round.ReactionAncient;
+        _initialFocusAncientId = round.InitialFocusAncientId;
 
         ModLog.Debug(
             $"RunRoundAsync start: roundType={_roundType}, " +
             $"incomingPreviewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}, " +
             $"suppressed={_suppressedPreviewAncientId ?? "<none>"}, " +
             $"reaction={_reactionAncientId ?? "<none>"}, " +
+            $"initialFocus={_initialFocusAncientId ?? "<none>"}, " +
             $"pool={string.Join(", ", _pool.Select(ancient => ancient.Id.Entry))}");
         _pendingPoolIndex = null;
         _selectedPoolIndex = null;
@@ -1582,7 +1586,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             SlotRefs refs = CreateSlot(ancient, i, cardScene);
             _slotsCanvas.AddChild(refs.SlotRoot);
             _slots.Add(refs);
-            if (_suppressedPreviewAncientId == refs.Ancient.Id.Entry)
+            if (_roundType == VoteRoundType.FinalRevealVote
+                && !string.IsNullOrEmpty(_initialFocusAncientId)
+                && _initialFocusAncientId == refs.Ancient.Id.Entry)
             {
                 preferredFocusRefs = refs;
             }

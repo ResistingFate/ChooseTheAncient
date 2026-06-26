@@ -4,6 +4,11 @@
 
 ## [v1.2.1] - Added compatability to Ancient Config Plus
 
+### Fixes
+- Modifier code now better at handling custom Modifiers
+- First and Second Selection Round ties flicker to the winning Ancient now.
+- Second round doesn't fix the first round winner ancient to the left.
+
 ### Technical Details
 - Made the Ancient's selection pool weighted but uniform
 - Made an interop so that if Ancient Conif Plus is installed use that mods setting to adjust the weighted selection pool and remove ancients deselected by Ancient config Plus

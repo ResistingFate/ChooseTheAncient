@@ -5,15 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientCoopModifierBootstrapTests.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientSecondRoundCoordinatorTests.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DpaMonitoringSettings">
+    <option name="firstShow" value="false" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -54,6 +60,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    ".NET Executable. dotnet test ChooseTheAncient.Tests.executor": "Run",
     ".NET Executable.clean rebuild tests.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
@@ -76,7 +83,7 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="RunManager" selected=".NET Executable.clean rebuild tests">
+  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
       <method v="2" />
@@ -231,7 +238,7 @@
       <workItem from="1782181595814" duration="10000" />
       <workItem from="1782192676064" duration="391000" />
       <workItem from="1782232839810" duration="724000" />
-      <workItem from="1782432669852" duration="9228000" />
+      <workItem from="1782432669852" duration="14243000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -337,7 +344,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782445001163</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="Added coop testing for modifiers in act 1">
+      <option name="closed" value="true" />
+      <created>1782447392592</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1782447392592</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -352,7 +367,7 @@
       <expand>
         <path>
           <item name="rootNode" type="c53c71d1:RiderDotCoverCoverageTreeModel$RootNode" />
-          <item name="Total 0% 8131/8131" type="8b8fad3a:RiderDotCoverCoverageTreeNode" />
+          <item name="Total 0% 8405/8405" type="8b8fad3a:RiderDotCoverCoverageTreeNode" />
         </path>
       </expand>
       <select />
@@ -383,7 +398,8 @@
     <MESSAGE value="[v1.2.1] Added compatability to Ancient Config Plus" />
     <MESSAGE value="Attempting an implementation to allow unknown modifiers presumably from mods to activate During act 1 with our Neow Patch. Neow Patch is called in helper." />
     <MESSAGE value="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1." />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1." />
+    <MESSAGE value="Added coop testing for modifiers in act 1" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added coop testing for modifiers in act 1" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
