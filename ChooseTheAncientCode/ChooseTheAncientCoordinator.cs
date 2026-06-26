@@ -691,16 +691,15 @@ public static class ChooseTheAncientCoordinator
         if (localPlayer != null)
         {
             List<ChooseTheAncientHelpers.ModifierBootstrapAction> bootstrapActions =
-                ChooseTheAncientHelpers.BuildModifierBootstrapActions(localPlayer)
-                    .OrderBy(GetModifierBootstrapPriority)
-                    .ThenBy(GetModifierBootstrapId, StringComparer.Ordinal)
-                    .ToList();
+                OrderModifierBootstrapActions(
+                    ChooseTheAncientHelpers.BuildModifierBootstrapActions(localPlayer));
 
             if (bootstrapActions.Count > 0)
             {
                 ModLog.Info(
                     $"Running {bootstrapActions.Count} start-of-run modifier bootstrap action(s) " +
-                    $"for local player {localPlayer.NetId}. Order={string.Join(", ", bootstrapActions.Select(GetModifierBootstrapId))}.");
+                    $"for local player {localPlayer.NetId}. " +
+                    $"Order={string.Join(", ", bootstrapActions.Select(action => $"{GetModifierBootstrapId(action)}@{GetModifierBootstrapRunOrderIndex(action)}"))}.");
 
                 for (int stepIndex = 0; stepIndex < bootstrapActions.Count; stepIndex++)
                 {
@@ -1018,20 +1017,95 @@ public static class ChooseTheAncientCoordinator
             : entry;
     }
 
-    private static int GetModifierBootstrapPriority(ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
+    private static int GetModifierBootstrapRunOrderIndex(ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
     /*
-     * Sorts modifier bootstrap actions so modifiers that affect deck construction run in a predictable order.
+     * Keeps the relative order produced by RunState.Modifiers. This avoids alphabetically having to reorder unrelated
+     * modifier Neow options such as ALL_STAR, SPECIALIST, and third-party modifiers after they have been harvested.
      */
     {
-        string modifierId = GetModifierBootstrapId(bootstrapAction);
+        return bootstrapAction.RunModifierIndex;
+    }
 
-        if (string.Equals(modifierId, "SEALED_DECK", StringComparison.OrdinalIgnoreCase))
-            return 0;
+    private static List<ChooseTheAncientHelpers.ModifierBootstrapAction> OrderModifierBootstrapActions(
+        IEnumerable<ChooseTheAncientHelpers.ModifierBootstrapAction> bootstrapActions)
+    /*
+     * Preserve RunState.Modifiers order for every recognized or unrecognized modifier.
+     */
+    {
+        List<ChooseTheAncientHelpers.ModifierBootstrapAction> ordered = bootstrapActions
+            .OrderBy(GetModifierBootstrapRunOrderIndex)
+            .ToList();
 
-        if (string.Equals(modifierId, "DRAFT", StringComparison.OrdinalIgnoreCase))
-            return 1;
+        LogUnrecognizedModifierBootstrapActions(ordered);
+        MoveModifierBeforeIfBothPresent(ordered, "SEALED_DECK", "DRAFT");
 
-        return 100;
+        return ordered;
+    }
+
+    private static void MoveModifierBeforeIfBothPresent(
+        List<ChooseTheAncientHelpers.ModifierBootstrapAction> ordered,
+        string modifierToMoveId,
+        string targetModifierId)
+    /*
+     * Applies a single dependency without globally prioritizing known modifiers over unknown modifiers.
+     */
+    {
+        int moverIndex = ordered.FindIndex(action =>
+            string.Equals(GetModifierBootstrapId(action), modifierToMoveId, StringComparison.OrdinalIgnoreCase));
+        int targetIndex = ordered.FindIndex(action =>
+            string.Equals(GetModifierBootstrapId(action), targetModifierId, StringComparison.OrdinalIgnoreCase));
+
+        if (moverIndex < 0 || targetIndex < 0 || moverIndex < targetIndex)
+            return;
+
+        ChooseTheAncientHelpers.ModifierBootstrapAction mover = ordered[moverIndex];
+        ordered.RemoveAt(moverIndex);
+
+        targetIndex = ordered.FindIndex(action =>
+            string.Equals(GetModifierBootstrapId(action), targetModifierId, StringComparison.OrdinalIgnoreCase));
+
+        if (targetIndex < 0)
+        {
+            ordered.Add(mover);
+            return;
+        }
+
+        ordered.Insert(targetIndex, mover);
+
+        ModLog.Info(
+            $"Adjusted modifier bootstrap order for dependency: {modifierToMoveId} before {targetModifierId}. " +
+            $"Order={string.Join(", ", ordered.Select(action => $"{GetModifierBootstrapId(action)}@{GetModifierBootstrapRunOrderIndex(action)}"))}.");
+    }
+
+    private static void LogUnrecognizedModifierBootstrapActions(
+        IReadOnlyList<ChooseTheAncientHelpers.ModifierBootstrapAction> ordered)
+    /*
+     * Unknown modifiers are supported through GenerateNeowOption. This log makes that compatibility path visible
+     * without forcing CTA to special-case the modifier id.
+     */
+    {
+        foreach (ChooseTheAncientHelpers.ModifierBootstrapAction action in ordered)
+        {
+            string modifierId = GetModifierBootstrapId(action);
+            if (IsRecognizedModifierBootstrapId(modifierId))
+                continue;
+
+            ModLog.Info(
+                $"Running unrecognized modifier bootstrap action {modifierId}@{GetModifierBootstrapRunOrderIndex(action)} " +
+                "through the generic GenerateNeowOption path.");
+        }
+    }
+
+    private static bool IsRecognizedModifierBootstrapId(string modifierId)
+    /*
+     * Known ids are used only for diagnostics and the tiny dependency rule above. They do not decide whether an action runs.
+     */
+    {
+        return string.Equals(modifierId, "SEALED_DECK", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(modifierId, "DRAFT", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(modifierId, "SPECIALIZED", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(modifierId, "ALL_STAR", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(modifierId, "INSANITY", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<List<int>> CollectVotes(

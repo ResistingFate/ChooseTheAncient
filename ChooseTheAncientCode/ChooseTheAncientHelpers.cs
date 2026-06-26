@@ -46,6 +46,18 @@ public static class ChooseTheAncientHelpers
     {
         public required ModifierModel Modifier { get; init; }
         public required Func<Task> ApplyAsync { get; init; }
+        public required int RunModifierIndex { get; init; }
+    }
+
+    private static string GetModifierIdForDiagnostics(ModifierModel modifier)
+    /*
+     * Reads a stable modifier id for logs without requiring CTA to know the modifier type.
+     */
+    {
+        string? entry = modifier.Id?.Entry;
+        return string.IsNullOrWhiteSpace(entry)
+            ? modifier.GetType().Name
+            : entry;
     }
 
     public static RunState? GetRunState(RunManager runManager)
@@ -980,17 +992,31 @@ public static class ChooseTheAncientHelpers
         EventModel syntheticNeow = CreateSyntheticNeowForModifierBootstrap(player, runState);
         List<ModifierBootstrapAction> actions = new();
 
-        foreach (ModifierModel modifier in runState.Modifiers)
+        IReadOnlyList<ModifierModel> modifiers = runState.Modifiers;
+
+        for (int modifierIndex = 0; modifierIndex < modifiers.Count; modifierIndex++)
         {
+            ModifierModel modifier = modifiers[modifierIndex];
+            string modifierId = GetModifierIdForDiagnostics(modifier);
+
             Func<Task>? applyAsync = modifier.GenerateNeowOption(syntheticNeow);
             if (applyAsync == null)
+            {
+                ModLog.Debug(
+                    $"Modifier {modifierId}@{modifierIndex} did not provide a Neow bootstrap action; skipping.");
                 continue;
+            }
 
             actions.Add(new ModifierBootstrapAction
             {
                 Modifier = modifier,
-                ApplyAsync = applyAsync
+                ApplyAsync = applyAsync,
+                RunModifierIndex = modifierIndex
             });
+
+            ModLog.Debug(
+                $"Queued Neow bootstrap action for modifier {modifierId}@{modifierIndex} " +
+                "through the generic GenerateNeowOption path.");
         }
 
         return actions;

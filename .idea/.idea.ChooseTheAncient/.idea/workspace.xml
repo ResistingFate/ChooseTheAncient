@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -221,6 +225,11 @@
       <workItem from="1782152473655" duration="1611000" />
       <workItem from="1782155940830" duration="3591000" />
       <workItem from="1782163646372" duration="3699000" />
+      <workItem from="1782171534694" duration="74000" />
+      <workItem from="1782181595814" duration="10000" />
+      <workItem from="1782192676064" duration="391000" />
+      <workItem from="1782232839810" duration="724000" />
+      <workItem from="1782432669852" duration="2548000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -286,7 +295,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782167913663</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="[v1.2.1] Added compatability to Ancient Config Plus">
+      <option name="closed" value="true" />
+      <created>1782171607515</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1782171607515</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
