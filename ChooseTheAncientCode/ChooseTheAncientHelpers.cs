@@ -70,6 +70,22 @@ public static class ChooseTheAncientHelpers
             .GetValue<RunState>();
     }
 
+    private static ActModel? GetActModelForTargetIndex(RunState runState, int targetActIndex)
+    /*
+     * Resolves an act model for helpers that receive an absolute target act index.
+     * Longer act lists use the direct index; looping/infinite act lists can reuse the finite act model list by modulo.
+     */
+    {
+        if (targetActIndex < 0 || runState.Acts.Count == 0)
+            return null;
+
+        int resolvedIndex = targetActIndex < runState.Acts.Count
+            ? targetActIndex
+            : targetActIndex % runState.Acts.Count;
+
+        return runState.Acts[resolvedIndex];
+    }
+
     private static bool IsAncientValidForAct(AncientEventModel ancient, ActModel act)
     /*
      * Calls a vanilla or BaseLib custom ancient's IsValidForAct method by reflection and treats missing methods as valid.
@@ -738,9 +754,7 @@ public static class ChooseTheAncientHelpers
      * Converts collected CTA ancient candidates into the small testable shape used by the ACP weighting core.
      */
     {
-        ActModel? targetAct = nextActIndex >= 0 && nextActIndex < runState.Acts.Count
-            ? runState.Acts[nextActIndex]
-            : null;
+        ActModel? targetAct = GetActModelForTargetIndex(runState, nextActIndex);
 
         AncientEventModel? rngChosenAncient = targetAct == null
             ? null
@@ -782,9 +796,7 @@ public static class ChooseTheAncientHelpers
 
         LogPool($"Act {nextActIndex + 1} randomized CTA ballot inclusion order", inclusionOrder);
 
-        ActModel? targetAct = nextActIndex >= 0 && nextActIndex < runState.Acts.Count
-            ? runState.Acts[nextActIndex]
-            : null;
+        ActModel? targetAct = GetActModelForTargetIndex(runState, nextActIndex);
 
         if (targetAct == null)
         {

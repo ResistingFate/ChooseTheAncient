@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
@@ -400,6 +401,9 @@ public static class ChooseTheAncientCoordinator
         ChooseTheAncientFlowState flow)
     {
         ChooseTheAncientSelectionScreen? localScreen = null;
+        bool enterNextActStarted = false;
+        bool shouldEnterNextAct = false;
+        int actIndexBeforeTransition = runState.CurrentActIndex;
 
         try
         {
@@ -414,79 +418,193 @@ public static class ChooseTheAncientCoordinator
             IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
                 await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, nextActIndex);
 
-            ActModel nextAct = runState.Acts[nextActIndex];
-            List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
-                nextAct,
-                runState,
-                nextActIndex,
-                effectiveAncientPoolSourceActs,
-                effectiveSpecialAncientOverrides);
-
-            if (ModLog.IsDebugEnabled)
+            if (!TryResolveTargetAct(runState, nextActIndex, out ActModel? nextAct, out int resolvedActModelIndex))
             {
-                string ancientPool = string.Join(",", pool.Select(ancient => ancient.Id.Entry));
-                ModLog.Debug($"Available ancients to draw {ancientCount} from for act {nextActIndex + 1}: {ancientPool}");
-            }
-
-            pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
-            ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
-            ModLog.Info($"Using game mode {gameMode} for act {nextActIndex + 1}.");
-
-            AncientEventModel? chosen = null;
-            if (pool.Count == 0)
-            {
-                ModLog.Warn($"No ancient candidates remained for act {nextActIndex + 1}. Falling back to vanilla EnterNextAct().");
-            }
-            else if (pool.Count == 1)
-            {
-                chosen = pool[0];
-                ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
-                ModLog.Info($"Only one ancient available for act {nextActIndex + 1}: {chosen.Id.Entry}");
+                ModLog.Warn(
+                    $"Could not resolve a target ActModel for act {nextActIndex + 1}. " +
+                    $"RunState.Acts.Count={runState.Acts.Count}. Falling back to vanilla EnterNextAct().");
+                shouldEnterNextAct = true;
             }
             else
             {
-                (chosen, localScreen) = await RunAncientSelectionBallotAsync(
+                List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
+                    nextAct,
                     runState,
                     nextActIndex,
-                    orderedPlayers,
-                    pool,
-                    gameMode);
+                    effectiveAncientPoolSourceActs,
+                    effectiveSpecialAncientOverrides);
 
-                ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
-                ModLog.Info($"Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}");
+                if (ModLog.IsDebugEnabled)
+                {
+                    string ancientPool = string.Join(",", pool.Select(ancient => ancient.Id.Entry));
+                    ModLog.Debug($"Available ancients to draw {ancientCount} from for act {nextActIndex + 1}: {ancientPool}");
+                }
+
+                pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
+                ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
+                ModLog.Info($"Using game mode {gameMode} for act {nextActIndex + 1}.");
+
+                AncientEventModel? chosen = null;
+                if (pool.Count == 0)
+                {
+                    ModLog.Warn($"No ancient candidates remained for act {nextActIndex + 1}. Falling back to vanilla EnterNextAct().");
+                }
+                else if (pool.Count == 1)
+                {
+                    chosen = pool[0];
+                    ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
+                    ModLog.Info(
+                        $"Only one ancient available for act {nextActIndex + 1}: {chosen.Id.Entry}. " +
+                        $"ResolvedActModelIndex={resolvedActModelIndex + 1}.");
+                }
+                else
+                {
+                    (chosen, localScreen) = await RunAncientSelectionBallotAsync(
+                        runState,
+                        nextActIndex,
+                        orderedPlayers,
+                        pool,
+                        gameMode);
+
+                    ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
+                    ModLog.Info(
+                        $"Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}. " +
+                        $"ResolvedActModelIndex={resolvedActModelIndex + 1}.");
+                }
+
+                if (chosen != null)
+                {
+                    SetForceNeowBlessingModeIfNeeded(flow, chosen, $"Act {nextActIndex + 1} choice resolved");
+                }
+
+                flow.ResolvedActs.Add(nextActIndex);
+                shouldEnterNextAct = true;
             }
-
-            if (chosen != null)
-            {
-                SetForceNeowBlessingModeIfNeeded(flow, chosen, $"Act {nextActIndex + 1} choice resolved");
-            }
-
-            flow.ResolvedActs.Add(nextActIndex);
-            flow.ContinueEnterNextAct = true;
-            await runManager.EnterNextAct();
         }
         catch (OperationCanceledException ex)
         {
             ModLog.Warn(
                 $"Ancient selection flow canceled for act {nextActIndex + 1}: " +
                 $"{ex.GetType().Name}. Skipping forced act progression.");
+            shouldEnterNextAct = false;
         }
         catch (Exception ex)
         {
-            ModLog.Error($"Ancient selection flow failed: {ex}");
-            flow.ContinueEnterNextAct = true;
-            await runManager.EnterNextAct();
+            ModLog.Error(
+                $"Ancient selection flow failed before EnterNextAct for act {nextActIndex + 1}: {ex}. " +
+                "Falling back to vanilla EnterNextAct once.");
+            shouldEnterNextAct = true;
+        }
+
+        try
+        {
+            if (shouldEnterNextAct)
+            {
+                localScreen?.CloseScreen();
+                localScreen = null;
+
+                ModLog.Debug(
+                    $"Preparing clean screen state before EnterNextAct for act {nextActIndex + 1}. " +
+                    "Closing CTA screen, clearing RunManager screens, then waiting one process frame.");
+
+                InvokeRunManagerVoid(ClearScreensMethod, runManager);
+                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+
+                enterNextActStarted = true;
+                flow.ContinueEnterNextAct = true;
+                await runManager.EnterNextAct();
+            }
+        }
+        catch (OperationCanceledException ex)
+        {
+            ModLog.Warn(
+                $"EnterNextAct canceled for act {nextActIndex + 1} after CTA flow: " +
+                $"{ex.GetType().Name}. Not retrying.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Error(
+                $"EnterNextAct failed for act {nextActIndex + 1} after the transition had started. " +
+                $"CurrentActIndexBefore={actIndexBeforeTransition + 1}, CurrentActIndexNow={runState.CurrentActIndex + 1}, " +
+                $"RunState.Acts.Count={runState.Acts.Count}. Not retrying because retrying can skip an act: {ex}");
+            throw;
         }
         finally
         {
             localScreen?.CloseScreen();
             flow.FlowInProgress = false;
             flow.ContinueEnterNextAct = false;
-            ModLog.Info($"Ancient flow cleanup. InProgress={flow.FlowInProgress}, ContinueNext={flow.ContinueEnterNextAct}");
+            ModLog.Info(
+                $"Ancient flow cleanup. InProgress={flow.FlowInProgress}, ContinueNext={flow.ContinueEnterNextAct}, " +
+                $"EnterNextActStarted={enterNextActStarted}");
         }
     }
 
-    
+    private static bool TryResolveTargetAct(
+        RunState runState,
+        int nextActIndex,
+        [NotNullWhen(true)] out ActModel? targetAct,
+        out int resolvedActModelIndex)
+    /*
+     * Resolves the ActModel CTA should use for the next transition without assuming the run only has three acts.
+     * - If a longer/infinite act list already contains nextActIndex, use it directly.
+     * - If the active run loops a finite act list, use modulo so act 4 can use act 1's model, act 5 can use act 2's, etc.
+     * - If no act model is available, let vanilla handle EnterNextAct without CTA selection.
+     */
+    {
+        targetAct = null;
+        resolvedActModelIndex = -1;
+
+        if (nextActIndex < 0)
+        {
+            ModLog.Warn($"Cannot resolve a negative target act index: {nextActIndex}.");
+            return false;
+        }
+
+        int actCount = runState.Acts.Count;
+        if (actCount <= 0)
+        {
+            ModLog.Warn("Cannot resolve a target act because runState.Acts is empty.");
+            return false;
+        }
+
+        if (nextActIndex < actCount)
+        {
+            ActModel? directAct = runState.Acts[nextActIndex];
+            if (directAct == null)
+            {
+                ModLog.Warn(
+                    $"Cannot resolve target act {nextActIndex + 1}: runState.Acts[{nextActIndex}] is null. " +
+                    $"RunState.Acts.Count={actCount}.");
+                return false;
+            }
+
+            targetAct = directAct;
+            resolvedActModelIndex = nextActIndex;
+            return true;
+        }
+
+        int loopedActModelIndex = nextActIndex % actCount;
+        ActModel? loopedAct = runState.Acts[loopedActModelIndex];
+        if (loopedAct == null)
+        {
+            ModLog.Warn(
+                $"Cannot resolve target act {nextActIndex + 1} through looped act model {loopedActModelIndex + 1}: " +
+                $"runState.Acts[{loopedActModelIndex}] is null. RunState.Acts.Count={actCount}.");
+            return false;
+        }
+
+        resolvedActModelIndex = loopedActModelIndex;
+        targetAct = loopedAct;
+
+        ModLog.Info(
+            $"Resolved act {nextActIndex + 1} through looped act model {resolvedActModelIndex + 1} " +
+            $"({targetAct.Id.Entry}). RunState.Acts.Count={actCount}.");
+
+        return true;
+    }
+
 
     private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionScreen? LocalScreen)> RunAncientSelectionBallotAsync(
         RunState runState,
