@@ -5,12 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/EnterNextActPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/EnterNextActPatch.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -243,7 +239,9 @@
       <workItem from="1782482455995" duration="5400000" />
       <workItem from="1782652463382" duration="3421000" />
       <workItem from="1782743824698" duration="13677000" />
-      <workItem from="1782833353938" duration="5536000" />
+      <workItem from="1782833353938" duration="5803000" />
+      <workItem from="1782907978337" duration="11861000" />
+      <workItem from="1782992086047" duration="5375000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -365,7 +363,79 @@
       <option name="project" value="LOCAL" />
       <updated>1782452571815</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="Made code more robust to handle infinite and looping act transitions and still has selection screen in some situation, and to also exit safely.&#10;- Remove hard-coded Act 2/3 for EnterNextAct Patch&#10; - Resolve target act models from longer act lists or looping act sequences&#10;- Fall back to vanilla progression when no target act can be resolved&#10;- Avoid treating repeated act indexes as already-resolved in endless-style runs&#10;- Separate CTA setup failures from EnterNextAct failures&#10;- Only fall back to EnterNextAct when the ancient selection flow fails before transition begins&#10;- Do not retry EnterNextAct after the transition has started, preventing skipped acts after partial failures&#10;- Close CTA screen state before continuing into the vanilla act transition">
+      <option name="closed" value="true" />
+      <created>1782864489987</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1782864489987</updated>
+    </task>
+    <task id="LOCAL-00017" summary="Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
+      <option name="closed" value="true" />
+      <created>1782999681493</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1782999681493</updated>
+    </task>
+    <task id="LOCAL-00018" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
+      <option name="closed" value="true" />
+      <created>1782999751179</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1782999751179</updated>
+    </task>
+    <task id="LOCAL-00019" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
+      <option name="closed" value="true" />
+      <created>1782999872104</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1782999872104</updated>
+    </task>
+    <task id="LOCAL-00020" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
+      <option name="closed" value="true" />
+      <created>1783000217780</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1783000217780</updated>
+    </task>
+    <task id="LOCAL-00021" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
+      <option name="closed" value="true" />
+      <created>1783001014720</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1783001014720</updated>
+    </task>
+    <task id="LOCAL-00022" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
+      <option name="closed" value="true" />
+      <created>1783001146330</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1783001146330</updated>
+    </task>
+    <task id="LOCAL-00023" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
+      <option name="closed" value="true" />
+      <created>1783001213252</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1783001213252</updated>
+    </task>
+    <task id="LOCAL-00024" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
+      <option name="closed" value="true" />
+      <created>1783001522858</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1783001522858</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -413,7 +483,10 @@
     <MESSAGE value="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1." />
     <MESSAGE value="Added coop testing for modifiers in act 1" />
     <MESSAGE value="- First and Second Selection Round ties flicker to the winning Ancient now.&#10;- Second round doesn't fix the first round winner ancient to the left." />
-    <option name="LAST_COMMIT_MESSAGE" value="" />
+    <MESSAGE value="Made code more robust to handle infinite and looping act transitions and still has selection screen in some situation, and to also exit safely.&#10;- Remove hard-coded Act 2/3 for EnterNextAct Patch&#10; - Resolve target act models from longer act lists or looping act sequences&#10;- Fall back to vanilla progression when no target act can be resolved&#10;- Avoid treating repeated act indexes as already-resolved in endless-style runs&#10;- Separate CTA setup failures from EnterNextAct failures&#10;- Only fall back to EnterNextAct when the ancient selection flow fails before transition begins&#10;- Do not retry EnterNextAct after the transition has started, preventing skipped acts after partial failures&#10;- Close CTA screen state before continuing into the vanilla act transition" />
+    <MESSAGE value="Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
+    <MESSAGE value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
+    <option name="LAST_COMMIT_MESSAGE" value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

@@ -16,8 +16,9 @@ public partial class MainFile : Node
 
     public static void Initialize()
     {
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
         ModConfigBridge.DeferredRegister();
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        BaseLibSettingsInterop.DeferredRegister();
         Harmony harmony = new(ModId);
         harmony.PatchAll();
     }

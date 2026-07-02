@@ -220,7 +220,7 @@ public static class ChooseTheAncientHelpers
      * Builds the full CTA candidate pool for a target act using the configured source acts and special ancient overrides.
      */
     {
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
 
         IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides = specialAncientOverridesOverride
             ?? ChooseTheAncientConfig.GetSpecialAncientOverridesSnapshot(targetActIndex);

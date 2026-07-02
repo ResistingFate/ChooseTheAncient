@@ -676,7 +676,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         if (!_uiReady || !Visible)
             return;
 
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
         RefreshModConfigValues();
 
         if (_lastShowControllerHotkeys != ShowControllerHotkeys ||
@@ -920,9 +920,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void SyncConfigFromSavedSettings()
     {
         /*
-         * Reloads config from ModConfig and applies the latest persisted values to this screen.
+         * Reloads config from ChooseTheAncient native settings and applies the latest persisted values to this screen.
          */
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
         ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys;
         ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline;
         VoteClickTarget = ChooseTheAncientConfig.VoteClickTarget;

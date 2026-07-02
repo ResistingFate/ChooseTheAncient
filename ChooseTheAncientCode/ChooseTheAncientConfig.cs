@@ -296,6 +296,7 @@ internal static class ChooseTheAncientConfig
         actFlags[targetActIndex] = Convert.ToBoolean(value);
         ModLog.Info(
             $"Applied special ancient override: ancient={ancientId}, act={targetActIndex + 1}, enabled={actFlags[targetActIndex]}.");
+        PersistCurrentSettings();
     }
 
     public static string GetSpecialAncientOverrideConfigKey(string ancientId, int targetActIndex)
@@ -404,11 +405,63 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         ModLog.Debug(message);
     }
 
-    public static void RefreshFromModConfig()
+    public static void RefreshFromNativeSettings()
+    {
+        ApplySettingsSnapshot(ChooseTheAncientSettingsStore.Load(), "native");
+    }
+
+    public static void ReloadNativeSettingsFromDisk()
+    {
+        ApplySettingsSnapshot(ChooseTheAncientSettingsStore.ReloadFromDisk(), "native");
+    }
+
+    internal static void ApplySettingsSnapshot(ChooseTheAncientSettings settings, string source)
+    {
+        AncientCount = NormalizeAncientCount(settings.AncientCount);
+        ShowControllerHotkeys = settings.ShowControllerHotkeys;
+        ShowOnlyButtonOutline = settings.ShowOnlyButtonOutline;
+        VoteClickTarget = NormalizeVoteClickTarget(settings.VoteClickTarget);
+        GameMode = NormalizeSelectionGameMode(settings.GameMode);
+
+        for (int targetActIndex = 0; targetActIndex < AncientPoolSourceActCount; targetActIndex++)
+        {
+            if (!AncientPoolSourceActsByTargetAct.TryGetValue(targetActIndex, out bool[]? sourceActFlags))
+                continue;
+
+            for (int sourceActIndex = 0; sourceActIndex < AncientPoolSourceActCount; sourceActIndex++)
+            {
+                string key = GetAncientPoolSourceActConfigKey(targetActIndex, sourceActIndex);
+                sourceActFlags[sourceActIndex] = settings.AncientPoolSourceActs.TryGetValue(key, out bool enabled)
+                    ? enabled
+                    : GetDefaultAncientPoolSourceActEnabled(targetActIndex, sourceActIndex);
+            }
+        }
+
+        foreach (string ancientId in new[] { NeowAncientId, DarvAncientId })
+        {
+            if (!SpecialAncientOverridesByTargetAct.TryGetValue(ancientId, out bool[]? actFlags))
+                continue;
+
+            for (int targetActIndex = 0; targetActIndex < actFlags.Length; targetActIndex++)
+            {
+                string key = GetSpecialAncientOverrideConfigKey(ancientId, targetActIndex);
+                actFlags[targetActIndex] = settings.SpecialAncientOverrides.TryGetValue(key, out bool enabled)
+                    ? enabled
+                    : GetDefaultSpecialAncientOverrideEnabled(ancientId, targetActIndex);
+            }
+        }
+
+        CurrentLogLevel = NormalizeLogLevel(settings.LogLevel);
+        ModLog.SetLevel(CurrentLogLevel, source);
+        ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
+        LogRefreshSummary();
+    }
+
+    public static void ImportLegacySettingsFromModConfig()
     {
         AncientCount = NormalizeAncientCount(
             ModConfigBridge.GetValue("ancientCount", (float)DefaultAncientCount));
-        
+
         ShowControllerHotkeys =
             ModConfigBridge.GetValue("showControllerHotkeys", DefaultShowControllerHotkeys);
 
@@ -466,6 +519,17 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             CurrentLogLevel = ModLog.CurrentLevel;
         }
 
+        ChooseTheAncientSettingsStore.SaveCurrent();
+        LogRefreshSummary();
+    }
+
+    private static void PersistCurrentSettings()
+    {
+        ChooseTheAncientSettingsStore.SaveCurrent();
+    }
+
+    private static void LogRefreshSummary()
+    {
         string refreshSummary =
             $"AncientCount={AncientCount}, GameMode={GameMode}, " +
             $"Act1Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(0))}, " +
@@ -484,29 +548,34 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
     public static void ApplyAncientCount(object value)
     {
         AncientCount = NormalizeAncientCount(value);
+        PersistCurrentSettings();
     }
 
     public static void ApplyShowControllerHotkeys(object value)
     {
         ShowControllerHotkeys = Convert.ToBoolean(value);
         ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
+        PersistCurrentSettings();
     }
 
     public static void ApplyShowOnlyButtonOutlineHotkeys(object value)
     {
         ShowOnlyButtonOutline = Convert.ToBoolean(value);
         ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
+        PersistCurrentSettings();
     }
 
     public static void ApplyVoteClickTarget(object value)
     {
         VoteClickTarget = NormalizeVoteClickTarget(value);
         ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
+        PersistCurrentSettings();
     }
 
     public static void ApplySelectionGameMode(object value)
     {
         GameMode = NormalizeSelectionGameMode(value);
+        PersistCurrentSettings();
     }
 
     public static bool HasAncientPoolSourceActConfig(int targetActIndex)
@@ -634,7 +703,8 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
     public static void ApplyLogLevel(object value)
     {
         CurrentLogLevel = NormalizeLogLevel(value);
-        ModLog.SetLevel(CurrentLogLevel, "modconfig");
+        ModLog.SetLevel(CurrentLogLevel, "settings");
+        PersistCurrentSettings();
     }
 
     public static string VoteClickTargetToOption(VoteClickTargetMode mode)
@@ -805,7 +875,7 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             }
 
             if (int.TryParse(rawString, out int parsedInt))
-                return NormalizeVoteClickTarget(parsedInt);
+                return NormalizeVoteClickTargetNumeric(parsedInt);
         }
 
         int rawValue = value switch
@@ -817,6 +887,11 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             _ => (int)DefaultVoteClickTarget
         };
 
+        return NormalizeVoteClickTargetNumeric(rawValue);
+    }
+
+    private static VoteClickTargetMode NormalizeVoteClickTargetNumeric(int rawValue)
+    {
         rawValue = Math.Clamp(rawValue, (int)VoteClickTargetMode.ButtonOnly, (int)VoteClickTargetMode.WholeSlot);
         return (VoteClickTargetMode)rawValue;
     }

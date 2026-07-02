@@ -72,7 +72,18 @@ internal static class ModConfigBridge
         if (_available)
         {
             Register();
-            ChooseTheAncientConfig.RefreshFromModConfig();
+
+            if (ChooseTheAncientSettingsStore.LoadedFromDisk)
+            {
+                PushImportantSettingsToModConfig();
+            }
+            else
+            {
+                // One-time migration path for existing users who had ModConfig before the
+                // dependency-free native settings file existed.
+                ChooseTheAncientConfig.ImportLegacySettingsFromModConfig();
+                PushImportantSettingsToModConfig();
+            }
         }
         else
         {
@@ -230,6 +241,16 @@ internal static class ModConfigBridge
         }
     }
 
+    internal static void PushImportantSettingsToModConfig()
+    {
+        if (!_available)
+            return;
+
+        SetValue("ancientCount", (float)ChooseTheAncientConfig.AncientCount);
+        SetValue("gameMode", ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode));
+    }
+
+
     // ═════════════════════════════════════════════════════════════
     //  EDIT BELOW: Define your config entries
     // ═════════════════════════════════════════════════════════════
@@ -249,14 +270,11 @@ internal static class ModConfigBridge
             Set(cfg, "Key", "ancientCount");
             Set(cfg, "Label", "Ancients in vote");
             Set(cfg, "Type", EnumVal("Slider"));
-
-            // Slider example in ModConfig uses float, so this is the safest shape.
-            Set(cfg, "DefaultValue", (object)(float)ChooseTheAncientConfig.DefaultAncientCount);
+            Set(cfg, "DefaultValue", (object)(float)ChooseTheAncientConfig.AncientCount);
             Set(cfg, "Min", 2.0f);
             Set(cfg, "Max", 8.0f);
             Set(cfg, "Step", 1.0f);
             Set(cfg, "Format", "F0");
-
             Set(cfg, "Description", "How many ancients appear in the initial vote.");
 
             Set(cfg, "OnChanged", new Action<object>(v =>
@@ -271,11 +289,11 @@ internal static class ModConfigBridge
             Set(cfg, "Key", "gameMode");
             Set(cfg, "Label", "Game mode");
             Set(cfg, "Type", EnumVal("Dropdown"));
-            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.DefaultSelectionGameMode));
+            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode));
             Set(cfg, "Options", ChooseTheAncientConfig.SelectionGameModeOptions);
 
             Set(cfg, "Description", "" +
-                                    "\n     Monty Hall: 2 rounds, only the reaction ancient previews in round: 2." +
+                                    "\n     Monty Hall: 2 rounds, only the reaction ancient previews in round 2." +
                                     "\n     Fair Fight: 2 rounds, both finalists preview in round 2." +
                                     "\n     I Want To Know Everything: 1 round, previews for every ancient, no dialogue." +
                                     "\n     Simple Picker: 1 round, no previews.");
@@ -287,91 +305,6 @@ internal static class ModConfigBridge
             }));
         }));
 
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Type", EnumVal("Separator"));
-        }));
-
-        AddSpecialAncientOverrideEntryGroup(list, "NEOW");
-        AddSpecialAncientOverrideEntryGroup(list, "DARV");
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Label", "Ancient Pool Sources");
-            Set(cfg, "Type", EnumVal("Header"));
-        }));
-
-        AddAncientPoolSourceEntryGroup(list, targetActIndex: 0);
-        AddAncientPoolSourceEntryGroup(list, targetActIndex: 1);
-        AddAncientPoolSourceEntryGroup(list, targetActIndex: 2);
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Type", EnumVal("Separator"));
-        }));
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Key", "showControllerHotkeys");
-            Set(cfg, "Label", "Show controller hotkeys");
-            Set(cfg, "Type", EnumVal("Toggle"));
-            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.DefaultShowControllerHotkeys);
-
-            Set(cfg, "Description", "Show controller/keyboard prompt hints on the ancient selection screen.");
-
-            Set(cfg, "OnChanged", new Action<object>(v =>
-            {
-                ChooseTheAncientConfig.ApplyShowControllerHotkeys(v);
-            }));
-        }));
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Key", "showOnlyButtonOutline");
-            Set(cfg, "Label", "Alternative Vote Button Design");
-            Set(cfg, "Type", EnumVal("Toggle"));
-            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.DefaultShowOnlyButtonOutline);
-
-            Set(cfg, "Description", "Only shows the White Outline and Text for the Vote Buttons.");
-
-            Set(cfg, "OnChanged", new Action<object>(v =>
-            {
-                ChooseTheAncientConfig.ApplyShowOnlyButtonOutlineHotkeys(v);
-            }));
-        }));
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Key", "voteClickTarget");
-            Set(cfg, "Label", "Vote click area");
-            Set(cfg, "Type", EnumVal("Dropdown"));
-            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.DefaultVoteClickTarget));
-            Set(cfg, "Options", ChooseTheAncientConfig.VoteClickTargetOptions);
-
-            Set(cfg, "Description", "Choose whether only the button, the whole card, or the whole ancient slot can be clicked.");
-
-            Set(cfg, "OnChanged", new Action<object>(v =>
-            {
-                ChooseTheAncientConfig.ApplyVoteClickTarget(v);
-            }));
-        }));
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Key", "logLevel");
-            Set(cfg, "Label", "Log level");
-            Set(cfg, "Type", EnumVal("Dropdown"));
-            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.DefaultLogLevel));
-            Set(cfg, "Options", ChooseTheAncientConfig.LogLevelOptions);
-
-            Set(cfg, "Description", "Controls how much ChooseTheAncient writes to the log. Changes apply immediately.");
-
-            Set(cfg, "OnChanged", new Action<object>(v =>
-            {
-                ChooseTheAncientConfig.ApplyLogLevel(v);
-            }));
-        }));
-        
         var result = Array.CreateInstance(_entryType!, list.Count);
         for (int i = 0; i < list.Count; i++)
         {
@@ -379,91 +312,6 @@ internal static class ModConfigBridge
         }
 
         return result;
-    } 
-
-    private static void AddAncientPoolSourceEntryGroup(List<object> list, int targetActIndex)
-    {
-        ModLog.Debug($"Registering ModConfig ancient pool group for target act {targetActIndex + 1}.");
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Label", ChooseTheAncientConfig.GetAncientPoolTargetActLabel(targetActIndex));
-            Set(cfg, "Type", EnumVal("Header"));
-        }));
-
-        for (int sourceActIndex = 0; sourceActIndex < 3; sourceActIndex++)
-        {
-            int capturedTargetActIndex = targetActIndex;
-            int capturedSourceActIndex = sourceActIndex;
-
-            list.Add(Entry(cfg =>
-            {
-                string key = ChooseTheAncientConfig.GetAncientPoolSourceActConfigKey(capturedTargetActIndex, capturedSourceActIndex);
-                bool defaultValue = ChooseTheAncientConfig.GetDefaultAncientPoolSourceActEnabled(capturedTargetActIndex, capturedSourceActIndex);
-
-                ModLog.Trace($"Registering ModConfig key '{key}' with default {defaultValue}.");
-
-                Set(cfg, "Key", key);
-                Set(cfg, "Label", ChooseTheAncientConfig.GetAncientPoolSourceActLabel(capturedSourceActIndex));
-                Set(cfg, "Type", EnumVal("Toggle"));
-                Set(cfg, "DefaultValue", (object)defaultValue);
-                Set(cfg, "Description",
-                    $"Allow ancients that normally come from Act {capturedSourceActIndex + 1} to appear in the Act {capturedTargetActIndex + 1} Choose The Ancient pool.");
-
-                Set(cfg, "OnChanged", new Action<object>(v =>
-                {
-                    ChooseTheAncientConfig.ApplyAncientPoolSourceActToggle(capturedTargetActIndex, capturedSourceActIndex, v);
-                    ModLog.Info(
-                        $"{ChooseTheAncientConfig.GetAncientPoolTargetActLabel(capturedTargetActIndex)} / " +
-                        $"{ChooseTheAncientConfig.GetAncientPoolSourceActLabel(capturedSourceActIndex)} changed to {v}");
-                }));
-            }));
-        }
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Type", EnumVal("Separator"));
-        }));
-    }
-
-    private static void AddSpecialAncientOverrideEntryGroup(List<object> list, string ancientId)
-    {
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Label", ChooseTheAncientConfig.GetSpecialAncientOverrideHeaderLabel(ancientId));
-            Set(cfg, "Type", EnumVal("Header"));
-        }));
-
-        for (int targetActIndex = 0; targetActIndex < 3; targetActIndex++)
-        {
-            int capturedTargetActIndex = targetActIndex;
-            string capturedAncientId = ancientId;
-
-            list.Add(Entry(cfg =>
-            {
-                string key = ChooseTheAncientConfig.GetSpecialAncientOverrideConfigKey(capturedAncientId, capturedTargetActIndex);
-                bool defaultValue = ChooseTheAncientConfig.GetDefaultSpecialAncientOverrideEnabled(capturedAncientId, capturedTargetActIndex);
-
-                Set(cfg, "Key", key);
-                Set(cfg, "Label", ChooseTheAncientConfig.GetSpecialAncientOverrideToggleLabel(capturedTargetActIndex));
-                Set(cfg, "Type", EnumVal("Toggle"));
-                Set(cfg, "DefaultValue", (object)defaultValue);
-                Set(cfg, "Description",
-                    $"Override whether {ChooseTheAncientConfig.GetSpecialAncientOverrideHeaderLabel(capturedAncientId).Replace(" Overrides", string.Empty)} should appear in the Act {capturedTargetActIndex + 1} Choose The Ancient selection.");
-
-                Set(cfg, "OnChanged", new Action<object>(v =>
-                {
-                    ChooseTheAncientConfig.ApplySpecialAncientOverrideToggle(capturedAncientId, capturedTargetActIndex, v);
-                    ModLog.Info(
-                        $"{ChooseTheAncientConfig.GetSpecialAncientOverrideHeaderLabel(capturedAncientId)} / Act {capturedTargetActIndex + 1} changed to {v}");
-                }));
-            }));
-        }
-
-        list.Add(Entry(cfg =>
-        {
-            Set(cfg, "Type", EnumVal("Separator"));
-        }));
     }
 
     // ═════════════════════════════════════════════════════════════

@@ -144,7 +144,7 @@ public static class ChooseTheAncientCoordinator
                 return;
             }
 
-            ChooseTheAncientConfig.RefreshFromModConfig();
+            ChooseTheAncientConfig.RefreshFromNativeSettings();
 
             List<Player> orderedPlayers = runState.Players
                 .OrderBy(runState.GetPlayerSlotIndex)
@@ -1748,7 +1748,7 @@ public static class ChooseTheAncientCoordinator
      * Collects and resolves the active ancient source-act filter across players before building the CTA ballot.
      */
     {
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
 
         if (!ChooseTheAncientConfig.HasAncientPoolSourceActConfig(targetActIndex))
         {
@@ -1811,7 +1811,7 @@ public static class ChooseTheAncientCoordinator
      * Collects and resolves per-player special ancient override toggles such as Neow and Darv.
      */
     {
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
 
         if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
         {
@@ -1868,7 +1868,7 @@ public static class ChooseTheAncientCoordinator
      * Collects and resolves the effective CTA game mode across players.
      */
     {
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
 
         if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
         {
@@ -1907,7 +1907,7 @@ public static class ChooseTheAncientCoordinator
      * Collects and resolves how many ancients should appear on the CTA ballot.
      */
     {
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
 
         if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
         {

@@ -1,4 +1,6 @@
+using System;
 using System.Globalization;
+using System.Linq;
 using ChooseTheAncient.ChooseTheAncientCode;
 
 namespace ChooseTheAncient.Scripts;
@@ -7,14 +9,25 @@ internal static class RitsuLibModSettingsInteropProvider
 {
     public static object CreateRitsuLibSettingsSchema()
     {
-        return "res://ChooseTheAncient/interop/ritsulib_settings_schema.json";
+        return "res://ChooseTheAncient/settings/ritsulib_settings_schema.json";
     }
 
     public static object? GetRitsuLibSettingValue(string key)
     {
+        if (TryParseAncientPoolSourceActKey(key, out int targetActIndex, out int sourceActIndex))
+        {
+            return ChooseTheAncientConfig
+                .GetEnabledAncientPoolSourceActs(targetActIndex)
+                .Contains(sourceActIndex);
+        }
+
+        if (TryParseSpecialAncientOverrideKey(key, out string? ancientId, out int specialTargetActIndex))
+            return ChooseTheAncientConfig.IsSpecialAncientOverrideEnabled(ancientId, specialTargetActIndex);
+
         return key switch
         {
             "ancientCount" => ChooseTheAncientConfig.AncientCount,
+            "gameMode" => ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode),
             "showControllerHotkeys" => ChooseTheAncientConfig.ShowControllerHotkeys,
             "showOnlyButtonOutline" => ChooseTheAncientConfig.ShowOnlyButtonOutline,
             "voteClickTarget" => ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.VoteClickTarget),
@@ -25,6 +38,24 @@ internal static class RitsuLibModSettingsInteropProvider
 
     public static void SetRitsuLibSettingValue(string key, object? value)
     {
+        if (TryParseAncientPoolSourceActKey(key, out int targetActIndex, out int sourceActIndex))
+        {
+            ChooseTheAncientConfig.ApplyAncientPoolSourceActToggle(
+                targetActIndex,
+                sourceActIndex,
+                ToBool(value, ChooseTheAncientConfig.GetDefaultAncientPoolSourceActEnabled(targetActIndex, sourceActIndex)));
+            return;
+        }
+
+        if (TryParseSpecialAncientOverrideKey(key, out string? ancientId, out int specialTargetActIndex))
+        {
+            ChooseTheAncientConfig.ApplySpecialAncientOverrideToggle(
+                ancientId,
+                specialTargetActIndex,
+                ToBool(value, ChooseTheAncientConfig.GetDefaultSpecialAncientOverrideEnabled(ancientId, specialTargetActIndex)));
+            return;
+        }
+
         switch (key)
         {
             case "ancientCount":
@@ -34,18 +65,26 @@ internal static class RitsuLibModSettingsInteropProvider
                 ModConfigBridge.SetValue("ancientCount", (float)ChooseTheAncientConfig.AncientCount);
                 return;
             }
+            case "gameMode":
+            {
+                var option = value?.ToString() ?? ChooseTheAncientConfig.SelectionGameModeToOption(
+                    ChooseTheAncientConfig.GameMode);
+                ChooseTheAncientConfig.ApplySelectionGameMode(option);
+                ModConfigBridge.SetValue(
+                    "gameMode",
+                    ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode));
+                return;
+            }
             case "showControllerHotkeys":
             {
                 var enabled = ToBool(value, ChooseTheAncientConfig.ShowControllerHotkeys);
                 ChooseTheAncientConfig.ApplyShowControllerHotkeys(enabled);
-                ModConfigBridge.SetValue("showControllerHotkeys", enabled);
                 return;
             }
             case "showOnlyButtonOutline":
             {
                 var enabled = ToBool(value, ChooseTheAncientConfig.ShowOnlyButtonOutline);
                 ChooseTheAncientConfig.ApplyShowOnlyButtonOutlineHotkeys(enabled);
-                ModConfigBridge.SetValue("showOnlyButtonOutline", enabled);
                 return;
             }
             case "voteClickTarget":
@@ -53,9 +92,6 @@ internal static class RitsuLibModSettingsInteropProvider
                 var option = value?.ToString() ?? ChooseTheAncientConfig.VoteClickTargetToOption(
                     ChooseTheAncientConfig.VoteClickTarget);
                 ChooseTheAncientConfig.ApplyVoteClickTarget(option);
-                var normalizedOption = ChooseTheAncientConfig.VoteClickTargetToOption(
-                    ChooseTheAncientConfig.VoteClickTarget);
-                ModConfigBridge.SetValue("voteClickTarget", normalizedOption);
                 return;
             }
             case "logLevel":
@@ -63,9 +99,6 @@ internal static class RitsuLibModSettingsInteropProvider
                 var option = value?.ToString() ?? ChooseTheAncientConfig.LogLevelToOption(
                     ChooseTheAncientConfig.CurrentLogLevel);
                 ChooseTheAncientConfig.ApplyLogLevel(option);
-                var normalizedOption = ChooseTheAncientConfig.LogLevelToOption(
-                    ChooseTheAncientConfig.CurrentLogLevel);
-                ModConfigBridge.SetValue("logLevel", normalizedOption);
                 return;
             }
         }
@@ -73,12 +106,7 @@ internal static class RitsuLibModSettingsInteropProvider
 
     public static bool GetRitsuLibSettingBool(string key)
     {
-        return key switch
-        {
-            "showControllerHotkeys" => ChooseTheAncientConfig.ShowControllerHotkeys,
-            "showOnlyButtonOutline" => ChooseTheAncientConfig.ShowOnlyButtonOutline,
-            _ => false,
-        };
+        return GetRitsuLibSettingValue(key) is bool value && value;
     }
 
     public static void SetRitsuLibSettingBool(string key, bool value)
@@ -88,11 +116,7 @@ internal static class RitsuLibModSettingsInteropProvider
 
     public static int GetRitsuLibSettingInt(string key)
     {
-        return key switch
-        {
-            "ancientCount" => ChooseTheAncientConfig.AncientCount,
-            _ => 0,
-        };
+        return GetRitsuLibSettingValue(key) is int value ? value : 0;
     }
 
     public static void SetRitsuLibSettingInt(string key, int value)
@@ -102,12 +126,7 @@ internal static class RitsuLibModSettingsInteropProvider
 
     public static string GetRitsuLibSettingString(string key)
     {
-        return key switch
-        {
-            "voteClickTarget" => ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.VoteClickTarget),
-            "logLevel" => ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel),
-            _ => "",
-        };
+        return GetRitsuLibSettingValue(key)?.ToString() ?? "";
     }
 
     public static void SetRitsuLibSettingString(string key, string value)
@@ -117,6 +136,8 @@ internal static class RitsuLibModSettingsInteropProvider
 
     public static void SaveRitsuLibSettings()
     {
+        ChooseTheAncientSettingsStore.SaveCurrent();
+        ModConfigBridge.PushImportantSettingsToModConfig();
     }
 
     public static void InvokeRitsuLibSettingAction(string key)
@@ -124,7 +145,51 @@ internal static class RitsuLibModSettingsInteropProvider
         if (!string.Equals(key, "reloadConfig", StringComparison.Ordinal))
             return;
 
-        ChooseTheAncientConfig.RefreshFromModConfig();
+        ChooseTheAncientConfig.ReloadNativeSettingsFromDisk();
+        ModConfigBridge.PushImportantSettingsToModConfig();
+    }
+
+    private static bool TryParseAncientPoolSourceActKey(string key, out int targetActIndex, out int sourceActIndex)
+    {
+        for (targetActIndex = 0; targetActIndex < 3; targetActIndex++)
+        {
+            for (sourceActIndex = 0; sourceActIndex < 3; sourceActIndex++)
+            {
+                if (string.Equals(
+                        key,
+                        ChooseTheAncientConfig.GetAncientPoolSourceActConfigKey(targetActIndex, sourceActIndex),
+                        StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+
+        targetActIndex = -1;
+        sourceActIndex = -1;
+        return false;
+    }
+
+    private static bool TryParseSpecialAncientOverrideKey(string key, out string ancientId, out int targetActIndex)
+    {
+        foreach (string id in new[] { "NEOW", "DARV" })
+        {
+            for (targetActIndex = 0; targetActIndex < 3; targetActIndex++)
+            {
+                if (string.Equals(
+                        key,
+                        ChooseTheAncientConfig.GetSpecialAncientOverrideConfigKey(id, targetActIndex),
+                        StringComparison.Ordinal))
+                {
+                    ancientId = id;
+                    return true;
+                }
+            }
+        }
+
+        ancientId = "";
+        targetActIndex = -1;
+        return false;
     }
 
     private static bool ToBool(object? value, bool fallback)
