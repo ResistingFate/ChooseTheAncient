@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,13 +68,20 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     // Animation tuning:
     // Store standard timings first, then swap to the faster values when Fast Mode is enabled.
     private const float ReactionEntranceOffset = 40f;
-    private const float PreviewEntranceOffset = 44f;
+    private const float PreviewEntranceOffset = 60f;
+    private const float PreviewEntranceScaleStartMultiplier = 0.96f;
+    private const float PreviewEntranceScaleOvershootMultiplier = 1.026f;
+    private const float PreviewEntrancePositionOvershoot = 8f;
     private const double ReactionEntranceDurationNormal = 1.00;
     private const double ReactionEntranceDurationFast = 0.82;
-    private const double PreviewEntranceDurationNormal = 0.50;
-    private const double PreviewEntranceDurationFast = 0.25;
-    private const double PreviewEntranceInitialDelayNormal = 0.50;
-    private const double PreviewEntranceInitialDelayFast = 0.25;
+    private const double PreviewEntranceDurationNormal = 0.36;
+    private const double PreviewEntranceDurationFast = 0.24;
+    private const double PreviewEntranceFadeDurationNormal = 0.12;
+    private const double PreviewEntranceFadeDurationFast = 0.07;
+    private const double PreviewEntranceSettleDurationNormal = 0.10;
+    private const double PreviewEntranceSettleDurationFast = 0.06;
+    private const double PreviewEntranceInitialDelayNormal = 0.14;
+    private const double PreviewEntranceInitialDelayFast = 0.05;
     private const double ReactionTextDurationNormal = 1.00;
     private const double ReactionTextDurationFast = 0.58;
     private const double FinalRoundStaggerNormal = 0.20;
@@ -1378,12 +1385,93 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         return 0f;
     }
 
+
+    private static Vector2 ResolvePreviewBasePosition(PreviewWidgetRefs widget)
+    {
+        /*
+         * LayoutPreview records the authored/base wrapper transform. Fall back to the current transform if the
+         * preview was created before its first layout pass, so the entrance tween never depends on relative drift.
+         */
+        return IsPreviewBaseScaleValid(widget.BaseScale)
+            ? widget.BasePosition
+            : widget.Wrapper.Position;
+    }
+
+    private static Vector2 ResolvePreviewBaseScale(PreviewWidgetRefs widget)
+    {
+        return IsPreviewBaseScaleValid(widget.BaseScale)
+            ? widget.BaseScale
+            : widget.Wrapper.Scale;
+    }
+
+    private static bool IsPreviewBaseScaleValid(Vector2 scale)
+    {
+        return scale.X > 0.0001f && scale.Y > 0.0001f;
+    }
+
+    private static void PrimePreviewWidgetEntrance(PreviewWidgetRefs widget)
+    {
+        Vector2 basePosition = ResolvePreviewBasePosition(widget);
+        Vector2 baseScale = ResolvePreviewBaseScale(widget);
+
+        widget.Wrapper.Modulate = new Color(1f, 1f, 1f, 0f);
+        widget.Wrapper.Position = basePosition + new Vector2(0f, PreviewEntranceOffset);
+        widget.Wrapper.Scale = baseScale * PreviewEntranceScaleStartMultiplier;
+    }
+
+    private static void CompletePreviewWidgetEntrance(PreviewWidgetRefs widget)
+    {
+        widget.Wrapper.Modulate = Colors.White;
+        widget.Wrapper.Position = ResolvePreviewBasePosition(widget);
+        widget.Wrapper.Scale = ResolvePreviewBaseScale(widget);
+    }
+
+    private void TweenPreviewWidgetEntrance(
+        PreviewWidgetRefs widget,
+        double delay,
+        double previewEntranceDuration,
+        double previewEntranceFadeDuration,
+        double previewEntranceSettleDuration)
+    {
+        Vector2 basePosition = ResolvePreviewBasePosition(widget);
+        Vector2 baseScale = ResolvePreviewBaseScale(widget);
+        Vector2 overshootPosition = basePosition + new Vector2(0f, -PreviewEntrancePositionOvershoot);
+
+        Tween tween = CreateTween();
+        tween.TweenInterval(delay);
+
+        /*
+         * The base Ancient event reveals all relic option buttons together from below, then lets them spring slightly
+         * past their final position before settling. Avoid NEventOptionButton.AnimateIn here because calling it per
+         * preview reintroduces the reward-screen-like one-by-one/top-down feel.
+         */
+        tween.TweenProperty(widget.Wrapper, "modulate:a", 1f, previewEntranceFadeDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Cubic);
+
+        tween.Parallel().TweenProperty(widget.Wrapper, "position", overshootPosition, previewEntranceDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Back);
+
+        tween.Parallel().TweenProperty(widget.Wrapper, "scale", baseScale * PreviewEntranceScaleOvershootMultiplier, previewEntranceDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Back);
+
+        tween.Chain();
+        tween.TweenProperty(widget.Wrapper, "position", basePosition, previewEntranceSettleDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Sine);
+        tween.Parallel().TweenProperty(widget.Wrapper, "scale", baseScale, previewEntranceSettleDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Sine);
+    }
+
     private void PrimeFinalRoundElementAnimation()
     {
         /*
          * Prepares preview widgets and reaction bubbles so their final-round entrance tween starts from hidden offset values.
          */
-        /* Readies the ancient preview elements to animation by setting alpha to 0, and putting down. */
+        /* Readies ancient preview elements by hiding them and placing them below their final positions. */
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
             return;
@@ -1416,9 +1504,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             {
                 foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
                 {
-                    widget.Wrapper.Modulate = new Color(1f, 1f, 1f, 0f);
-                    widget.Wrapper.Position += new Vector2(0f, PreviewEntranceOffset);
-                    widget.Wrapper.Scale *= new Vector2(0.982f, 0.982f);
+                    PrimePreviewWidgetEntrance(widget);
                 }
             }
         }
@@ -1455,9 +1541,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             {
                 foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
                 {
-                    widget.Wrapper.Modulate = Colors.White;
-                    widget.Wrapper.Position += new Vector2(0f, -PreviewEntranceOffset);
-                    widget.Wrapper.Scale /= new Vector2(0.982f, 0.982f);
+                    CompletePreviewWidgetEntrance(widget);
                 }
             }
         }
@@ -1483,63 +1567,77 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         double reactionEntranceDuration = GetPresentationDuration(ReactionEntranceDurationNormal, ReactionEntranceDurationFast);
         double reactionTextDuration = GetPresentationDuration(ReactionTextDurationNormal, ReactionTextDurationFast);
         double previewEntranceDuration = GetPresentationDuration(PreviewEntranceDurationNormal, PreviewEntranceDurationFast);
+        double previewEntranceFadeDuration = GetPresentationDuration(PreviewEntranceFadeDurationNormal, PreviewEntranceFadeDurationFast);
+        double previewEntranceSettleDuration = GetPresentationDuration(PreviewEntranceSettleDurationNormal, PreviewEntranceSettleDurationFast);
         double previewEntranceInitialDelay = GetPresentationDuration(PreviewEntranceInitialDelayNormal, PreviewEntranceInitialDelayFast);
         double finalRoundStagger = GetPresentationDuration(FinalRoundStaggerNormal, FinalRoundStaggerFast);
         double reactionEntranceInitialDelay = GetPresentationDuration(ReactionEntranceInitialDelayNormal, ReactionEntranceInitialDelayFast);
         double reactionIconDelay = GetPresentationDuration(ReactionIconDelayNormal, ReactionIconDelayFast);
         double reactionIconDuration = GetPresentationDuration(ReactionIconDurationNormal, ReactionIconDurationFast);
         double reactionTextDelay = GetPresentationDuration(ReactionTextDelayNormal, ReactionTextDelayFast);
+
+        /*
+         * Relic previews should match the Ancient event option reveal: the whole row/group rises from below together.
+         * Keep this timing independent from the reaction-bubble cascade so it does not look like reward cards entering
+         * one after another.
+         */
+        foreach (SlotRefs refs in _slots)
+        {
+            if (!refs.PreviewAnchor.Visible)
+            {
+                continue;
+            }
+
+            foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
+            {
+                TweenPreviewWidgetEntrance(
+                    widget,
+                    previewEntranceInitialDelay,
+                    previewEntranceDuration,
+                    previewEntranceFadeDuration,
+                    previewEntranceSettleDuration);
+            }
+        }
+
         double delay = 0.0;
 
         foreach (SlotRefs refs in _slots)
         {
-            if (refs.ReactionBubble != null)
+            if (refs.ReactionBubble == null)
             {
-                Control bubble = refs.ReactionBubble;
-                Tween bubbleTween = CreateTween();
-                bubbleTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                bubbleTween.TweenInterval(delay + reactionEntranceInitialDelay);
-                bubbleTween.TweenProperty(bubble, "modulate:a", 1f, reactionEntranceDuration);
-                bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, -ReactionEntranceOffset), reactionEntranceDuration);
-                bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.975f, 0.975f), reactionEntranceDuration);
-
-                Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
-                if (icon != null)
-                {
-                    Tween iconTween = CreateTween();
-                    iconTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                    iconTween.TweenInterval(delay + reactionEntranceInitialDelay + reactionIconDelay);
-                    iconTween.TweenProperty(icon, "modulate:a", 1f, reactionIconDuration);
-                    iconTween.Parallel().TweenProperty(icon, "position", icon.Position + new Vector2(0f, -8f), reactionIconDuration);
-                }
-
-                Control? text = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
-                if (text != null)
-                {
-                    Tween textTween = CreateTween();
-                    textTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                    textTween.TweenInterval(delay + reactionEntranceInitialDelay + reactionTextDelay);
-                    textTween.TweenProperty(text, "modulate:a", 1f, reactionTextDuration);
-                    textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(0f, -8f), reactionTextDuration);
-                }
-
-                StartReactionWave(bubble);
-                delay += finalRoundStagger;
+                continue;
             }
 
-            if (refs.PreviewAnchor.Visible)
+            Control bubble = refs.ReactionBubble;
+            Tween bubbleTween = CreateTween();
+            bubbleTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+            bubbleTween.TweenInterval(delay + reactionEntranceInitialDelay);
+            bubbleTween.TweenProperty(bubble, "modulate:a", 1f, reactionEntranceDuration);
+            bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, -ReactionEntranceOffset), reactionEntranceDuration);
+            bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.975f, 0.975f), reactionEntranceDuration);
+
+            Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
+            if (icon != null)
             {
-                foreach (PreviewWidgetRefs widget in refs.PreviewWidgets)
-                {
-                    Tween tween = CreateTween();
-                    tween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                    tween.TweenInterval(delay + previewEntranceInitialDelay);
-                    tween.TweenProperty(widget.Wrapper, "modulate:a", 1f, previewEntranceDuration);
-                    tween.Parallel().TweenProperty(widget.Wrapper, "position", widget.Wrapper.Position + new Vector2(0f, -PreviewEntranceOffset), previewEntranceDuration);
-                    tween.Parallel().TweenProperty(widget.Wrapper, "scale", widget.Wrapper.Scale / new Vector2(0.982f, 0.982f), previewEntranceDuration);
-                    delay += finalRoundStagger;
-                }
+                Tween iconTween = CreateTween();
+                iconTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                iconTween.TweenInterval(delay + reactionEntranceInitialDelay + reactionIconDelay);
+                iconTween.TweenProperty(icon, "modulate:a", 1f, reactionIconDuration);
+                iconTween.Parallel().TweenProperty(icon, "position", icon.Position + new Vector2(0f, -8f), reactionIconDuration);
             }
+
+            Control? text = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
+            if (text != null)
+            {
+                Tween textTween = CreateTween();
+                textTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                textTween.TweenInterval(delay + reactionEntranceInitialDelay + reactionTextDelay);
+                textTween.TweenProperty(text, "modulate:a", 1f, reactionTextDuration);
+                textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(0f, -8f), reactionTextDuration);
+            }
+
+            StartReactionWave(bubble);
+            delay += finalRoundStagger;
         }
     }
 
@@ -2799,13 +2897,20 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void LayoutPreviewAnchors(SlotRefs refs)
     {
         /*
-         * Uses the original scene-authored preview anchor layout for 1-2 slots,
-         * and expands the preview anchors into the stage-safe area for 3+ slots.
+         * Keep the original scene-authored vertical spacing for 1-2 slot layouts.
+         * For the final reveal, only clamp those authored anchors horizontally into
+         * the visible stage so the list cannot hang off the left/right screen edge.
          */
         if (_slots.Count <= 2)
         {
             ApplyControlLayout(refs.PreviewAnchor, refs.PreviewAnchorDefaultLayout);
             ApplyControlLayout(refs.ReactionAnchor, refs.ReactionAnchorDefaultLayout);
+
+            if (_roundType == VoteRoundType.FinalRevealVote)
+            {
+                ClampTwoSlotFinalRevealAnchorsToStage(refs);
+            }
+
             return;
         }
 
@@ -2849,6 +2954,82 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         refs.ReactionAnchor.OffsetBottom = localBottom;
         refs.ReactionAnchor.CustomMinimumSize = refs.PreviewAnchor.CustomMinimumSize;
         refs.ReactionAnchor.ClipContents = false;
+    }
+
+    private void ClampTwoSlotFinalRevealAnchorsToStage(SlotRefs refs)
+    {
+        /*
+         * The authored one/two-slot anchors have the correct vertical spacing, but
+         * can sit partially offscreen when the left/right Ancient card is near an edge.
+         * Shift or shrink only the horizontal offsets; leaving top/bottom alone avoids
+         * compressing all preview relic options into the reaction bubble area.
+         */
+        float sidePadding = ScaleFrom1080(PreviewAnchorSidePaddingAt1080);
+        ClampControlHorizontallyWithinStage(refs.PreviewAnchor, refs.CardRoot, sidePadding);
+        ClampControlHorizontallyWithinStage(refs.ReactionAnchor, refs.CardRoot, sidePadding);
+    }
+
+    private void ClampControlHorizontallyWithinStage(Control control, Control parent, float sidePadding)
+    {
+        if (_stageArea == null || parent.Size.X <= 1f)
+        {
+            return;
+        }
+
+        float stageWidth = _stageArea.Size.X;
+        if (stageWidth <= 1f)
+        {
+            return;
+        }
+
+        float minGlobalX = sidePadding;
+        float maxGlobalX = MathF.Max(minGlobalX + 1f, stageWidth - sidePadding);
+        float availableWidth = maxGlobalX - minGlobalX;
+
+        float localLeft = (parent.Size.X * control.AnchorLeft) + control.OffsetLeft;
+        float localRight = (parent.Size.X * control.AnchorRight) + control.OffsetRight;
+        float width = localRight - localLeft;
+        if (width <= 1f)
+        {
+            return;
+        }
+
+        float globalLeft = parent.Position.X + localLeft;
+        float globalRight = parent.Position.X + localRight;
+
+        if (width > availableWidth)
+        {
+            globalLeft = minGlobalX;
+            globalRight = maxGlobalX;
+        }
+        else
+        {
+            if (globalLeft < minGlobalX)
+            {
+                float shift = minGlobalX - globalLeft;
+                globalLeft += shift;
+                globalRight += shift;
+            }
+
+            if (globalRight > maxGlobalX)
+            {
+                float shift = globalRight - maxGlobalX;
+                globalLeft -= shift;
+                globalRight -= shift;
+            }
+
+            if (globalLeft < minGlobalX)
+            {
+                globalLeft = minGlobalX;
+                globalRight = minGlobalX + width;
+            }
+        }
+
+        float newLocalLeft = globalLeft - parent.Position.X;
+        float newLocalRight = globalRight - parent.Position.X;
+
+        control.OffsetLeft = newLocalLeft - (parent.Size.X * control.AnchorLeft);
+        control.OffsetRight = newLocalRight - (parent.Size.X * control.AnchorRight);
     }
 
     /*

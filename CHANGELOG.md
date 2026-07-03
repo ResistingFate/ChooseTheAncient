@@ -2,6 +2,12 @@
 
 ## Unrelesaed
 
+## [v1.2.3]
+
+### Fixes
+- Left Hand Side relic reveals in selection screen now have their tooltip show to the right of the reveal option so it's no longer offscreen.
+- Selection screen relics reveal animaiton more in line with vanilla's animaiton.
+
 ## [v1.2.2] - Added compatability to the game's update v0.108.0
 
 ### Fixes
