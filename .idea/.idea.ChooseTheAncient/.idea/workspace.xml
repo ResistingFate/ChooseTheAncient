@@ -5,8 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientPlayerWarnings.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowOptionIdentitySyncPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowOptionIdentitySyncPatch.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainFile.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MainFile.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,6 +43,9 @@
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/623673a32f6a4e15a5604f44f22978678a2200/b3/ae02c004/EventSynchronizer.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/14/90399323/RunManager.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/3a/a3d41f0a/LocalContext.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/48/11a79d22/NetGameType.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f76dbe67be824f0da0c703c3dce57e34e8e728/e0/0a0b050d/Task`1.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" root0="FORCE_HIGHLIGHTING" />
@@ -80,7 +92,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected=".NET Executable.SlayTheSpire2_Debug">
+  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
       <method v="2" />
@@ -241,7 +253,10 @@
       <workItem from="1782743824698" duration="13677000" />
       <workItem from="1782833353938" duration="5803000" />
       <workItem from="1782907978337" duration="11861000" />
-      <workItem from="1782992086047" duration="5375000" />
+      <workItem from="1782992086047" duration="6291000" />
+      <workItem from="1783034197793" duration="884000" />
+      <workItem from="1783082353450" duration="18593000" />
+      <workItem from="1783108539280" duration="2806000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -435,7 +450,63 @@
       <option name="project" value="LOCAL" />
       <updated>1783001522858</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
+      <option name="closed" value="true" />
+      <created>1783002205677</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1783002205677</updated>
+    </task>
+    <task id="LOCAL-00026" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
+      <option name="closed" value="true" />
+      <created>1783002765289</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1783002765289</updated>
+    </task>
+    <task id="LOCAL-00027" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
+      <option name="closed" value="true" />
+      <created>1783002818421</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1783002818421</updated>
+    </task>
+    <task id="LOCAL-00028" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
+      <option name="closed" value="true" />
+      <created>1783002825918</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1783002825918</updated>
+    </task>
+    <task id="LOCAL-00029" summary="Update for sts2 v0.108.0">
+      <option name="closed" value="true" />
+      <created>1783098347686</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1783098347686</updated>
+    </task>
+    <task id="LOCAL-00030" summary="Update for sts2 v0.108.0">
+      <option name="closed" value="true" />
+      <created>1783098728024</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1783098728024</updated>
+    </task>
+    <task id="LOCAL-00031" summary="adding back the gif">
+      <option name="closed" value="true" />
+      <created>1783098805198</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1783098805198</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -486,7 +557,10 @@
     <MESSAGE value="Made code more robust to handle infinite and looping act transitions and still has selection screen in some situation, and to also exit safely.&#10;- Remove hard-coded Act 2/3 for EnterNextAct Patch&#10; - Resolve target act models from longer act lists or looping act sequences&#10;- Fall back to vanilla progression when no target act can be resolved&#10;- Avoid treating repeated act indexes as already-resolved in endless-style runs&#10;- Separate CTA setup failures from EnterNextAct failures&#10;- Only fall back to EnterNextAct when the ancient selection flow fails before transition begins&#10;- Do not retry EnterNextAct after the transition has started, preventing skipped acts after partial failures&#10;- Close CTA screen state before continuing into the vanilla act transition" />
     <MESSAGE value="Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
     <MESSAGE value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
-    <option name="LAST_COMMIT_MESSAGE" value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
+    <MESSAGE value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options." />
+    <MESSAGE value="Update for sts2 v0.108.0" />
+    <MESSAGE value="adding back the gif" />
+    <option name="LAST_COMMIT_MESSAGE" value="adding back the gif" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

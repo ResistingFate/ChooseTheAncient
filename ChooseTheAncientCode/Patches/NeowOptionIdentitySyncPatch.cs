@@ -14,7 +14,6 @@ using ChooseTheAncient.ChooseTheAncientCode.Messages;
 
 namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 
-[HarmonyPatch]
 public static class NeowOptionIdentitySyncPatch
 {
     private sealed class PendingChoiceIdentity
@@ -22,7 +21,7 @@ public static class NeowOptionIdentitySyncPatch
         /*
          * Stores one remote Neow choice in a stable form instead of indexes and other mods can reorder Neow's option list
          * differently for each player.
-        */ 
+        */
         public string EventId { get; init; } = string.Empty;
         public string OptionIdentity { get; init; } = string.Empty;
         public uint RawOptionIndex { get; init; }
@@ -39,73 +38,238 @@ public static class NeowOptionIdentitySyncPatch
         public Dictionary<ulong, Queue<PendingChoiceIdentity>> PendingChoicesBySender { get; } = new();
     }
 
+    private sealed class EventSynchronizerTargets
+    {
+        public required MethodBase Constructor { get; init; }
+        public required MethodInfo Dispose { get; init; }
+        public required MethodInfo BeginEvent { get; init; }
+        public required MethodInfo ChooseLocalOption { get; init; }
+        public required MethodInfo ChooseOptionForEvent { get; init; }
+        public required string ConstructorDescription { get; init; }
+    }
+
     private static readonly ConditionalWeakTable<EventSynchronizer, SynchronizerState> States = new();
 
-    [HarmonyPatch]
-    private static class EventSynchronizerConstructorPatch
+    private static bool _installed;
+
+    public static void TryInstall(Harmony harmony)
     {
-        private static MethodBase TargetMethod()
+        /*
+         * Compatibility:
+         * - STS2 0.107.1 is the latest stable branch this mod supports.
+         * - STS2 0.108.0 is the current beta branch at the time this patch was added.
+         * - EventSynchronizer gained an IRunState constructor parameter in 0.108.0.
+         * - Future EventSynchronizer API change does not prevent the rest
+         *   of Choose The Ancient's Harmony patches from loading.
+         */
+
+        _installed = false;
+
+        EventSynchronizerTargets? targets = FindEventSynchronizerTargets(out string missingTarget);
+        if (targets == null)
         {
-            /*
-             * Compatibility:
-             * - STS2 0.107.1 is the latest stable branch this mod supports.
-             * - STS2 0.108.0 is the current beta branch at the time this patch was added.
-             * - EventSynchronizer gained an IRunState constructor parameter in 0.108.0.
-             */
+            ReportIdentitySyncUnavailable(
+                $"CTA Neow multiplayer identity sync was not installed because the EventSynchronizer target " +
+                $"'{missingTarget}' was not found. Single-player CTA and non-Neow CTA multiplayer should still work, " +
+                "but CTA-selected Neow in multiplayer may fall back to raw option-index syncing.");
+            return;
+        }
 
-            // remove, just testing the throw
-            // throw new MissingMethodException(typeof(EventSynchronizer).FullName, ".ctor");
-            
-            // Checking if IRunState exists in the event synchronizer so don't throw an error when using
-            // access tools with it later
-            Type? runStateInterface = typeof(EventSynchronizer).Assembly
-                .GetType("MegaCrit.Sts2.Core.Runs.IRunState");
+        MethodInfo? constructorPostfix = AccessTools.Method(
+            typeof(NeowOptionIdentitySyncPatch),
+            nameof(EventSynchronizerConstructorPostfix));
+        MethodInfo? disposePrefix = AccessTools.Method(
+            typeof(NeowOptionIdentitySyncPatch),
+            nameof(EventSynchronizerDisposePrefix));
+        MethodInfo? beginEventPostfix = AccessTools.Method(
+            typeof(NeowOptionIdentitySyncPatch),
+            nameof(BeginEventPostfix));
+        MethodInfo? chooseLocalOptionPrefix = AccessTools.Method(
+            typeof(NeowOptionIdentitySyncPatch),
+            nameof(ChooseLocalOptionPrefix));
+        MethodInfo? chooseOptionForEventPrefix = AccessTools.Method(
+            typeof(NeowOptionIdentitySyncPatch),
+            nameof(ChooseOptionForEventPrefix));
 
-            if (runStateInterface != null)
+        if (constructorPostfix == null ||
+            disposePrefix == null ||
+            beginEventPostfix == null ||
+            chooseLocalOptionPrefix == null ||
+            chooseOptionForEventPrefix == null)
+        {
+            ReportIdentitySyncUnavailable(
+                "CTA Neow multiplayer identity sync was not installed because one of its local Harmony patch methods " +
+                "could not be found. Single-player CTA and non-Neow CTA multiplayer should still work, but " +
+                "CTA-selected Neow in multiplayer may fall back to raw option-index syncing.");
+            return;
+        }
+
+        List<MethodBase> patchedTargets = new();
+
+        try
+        {
+            harmony.Patch(targets.Constructor, postfix: new HarmonyMethod(constructorPostfix));
+            patchedTargets.Add(targets.Constructor);
+
+            harmony.Patch(targets.Dispose, prefix: new HarmonyMethod(disposePrefix));
+            patchedTargets.Add(targets.Dispose);
+
+            harmony.Patch(targets.BeginEvent, postfix: new HarmonyMethod(beginEventPostfix));
+            patchedTargets.Add(targets.BeginEvent);
+
+            harmony.Patch(targets.ChooseLocalOption, prefix: new HarmonyMethod(chooseLocalOptionPrefix));
+            patchedTargets.Add(targets.ChooseLocalOption);
+
+            harmony.Patch(targets.ChooseOptionForEvent, prefix: new HarmonyMethod(chooseOptionForEventPrefix));
+            patchedTargets.Add(targets.ChooseOptionForEvent);
+
+            _installed = true;
+
+            ModLog.Info(
+                $"EventSynchronizer identity sync patches installed. " +
+                $"Constructor target: {targets.ConstructorDescription}.");
+        }
+        catch (Exception ex)
+        {
+            _installed = false;
+
+            foreach (MethodBase patchedTarget in patchedTargets)
             {
-                MethodBase? betaConstructor = AccessTools.Constructor(typeof(EventSynchronizer), new[]
+                try
                 {
-                    typeof(RunLocationTargetedMessageBuffer),
-                    typeof(INetGameService),
-                    typeof(IPlayerCollection),
-                    runStateInterface,
-                    typeof(ulong),
-                    typeof(uint)
-                });
-
-                if (betaConstructor != null)
+                    harmony.Unpatch(patchedTarget, HarmonyPatchType.All, harmony.Id);
+                }
+                catch (Exception unpatchEx)
                 {
-                    ModLog.Trace("On stable version 0.108.0. EventSynchronizer argument types are: " +
-                                 "RunLocationTargetedMessageBuffer, INetGameService, IPlayerCollection, IRunState ulong, uint");
-                    return betaConstructor;
+                    ModLog.Warn(
+                        $"Could not cleanly unpatch partial CTA Neow identity sync target {patchedTarget.Name}: " +
+                        $"{unpatchEx.GetType().Name}: {unpatchEx.Message}");
                 }
             }
 
-            MethodBase? stableConstructor = AccessTools.Constructor(typeof(EventSynchronizer), new[]
+            ReportIdentitySyncUnavailable(
+                $"CTA Neow multiplayer identity sync was not installed because Harmony failed while applying the " +
+                $"optional EventSynchronizer patches: {ex.GetType().Name}: {ex.Message}. Single-player CTA and " +
+                "non-Neow CTA multiplayer should still work, but CTA-selected Neow in multiplayer may fall back to " +
+                "raw option-index syncing.");
+        }
+    }
+
+    private static EventSynchronizerTargets? FindEventSynchronizerTargets(out string missingTarget)
+    {
+        //missingTarget = "forced test failure";
+        //return null;
+        MethodBase? constructor = FindEventSynchronizerConstructor(out string constructorDescription);
+        if (constructor == null)
+        {
+            missingTarget = "constructor";
+            return null;
+        }
+
+        MethodInfo? dispose = AccessTools.Method(
+            typeof(EventSynchronizer),
+            nameof(EventSynchronizer.Dispose));
+        if (dispose == null)
+        {
+            missingTarget = nameof(EventSynchronizer.Dispose);
+            return null;
+        }
+
+        MethodInfo? beginEvent = AccessTools.Method(
+            typeof(EventSynchronizer),
+            nameof(EventSynchronizer.BeginEvent));
+        if (beginEvent == null)
+        {
+            missingTarget = nameof(EventSynchronizer.BeginEvent);
+            return null;
+        }
+
+        MethodInfo? chooseLocalOption = AccessTools.Method(
+            typeof(EventSynchronizer),
+            nameof(EventSynchronizer.ChooseLocalOption),
+            new[] { typeof(int) });
+        if (chooseLocalOption == null)
+        {
+            missingTarget = nameof(EventSynchronizer.ChooseLocalOption);
+            return null;
+        }
+
+        MethodInfo? chooseOptionForEvent = AccessTools.Method(
+            typeof(EventSynchronizer),
+            "ChooseOptionForEvent",
+            new[] { typeof(Player), typeof(int) });
+        if (chooseOptionForEvent == null)
+        {
+            missingTarget = "ChooseOptionForEvent";
+            return null;
+        }
+
+        missingTarget = string.Empty;
+        return new EventSynchronizerTargets
+        {
+            Constructor = constructor,
+            Dispose = dispose,
+            BeginEvent = beginEvent,
+            ChooseLocalOption = chooseLocalOption,
+            ChooseOptionForEvent = chooseOptionForEvent,
+            ConstructorDescription = constructorDescription
+        };
+    }
+
+    // This is where we check which version of the game we're on by looking at EventSynchronizer and then
+    // picking the right arguments for EventSynchronizer.
+    private static MethodBase? FindEventSynchronizerConstructor(out string targetDescription)
+    {
+        Type? runStateInterface = typeof(EventSynchronizer).Assembly
+            .GetType("MegaCrit.Sts2.Core.Runs.IRunState");
+
+        if (runStateInterface != null)
+        {
+            MethodBase? betaConstructor = AccessTools.Constructor(typeof(EventSynchronizer), new[]
             {
                 typeof(RunLocationTargetedMessageBuffer),
                 typeof(INetGameService),
                 typeof(IPlayerCollection),
+                runStateInterface,
                 typeof(ulong),
                 typeof(uint)
             });
 
-            if (stableConstructor != null)
+            if (betaConstructor != null)
             {
-                ModLog.Trace("On stable version 0.107.1. EventSynchronizer argument types are: " +
-                             "RunLocationTargetedMessageBuffer, INetGameService, IPlayerCollection, ulong, uint");
-                return stableConstructor;
+                targetDescription = "0.108.0+ beta signature with IRunState";
+                return betaConstructor;
             }
-
-            ModLog.Error("EventSynchronizer constructor patch target not found. Mod will not fully work.");
-            throw new MissingMethodException(typeof(EventSynchronizer).FullName, ".ctor");
         }
 
-        [HarmonyPostfix]
-        private static void Postfix(EventSynchronizer __instance)
+        MethodBase? stableConstructor = AccessTools.Constructor(typeof(EventSynchronizer), new[]
         {
-            RegisterEventSynchronizerMessageHandler(__instance);
+            typeof(RunLocationTargetedMessageBuffer),
+            typeof(INetGameService),
+            typeof(IPlayerCollection),
+            typeof(ulong),
+            typeof(uint)
+        });
+
+        if (stableConstructor != null)
+        {
+            targetDescription = "0.107.1 stable signature without IRunState";
+            return stableConstructor;
         }
+
+        targetDescription = "not found";
+        return null;
+    }
+
+    private static void ReportIdentitySyncUnavailable(string message)
+    {
+        ModLog.Error(message);
+        ChooseTheAncientPlayerWarnings.ReportNeowMultiplayerIdentitySyncUnavailable();
+    }
+
+    private static void EventSynchronizerConstructorPostfix(EventSynchronizer __instance)
+    {
+        RegisterEventSynchronizerMessageHandler(__instance);
     }
 
     private static void RegisterEventSynchronizerMessageHandler(EventSynchronizer __instance)
@@ -136,11 +300,9 @@ public static class NeowOptionIdentitySyncPatch
 
         state.Buffer.RegisterMessageHandler(state.Handler);
 
-        ModLog.Info("EventSynchronizer works. Neow shouldn't cause Desyncs in Multiplayer.");
+        ModLog.Info("EventSynchronizer constructed; registered CTA Neow identity sync message handler.");
     }
 
-    [HarmonyPatch(typeof(EventSynchronizer), nameof(EventSynchronizer.Dispose))]
-    [HarmonyPrefix]
     private static void EventSynchronizerDisposePrefix(EventSynchronizer __instance)
     {
         if (!States.TryGetValue(__instance, out SynchronizerState? state))
@@ -150,8 +312,6 @@ public static class NeowOptionIdentitySyncPatch
         States.Remove(__instance);
     }
 
-    [HarmonyPatch(typeof(EventSynchronizer), "BeginEvent")]
-    [HarmonyPostfix]
     private static void BeginEventPostfix(EventSynchronizer __instance)
     {
         /*
@@ -163,10 +323,14 @@ public static class NeowOptionIdentitySyncPatch
         state.PendingChoicesBySender.Clear();
     }
 
-    [HarmonyPatch(typeof(EventSynchronizer), "ChooseLocalOption")]
-    [HarmonyPrefix]
     private static void ChooseLocalOptionPrefix(EventSynchronizer __instance, int index)
     {
+        if (!_installed)
+            return;
+
+        if (!States.TryGetValue(__instance, out _))
+            return;
+
         if (!TryBuildLocalIdentityMessage(__instance, index, out ChooseTheAncientNeowOptionIdentityChosenMessage message))
             return;
 
@@ -180,12 +344,10 @@ public static class NeowOptionIdentitySyncPatch
             $"Index={message.optionIndex}, Identity={message.OptionIdentityOrEmpty}, Location={message.location}.");
     }
 
-    [HarmonyPatch(typeof(EventSynchronizer), "ChooseOptionForEvent")]
-    [HarmonyPrefix]
     private static void ChooseOptionForEventPrefix(EventSynchronizer __instance, Player player, ref int optionIndex)
     {
         /*
-         * Changes optionIndex to the localIndex during Neow Option if we previously recived a queued indentity 
+         * Changes optionIndex to the localIndex during Neow Option if we previously recived a queued indentity
          */
         if (!ShouldUseIdentitySyncForPlayer(__instance, player, out EventModel? eventForPlayer))
             return;

@@ -4,7 +4,7 @@ No longer do you stumble upon the Ancients, now they come to you.
 At the end of each act, vote the ancient you want for the start of the next.
 (Updated for STS2 v0.108.0)
 
-<img src="workshop/Choose_The_Ancients_Custom_Short_Decision.gif" alt="Alt Text" width="480" />
+<img src="https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/workshop/Choose_The_Ancients_Custom_Short_Decision.gif" alt="Alt Text" width="480" />
 
 As you can see, you have 3 ancients to vote for and after you select one, another ancient has the chance to change your mind.
 The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
@@ -61,6 +61,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 
 ## New features Roadmap
 - ModLog more in line with common modding logging practice. Check Ritsulib
+- NeowOptionIdentitySyncPatch extend to all Ancients if relevent bugs are found?
 - Nicer transition between moments in the flow like changing rooms in the base game. Right now if the loading takes a bit longer we get an empty black screen with the game's toolbar still in view.
 - Fix {suppressedAnicent} formating defaulting when it shouldn't
 - Ask help for good zhs translation

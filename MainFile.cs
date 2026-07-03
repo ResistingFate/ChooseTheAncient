@@ -1,5 +1,6 @@
 using ChooseTheAncient.ChooseTheAncientCode;
 using ChooseTheAncient.Scripts;
+using ChooseTheAncient.ChooseTheAncientCode.Patches;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
@@ -16,10 +17,12 @@ public partial class MainFile : Node
 
     public static void Initialize()
     {
+        ChooseTheAncientPlayerWarnings.Register(); // adds a warning to main menu in case EventSynchronizer patch fails
         ChooseTheAncientConfig.RefreshFromNativeSettings();
         ModConfigBridge.DeferredRegister();
         BaseLibSettingsInterop.DeferredRegister();
         Harmony harmony = new(ModId);
         harmony.PatchAll();
+        NeowOptionIdentitySyncPatch.TryInstall(harmony); // Not included in PatchAll as SlayTheSpire 2 Updates have changed EventSynchronizer twice already.
     }
 }
