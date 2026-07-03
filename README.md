@@ -60,6 +60,8 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
 ## New features Roadmap
+- Slay the Stremer Relic addition patches? (maybe as separate mod)
+- Ancient Affection patches? (maybe as separate mod)
 - ModLog more in line with common modding logging practice. Check Ritsulib
 - NeowOptionIdentitySyncPatch extend to all Ancients if relevent bugs are found?
 - Nicer transition between moments in the flow like changing rooms in the base game. Right now if the loading takes a bit longer we get an empty black screen with the game's toolbar still in view.
