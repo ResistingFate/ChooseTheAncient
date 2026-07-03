@@ -2,17 +2,44 @@
 
 ## Unrelesaed
 
-## [v1.2.1] - Added compatability to Ancient Config Plus
+## [v1.2.2] - Added compatability to the game's update v0.108.0
+
+### Fixes
+- Mod now works on stable 0.107.1 and beta 0.108.0 branches
+
+### Technical
+- EventSynchronizer patch failed due to adding a new IRunState argument.
+- I've used AccessTools to check if the beta version of the argument is there with the IRunState Argument. And if that works it will use that version of EventSynchornizer.
+- If the IRunState argument is not there, it will fail and try to Access the EventSynchronizer assuming it does not have the IRunState argument.
+- It will then check the stable version, same argument call with AccessTools but without the IRunState argument. And if that works it will use that version of EventSynchornizer.
+- And if that fails, it throws an error so only the other parts of the mod works.
+- An error will appear on the bottom right in main menu saying the dll didn't load. This is incorrect, and I'll fix it later.
+- So, it will call the correct verison of the EventSynchronizer based on if you are on the public or private version of the game.
+
+## [v1.2.1] - Added compatability to Ancient Config Plus and robustness for mods that add extra act, and a BaseLib menu.
+
+### Fetaures
+- This mod stores it's own settingns
+- Baselib Menu
+- Modconfig only shows the important settings
+- RitsubLib and Baselib Menus have repackaged Moconfigs options into general, advanced, and redundant mod settings
 
 ### Fixes
 - Modifier code now better at handling custom Modifiers
 - First and Second Selection Round ties flicker to the winning Ancient now.
 - Second round doesn't fix the first round winner ancient to the left.
+- Now handles Selection Screen in infinite and looping act transitions, and also exits safely.
 
 ### Technical Details
 - Made the Ancient's selection pool weighted but uniform
 - Made an interop so that if Ancient Conif Plus is installed use that mods setting to adjust the weighted selection pool and remove ancients deselected by Ancient config Plus
-
+- Remove hard-coded Act 2/3 for EnterNextAct Patch
+- This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.
+- BaseLib is detected at runtime and used only as an optional menu host. The mod
+does not reference BaseLib at compile time, and failures in the interop path are
+logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,
+and saves settings as they are changed. It includes grouped general, advanced,
+and redundant settings, with toggles for hiding advanced and redundant options.
 
 ## [v1.2.0] - Added Act 1, Game Modes, Ancient Pool Options, fast mode and fixes. Requires sts2i v0.107.1 minimum
 

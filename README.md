@@ -2,15 +2,15 @@
 
 No longer do you stumble upon the Ancients, now they come to you.
 At the end of each act, vote the ancient you want for the start of the next.
-(Updated for STS2 v0.107.1)
+(Updated for STS2 v0.108.0)
 
-<img src="ChooseTheAncient/Choose_The_Ancients_Custom_Short_Decision.gif" alt="Alt Text" width="480" />
+<img src="workshop/Choose_The_Ancients_Custom_Short_Decision.gif" alt="Alt Text" width="480" />
 
 As you can see, you have 3 ancients to vote for and after you select one, another ancient has the chance to change your mind.
 The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 
 ## Features
-- After you proceed Act 1 or Act 2, a new screen asks you to choose the ancient
+- After you start Act 1 or proceed to Act 2 or Act 3, a new screen asks you to choose the ancient
 - Ancients' scenes clash together, and zoom in as you hover over them
 - Multiplayer Support. Votes are weighted, randomized picks in multiplayer
 - After the first round a second round starts where the second most voted ancient clashes with the choosen ancient
@@ -28,17 +28,6 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
     - Fair Fight
     - I Want To Know Everything
     - Simple Picker
-  - Ancient Pool
-    - Whether Act 1 has Act 1, 2, or 3 Ancients
-    - Whether Act 2 has Act 1, 2, or 3 Ancients
-    - Whether Act 3 has Act 1, 2, or 3 Ancients
-  - Controller tooltips 
-  - Invisible vote buttons 
-  - Vote happens whe clicking 
-    - vote button 
-    - Ancient card 
-    - The Ancient
-  - Debug level
 
 ## Optional  Requirements
 - Modconfig for settings
@@ -48,6 +37,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 ## Mods Compatability list
 - BaseLib Custom Acients
 - Ancient Config Plus
+- Some Endless modes
 
 ## Technical
 - I patch the EnterNextAct method in RunManager.cs so that this mod loads before the next act starts
@@ -79,17 +69,11 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Add shadow to Ancient Icon on card
 - Implement Log switcher when game in VeryDebug state
 - Touch up Ancient Dialouge in English
-- Add Override for sets of ancients mods to pool from only that class
-  - With priority system between mods
-  - maybe picking from modconfig
 - Compatability with Slay the Player
 - Compatability with local multiplayer
-- Compatability with infinate acts
 - Ancient menu themes
-- Add mod settings to BsaeLib's mod config version
 - Look up split path mod in multiplayer, might need new mod for new path and more ancient nodes in the map
 - Add support for custom ancient dialouges
 - Custom portal effect
 - Load improvements
-- Add testing
-- Bugfixes when needed
+- Bugfixes and testing when needed

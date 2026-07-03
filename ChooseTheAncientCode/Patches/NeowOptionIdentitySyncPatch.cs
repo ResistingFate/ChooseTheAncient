@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -40,14 +41,74 @@ public static class NeowOptionIdentitySyncPatch
 
     private static readonly ConditionalWeakTable<EventSynchronizer, SynchronizerState> States = new();
 
-    [HarmonyPatch(typeof(EventSynchronizer), MethodType.Constructor,
-        typeof(RunLocationTargetedMessageBuffer),
-        typeof(INetGameService),
-        typeof(IPlayerCollection),
-        typeof(ulong),
-        typeof(uint))]
-    [HarmonyPostfix]
-    private static void EventSynchronizerConstructorPostfix(EventSynchronizer __instance)
+    [HarmonyPatch]
+    private static class EventSynchronizerConstructorPatch
+    {
+        private static MethodBase TargetMethod()
+        {
+            /*
+             * Compatibility:
+             * - STS2 0.107.1 is the latest stable branch this mod supports.
+             * - STS2 0.108.0 is the current beta branch at the time this patch was added.
+             * - EventSynchronizer gained an IRunState constructor parameter in 0.108.0.
+             */
+
+            // remove, just testing the throw
+            // throw new MissingMethodException(typeof(EventSynchronizer).FullName, ".ctor");
+            
+            // Checking if IRunState exists in the event synchronizer so don't throw an error when using
+            // access tools with it later
+            Type? runStateInterface = typeof(EventSynchronizer).Assembly
+                .GetType("MegaCrit.Sts2.Core.Runs.IRunState");
+
+            if (runStateInterface != null)
+            {
+                MethodBase? betaConstructor = AccessTools.Constructor(typeof(EventSynchronizer), new[]
+                {
+                    typeof(RunLocationTargetedMessageBuffer),
+                    typeof(INetGameService),
+                    typeof(IPlayerCollection),
+                    runStateInterface,
+                    typeof(ulong),
+                    typeof(uint)
+                });
+
+                if (betaConstructor != null)
+                {
+                    ModLog.Trace("On stable version 0.108.0. EventSynchronizer argument types are: " +
+                                 "RunLocationTargetedMessageBuffer, INetGameService, IPlayerCollection, IRunState ulong, uint");
+                    return betaConstructor;
+                }
+            }
+
+            MethodBase? stableConstructor = AccessTools.Constructor(typeof(EventSynchronizer), new[]
+            {
+                typeof(RunLocationTargetedMessageBuffer),
+                typeof(INetGameService),
+                typeof(IPlayerCollection),
+                typeof(ulong),
+                typeof(uint)
+            });
+
+            if (stableConstructor != null)
+            {
+                ModLog.Trace("On stable version 0.107.1. EventSynchronizer argument types are: " +
+                             "RunLocationTargetedMessageBuffer, INetGameService, IPlayerCollection, ulong, uint");
+                return stableConstructor;
+            }
+
+            ModLog.Error("EventSynchronizer constructor patch target not found. Mod will not fully work.");
+            throw new MissingMethodException(typeof(EventSynchronizer).FullName, ".ctor");
+        }
+
+        [HarmonyPostfix]
+        private static void Postfix(EventSynchronizer __instance)
+        {
+            RegisterEventSynchronizerMessageHandler(__instance);
+        }
+    }
+
+    private static void RegisterEventSynchronizerMessageHandler(EventSynchronizer __instance)
     {
         /*
          * Purpose:
@@ -74,6 +135,8 @@ public static class NeowOptionIdentitySyncPatch
         });
 
         state.Buffer.RegisterMessageHandler(state.Handler);
+
+        ModLog.Info("EventSynchronizer works. Neow shouldn't cause Desyncs in Multiplayer.");
     }
 
     [HarmonyPatch(typeof(EventSynchronizer), nameof(EventSynchronizer.Dispose))]
