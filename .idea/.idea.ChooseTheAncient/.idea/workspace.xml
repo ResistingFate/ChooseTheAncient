@@ -5,17 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientPlayerWarnings.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowOptionIdentitySyncPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowOptionIdentitySyncPatch.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainFile.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MainFile.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -92,7 +84,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
+  <component name="RunManager" selected=".NET Executable.SlayTheSpire2_Debug">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
       <method v="2" />
@@ -256,7 +248,8 @@
       <workItem from="1782992086047" duration="6291000" />
       <workItem from="1783034197793" duration="884000" />
       <workItem from="1783082353450" duration="18593000" />
-      <workItem from="1783108539280" duration="2806000" />
+      <workItem from="1783108539280" duration="9411000" />
+      <workItem from="1783166687681" duration="5978000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -506,7 +499,31 @@
       <option name="project" value="LOCAL" />
       <updated>1783098805198</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="ChooseTheAncientPlayerWarnings Registers from main and looks out for the event onModDetected from ModManager.&#10;&#10;EventSynchronizer patching is no longer using NeowOptionIdentitySyncPatch as a whole Harmony Patch but rather patching individual contstructor and methods in a try statement in the same place so it can fail safely by itself.&#10;&#10;Forgot to commit settitngs_ui.json before. Also added a mod warning to this table in case NeowOptionIdentitySyncPatch cannot build.">
+      <option name="closed" value="true" />
+      <created>1783111652999</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1783111652999</updated>
+    </task>
+    <task id="LOCAL-00033" summary="changed json mod version number">
+      <option name="closed" value="true" />
+      <created>1783115065213</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1783115065213</updated>
+    </task>
+    <task id="LOCAL-00034" summary="- Left Hand Side relic reveals in selection screen now have their tooltip show to the right of the reveal option so it's no longer offscreen.&#10;- Selection screen relics reveal animaiton more in line with vanilla's animaiton.">
+      <option name="closed" value="true" />
+      <created>1783118027925</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1783118027925</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -560,7 +577,10 @@
     <MESSAGE value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options." />
     <MESSAGE value="Update for sts2 v0.108.0" />
     <MESSAGE value="adding back the gif" />
-    <option name="LAST_COMMIT_MESSAGE" value="adding back the gif" />
+    <MESSAGE value="ChooseTheAncientPlayerWarnings Registers from main and looks out for the event onModDetected from ModManager.&#10;&#10;EventSynchronizer patching is no longer using NeowOptionIdentitySyncPatch as a whole Harmony Patch but rather patching individual contstructor and methods in a try statement in the same place so it can fail safely by itself.&#10;&#10;Forgot to commit settitngs_ui.json before. Also added a mod warning to this table in case NeowOptionIdentitySyncPatch cannot build." />
+    <MESSAGE value="changed json mod version number" />
+    <MESSAGE value="- Left Hand Side relic reveals in selection screen now have their tooltip show to the right of the reveal option so it's no longer offscreen.&#10;- Selection screen relics reveal animaiton more in line with vanilla's animaiton." />
+    <option name="LAST_COMMIT_MESSAGE" value="- Left Hand Side relic reveals in selection screen now have their tooltip show to the right of the reveal option so it's no longer offscreen.&#10;- Selection screen relics reveal animaiton more in line with vanilla's animaiton." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

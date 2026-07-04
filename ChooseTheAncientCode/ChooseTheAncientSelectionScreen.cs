@@ -49,6 +49,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const float PortalRimThickness = 6f;
     private const float ReactionBubbleHeight = 112f;
     private const float ReactionBubbleGap = 10f;
+    private const float FinalRevealDialogueOptionGapAt1080 = 2f;
     private const float TopUiCutoffExtraPxAt1080 = 18f;
     private const float TopUiFallbackBottomPxAt1080 = 86f;
     private const float PreviewAnchorTopGapAt1080 = 12f;
@@ -65,23 +66,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     private static readonly string DialogueItalicFontPath = "res://themes/bitter_medium_italic_glyph_space_one.tres";
 
-    // Animation tuning:
-    // Store standard timings first, then swap to the faster values when Fast Mode is enabled.
-    private const float ReactionEntranceOffset = 40f;
-    private const float PreviewEntranceOffset = 60f;
-    private const float PreviewEntranceScaleStartMultiplier = 0.96f;
-    private const float PreviewEntranceScaleOvershootMultiplier = 1.026f;
-    private const float PreviewEntrancePositionOvershoot = 8f;
+    private const float PreviewEntranceOffsetAt1080 = 68f;
     private const double ReactionEntranceDurationNormal = 1.00;
     private const double ReactionEntranceDurationFast = 0.82;
-    private const double PreviewEntranceDurationNormal = 0.36;
-    private const double PreviewEntranceDurationFast = 0.24;
-    private const double PreviewEntranceFadeDurationNormal = 0.12;
-    private const double PreviewEntranceFadeDurationFast = 0.07;
-    private const double PreviewEntranceSettleDurationNormal = 0.10;
-    private const double PreviewEntranceSettleDurationFast = 0.06;
-    private const double PreviewEntranceInitialDelayNormal = 0.14;
-    private const double PreviewEntranceInitialDelayFast = 0.05;
+    private const double PreviewEntranceDurationNormal = 0.76;
+    private const double PreviewEntranceDurationFast = 0.54;
+    private const double PreviewEntranceFadeDurationNormal = 0.30;
+    private const double PreviewEntranceFadeDurationFast = 0.20;
+    private const double PreviewEntranceInitialDelayNormal = 0.08;
+    private const double PreviewEntranceInitialDelayFast = 0.04;
     private const double ReactionTextDurationNormal = 1.00;
     private const double ReactionTextDurationFast = 0.58;
     private const double FinalRoundStaggerNormal = 0.20;
@@ -202,6 +195,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public Node? SceneRoot { get; set; }
         public NMultiplayerVoteContainer? VoteContainer { get; set; }
         public Control? ReactionBubble { get; set; }
+        public Vector2 ReactionBubbleBasePosition { get; set; }
+        public Vector2 ReactionBubbleBaseScale { get; set; } = Vector2.One;
         public Vector2 BaseSize { get; set; }
         public Vector2 CardBasePosition { get; set; }
         public PortalShape Shape { get; set; }
@@ -1015,8 +1010,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
-        // Copy the Font style from Ancient Banner
-        //AncientEventModel? sampleAncient = _slots.Count > 0 ? _slots[0].Ancient : null;
         SyncConfigFromSavedSettings();
         
         if (!_hasLoadedRound)
@@ -1062,7 +1055,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Animates existing slot cards out before a new round layout is rebuilt.
          */
-        /* old slots slide slightly upward/outward and fade out. */
         if (_slots.Count == 0 || IsInstantMode())
         {
             return;
@@ -1091,7 +1083,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Places freshly rebuilt slots in their off-screen starting positions for the entrance tween.
          */
-        /* → places the new slot roots off to the sides and invisible so they are ready to tween in after they've been moved out*/
         for (int i = 0; i < _slots.Count; i++)
         {
             SlotRefs refs = _slots[i];
@@ -1109,10 +1100,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private async Task AnimateInSlotsAsync()
     {
         /*
-         * Animates rebuilt slots into place and then restores initial focus.
-         */
-        /*
-         Slot slide/fade into place. After that tween finishes, if it’s FinalRevealVote, it directly calls the ancient preview animation.
+         * Animates rebuilt slots into place and then starts any final reveal group animation.
          */
         if (_slots.Count == 0)
         {
@@ -1409,69 +1397,89 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         return scale.X > 0.0001f && scale.Y > 0.0001f;
     }
 
-    private static void PrimePreviewWidgetEntrance(PreviewWidgetRefs widget)
+    private static bool IsValidScale(Vector2 scale)
     {
-        Vector2 basePosition = ResolvePreviewBasePosition(widget);
-        Vector2 baseScale = ResolvePreviewBaseScale(widget);
+        return scale.X > 0.0001f && scale.Y > 0.0001f;
+    }
 
-        widget.Wrapper.Modulate = new Color(1f, 1f, 1f, 0f);
-        widget.Wrapper.Position = basePosition + new Vector2(0f, PreviewEntranceOffset);
-        widget.Wrapper.Scale = baseScale * PreviewEntranceScaleStartMultiplier;
+    private void PrimeFinalRevealControlEntrance(Control control, Vector2 basePosition, Vector2 baseScale)
+    {
+        control.Modulate = new Color(1f, 1f, 1f, 0f);
+        control.Position = basePosition + new Vector2(0f, ScaleFrom1080(PreviewEntranceOffsetAt1080));
+        control.Scale = baseScale;
+    }
+
+    private static void CompleteFinalRevealControlEntrance(Control control, Vector2 basePosition, Vector2 baseScale)
+    {
+        control.Modulate = Colors.White;
+        control.Position = basePosition;
+        control.Scale = baseScale;
+    }
+
+    private void TweenFinalRevealControlEntrance(
+        Control control,
+        Vector2 basePosition,
+        Vector2 baseScale,
+        double delay,
+        double previewEntranceDuration,
+        double previewEntranceFadeDuration)
+    {
+        /*
+         * Runs a shared bottom-to-top entrance for final reveal controls. Position and alpha are animated together while
+         * scale stays fixed, keeping the dialogue bubble and option buttons visually tied to the same motion.
+         */
+        Tween tween = CreateTween();
+        tween.TweenInterval(delay);
+
+        tween.TweenProperty(control, "modulate:a", 1f, previewEntranceFadeDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Sine);
+
+        tween.Parallel().TweenProperty(control, "position", basePosition, previewEntranceDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Sine);
+    }
+
+    private void PrimePreviewWidgetEntrance(PreviewWidgetRefs widget)
+    {
+        PrimeFinalRevealControlEntrance(
+            widget.Wrapper,
+            ResolvePreviewBasePosition(widget),
+            ResolvePreviewBaseScale(widget));
     }
 
     private static void CompletePreviewWidgetEntrance(PreviewWidgetRefs widget)
     {
-        widget.Wrapper.Modulate = Colors.White;
-        widget.Wrapper.Position = ResolvePreviewBasePosition(widget);
-        widget.Wrapper.Scale = ResolvePreviewBaseScale(widget);
+        CompleteFinalRevealControlEntrance(
+            widget.Wrapper,
+            ResolvePreviewBasePosition(widget),
+            ResolvePreviewBaseScale(widget));
     }
 
     private void TweenPreviewWidgetEntrance(
         PreviewWidgetRefs widget,
         double delay,
         double previewEntranceDuration,
-        double previewEntranceFadeDuration,
-        double previewEntranceSettleDuration)
+        double previewEntranceFadeDuration)
     {
-        Vector2 basePosition = ResolvePreviewBasePosition(widget);
-        Vector2 baseScale = ResolvePreviewBaseScale(widget);
-        Vector2 overshootPosition = basePosition + new Vector2(0f, -PreviewEntrancePositionOvershoot);
-
-        Tween tween = CreateTween();
-        tween.TweenInterval(delay);
-
         /*
-         * The base Ancient event reveals all relic option buttons together from below, then lets them spring slightly
-         * past their final position before settling. Avoid NEventOptionButton.AnimateIn here because calling it per
-         * preview reintroduces the reward-screen-like one-by-one/top-down feel.
+         * Animates the wrapper rather than the button itself so the preview keeps its finalized layout metrics while the
+         * entire option row enters with the rest of the reveal group.
          */
-        tween.TweenProperty(widget.Wrapper, "modulate:a", 1f, previewEntranceFadeDuration)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Cubic);
-
-        tween.Parallel().TweenProperty(widget.Wrapper, "position", overshootPosition, previewEntranceDuration)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Back);
-
-        tween.Parallel().TweenProperty(widget.Wrapper, "scale", baseScale * PreviewEntranceScaleOvershootMultiplier, previewEntranceDuration)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Back);
-
-        tween.Chain();
-        tween.TweenProperty(widget.Wrapper, "position", basePosition, previewEntranceSettleDuration)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Sine);
-        tween.Parallel().TweenProperty(widget.Wrapper, "scale", baseScale, previewEntranceSettleDuration)
-            .SetEase(Tween.EaseType.Out)
-            .SetTrans(Tween.TransitionType.Sine);
+        TweenFinalRevealControlEntrance(
+            widget.Wrapper,
+            ResolvePreviewBasePosition(widget),
+            ResolvePreviewBaseScale(widget),
+            delay,
+            previewEntranceDuration,
+            previewEntranceFadeDuration);
     }
 
     private void PrimeFinalRoundElementAnimation()
     {
         /*
-         * Prepares preview widgets and reaction bubbles so their final-round entrance tween starts from hidden offset values.
+         * Places final reveal elements below their laid-out positions and hides them until the entrance tween starts.
          */
-        /* Readies ancient preview elements by hiding them and placing them below their final positions. */
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
             return;
@@ -1481,23 +1489,27 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             if (refs.ReactionBubble != null)
             {
-                refs.ReactionBubble.Modulate = new Color(1f, 1f, 1f, 0f);
-                refs.ReactionBubble.Position += new Vector2(0f, ReactionEntranceOffset);
-                refs.ReactionBubble.Scale *= new Vector2(0.975f, 0.975f);
+                Vector2 basePosition = refs.ReactionBubbleBasePosition;
+                Vector2 baseScale = IsValidScale(refs.ReactionBubbleBaseScale)
+                    ? refs.ReactionBubbleBaseScale
+                    : refs.ReactionBubble.Scale;
 
+                /*
+                 * The bubble's child nodes stay visible while the parent bubble is animated as a single control.
+                 */
                 Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
                 if (icon != null)
                 {
-                    icon.Modulate = new Color(1f, 1f, 1f, 0f);
-                    icon.Position += new Vector2(0f, 8f);
+                    icon.Modulate = Colors.White;
                 }
 
                 Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
                 if (text != null)
                 {
-                    text.Modulate = new Color(1f, 1f, 1f, 0f);
-                    text.Position += new Vector2(0f, 8f);
+                    text.Modulate = Colors.White;
                 }
+
+                PrimeFinalRevealControlEntrance(refs.ReactionBubble, basePosition, baseScale);
             }
 
             if (refs.PreviewAnchor.Visible)
@@ -1516,22 +1528,23 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             if (refs.ReactionBubble != null)
             {
-                refs.ReactionBubble.Modulate = Colors.White;
-                refs.ReactionBubble.Position += new Vector2(0f, -ReactionEntranceOffset);
-                refs.ReactionBubble.Scale /= new Vector2(0.975f, 0.975f);
+                Vector2 basePosition = refs.ReactionBubbleBasePosition;
+                Vector2 baseScale = IsValidScale(refs.ReactionBubbleBaseScale)
+                    ? refs.ReactionBubbleBaseScale
+                    : Vector2.One;
+
+                CompleteFinalRevealControlEntrance(refs.ReactionBubble, basePosition, baseScale);
 
                 Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
                 if (icon != null)
                 {
                     icon.Modulate = Colors.White;
-                    icon.Position += new Vector2(0f, -8f);
                 }
 
                 Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
                 if (text != null)
                 {
                     text.Modulate = Colors.White;
-                    text.Position += new Vector2(0f, -8f);
                 }
 
                 StartReactionWave(refs.ReactionBubble);
@@ -1550,9 +1563,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void StartFinalRoundElementAnimation()
     {
         /*
-         * Runs the staggered entrance animation for preview widgets and reaction bubbles in the final round.
+         * Starts the final reveal group entrance after slot-level transition work has completed.
          */
-        /* animation the ancient preview animation */
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
             return;
@@ -1564,25 +1576,35 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
-        double reactionEntranceDuration = GetPresentationDuration(ReactionEntranceDurationNormal, ReactionEntranceDurationFast);
-        double reactionTextDuration = GetPresentationDuration(ReactionTextDurationNormal, ReactionTextDurationFast);
         double previewEntranceDuration = GetPresentationDuration(PreviewEntranceDurationNormal, PreviewEntranceDurationFast);
         double previewEntranceFadeDuration = GetPresentationDuration(PreviewEntranceFadeDurationNormal, PreviewEntranceFadeDurationFast);
-        double previewEntranceSettleDuration = GetPresentationDuration(PreviewEntranceSettleDurationNormal, PreviewEntranceSettleDurationFast);
         double previewEntranceInitialDelay = GetPresentationDuration(PreviewEntranceInitialDelayNormal, PreviewEntranceInitialDelayFast);
-        double finalRoundStagger = GetPresentationDuration(FinalRoundStaggerNormal, FinalRoundStaggerFast);
-        double reactionEntranceInitialDelay = GetPresentationDuration(ReactionEntranceInitialDelayNormal, ReactionEntranceInitialDelayFast);
-        double reactionIconDelay = GetPresentationDuration(ReactionIconDelayNormal, ReactionIconDelayFast);
-        double reactionIconDuration = GetPresentationDuration(ReactionIconDurationNormal, ReactionIconDurationFast);
-        double reactionTextDelay = GetPresentationDuration(ReactionTextDelayNormal, ReactionTextDelayFast);
 
         /*
-         * Relic previews should match the Ancient event option reveal: the whole row/group rises from below together.
-         * Keep this timing independent from the reaction-bubble cascade so it does not look like reward cards entering
-         * one after another.
+         * Every visible element in a slot uses the same delay so the dialogue and option rows enter as one grouped stack.
          */
         foreach (SlotRefs refs in _slots)
         {
+            if (refs.ReactionBubble != null)
+            {
+                Vector2 basePosition = refs.ReactionBubbleBasePosition;
+                Vector2 baseScale = IsValidScale(refs.ReactionBubbleBaseScale)
+                    ? refs.ReactionBubbleBaseScale
+                    : Vector2.One;
+
+                TweenFinalRevealControlEntrance(
+                    refs.ReactionBubble,
+                    basePosition,
+                    baseScale,
+                    previewEntranceInitialDelay,
+                    previewEntranceDuration,
+                    previewEntranceFadeDuration);
+
+                StartReactionWaveAfterDelay(
+                    refs.ReactionBubble,
+                    previewEntranceInitialDelay + previewEntranceDuration);
+            }
+
             if (!refs.PreviewAnchor.Visible)
             {
                 continue;
@@ -1594,50 +1616,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                     widget,
                     previewEntranceInitialDelay,
                     previewEntranceDuration,
-                    previewEntranceFadeDuration,
-                    previewEntranceSettleDuration);
+                    previewEntranceFadeDuration);
             }
-        }
-
-        double delay = 0.0;
-
-        foreach (SlotRefs refs in _slots)
-        {
-            if (refs.ReactionBubble == null)
-            {
-                continue;
-            }
-
-            Control bubble = refs.ReactionBubble;
-            Tween bubbleTween = CreateTween();
-            bubbleTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-            bubbleTween.TweenInterval(delay + reactionEntranceInitialDelay);
-            bubbleTween.TweenProperty(bubble, "modulate:a", 1f, reactionEntranceDuration);
-            bubbleTween.Parallel().TweenProperty(bubble, "position", bubble.Position + new Vector2(0f, -ReactionEntranceOffset), reactionEntranceDuration);
-            bubbleTween.Parallel().TweenProperty(bubble, "scale", bubble.Scale / new Vector2(0.975f, 0.975f), reactionEntranceDuration);
-
-            Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
-            if (icon != null)
-            {
-                Tween iconTween = CreateTween();
-                iconTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                iconTween.TweenInterval(delay + reactionEntranceInitialDelay + reactionIconDelay);
-                iconTween.TweenProperty(icon, "modulate:a", 1f, reactionIconDuration);
-                iconTween.Parallel().TweenProperty(icon, "position", icon.Position + new Vector2(0f, -8f), reactionIconDuration);
-            }
-
-            Control? text = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
-            if (text != null)
-            {
-                Tween textTween = CreateTween();
-                textTween.SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
-                textTween.TweenInterval(delay + reactionEntranceInitialDelay + reactionTextDelay);
-                textTween.TweenProperty(text, "modulate:a", 1f, reactionTextDuration);
-                textTween.Parallel().TweenProperty(text, "position", text.Position + new Vector2(0f, -8f), reactionTextDuration);
-            }
-
-            StartReactionWave(bubble);
-            delay += finalRoundStagger;
         }
     }
 
@@ -2718,6 +2698,23 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
     }
 
+
+    private void StartReactionWaveAfterDelay(Control bubble, double delay)
+    {
+        /*
+         * Defers the dialogue text wave until the parent bubble has finished its entrance motion.
+         */
+        Tween tween = CreateTween();
+        tween.TweenInterval(Math.Max(0.0, delay));
+        tween.TweenCallback(Callable.From(() =>
+        {
+            if (GodotObject.IsInstanceValid(bubble))
+            {
+                StartReactionWave(bubble);
+            }
+        }));
+    }
+
     #endregion
 
     #region Layout, geometry, and ancient scene transforms
@@ -2818,7 +2815,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     private PreviewLayoutMetrics GetPreviewLayoutMetrics(SlotRefs refs, Vector2 anchorSize)
     {
-        float bubbleReserve = refs.ReactionBubble != null
+        /*
+         * Computes the option row size, scale, and spacing for the current ballot layout.
+         * Final reveal allows the dialogue bubble to sit outside the option list's vertical budget.
+         */
+        float bubbleReserve = refs.ReactionBubble != null && _roundType != VoteRoundType.FinalRevealVote
             ? GetReactionBubbleHeight() + ScaleFrom1080(ReactionBubbleGap)
             : 0f;
         float availableHeight = MathF.Max(1f, anchorSize.Y - bubbleReserve);
@@ -2867,6 +2868,19 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 break;
         }
 
+        if (refs.PreviewWidgets.Count >= 4)
+        {
+            /*
+             * Applies compact row metrics when a preview list has more options than the standard layout.
+             */
+            gap = MathF.Min(gap, ScaleFrom1080(PreviewWidgetGapCompactAt1080));
+            if (_slots.Count >= 3)
+            {
+                displayWidth = MathF.Min(anchorSize.X, MathF.Max(displayWidth, refs.CardRoot.Size.X * 0.82f));
+                horizontalPadding = MathF.Min(horizontalPadding, ScaleFrom1080(8f));
+            }
+        }
+
         displayWidth = MathF.Max(1f, displayWidth - (horizontalPadding * 2f));
         displayWidth = MathF.Min(displayWidth, anchorSize.X);
 
@@ -2894,12 +2908,54 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             startY);
     }
 
+    private void ClampDefaultPreviewAnchorInsideStage(SlotRefs refs)
+    {
+        /*
+         * Preserves the scene-authored 1-2 slot anchor layout while keeping the preview stack within stage bounds.
+         */
+        if (_stageArea == null)
+        {
+            return;
+        }
+
+        float sidePadding = ScaleFrom1080(PreviewAnchorSidePaddingAt1080);
+        Vector2 anchorSize = refs.PreviewAnchor.Size;
+        if (anchorSize.X <= 1f)
+        {
+            return;
+        }
+
+        float anchorLeftInStage = refs.CardRoot.Position.X + refs.PreviewAnchor.Position.X;
+        float anchorRightInStage = anchorLeftInStage + anchorSize.X;
+        float minLeft = sidePadding;
+        float maxRight = MathF.Max(minLeft + anchorSize.X, _stageArea.Size.X - sidePadding);
+        float shiftX = 0f;
+
+        if (anchorLeftInStage < minLeft)
+        {
+            shiftX = minLeft - anchorLeftInStage;
+        }
+        else if (anchorRightInStage > maxRight)
+        {
+            shiftX = maxRight - anchorRightInStage;
+        }
+
+        if (MathF.Abs(shiftX) <= 0.01f)
+        {
+            return;
+        }
+
+        refs.PreviewAnchor.OffsetLeft += shiftX;
+        refs.PreviewAnchor.OffsetRight += shiftX;
+        refs.ReactionAnchor.OffsetLeft += shiftX;
+        refs.ReactionAnchor.OffsetRight += shiftX;
+    }
+
     private void LayoutPreviewAnchors(SlotRefs refs)
     {
         /*
-         * Keep the original scene-authored vertical spacing for 1-2 slot layouts.
-         * For the final reveal, only clamp those authored anchors horizontally into
-         * the visible stage so the list cannot hang off the left/right screen edge.
+         * Chooses the preview/reaction anchor strategy for the current ballot size.
+         * One- and two-slot layouts keep their scene-authored anchors; crowded layouts use stage-safe anchors.
          */
         if (_slots.Count <= 2)
         {
@@ -2908,7 +2964,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
             if (_roundType == VoteRoundType.FinalRevealVote)
             {
-                ClampTwoSlotFinalRevealAnchorsToStage(refs);
+                ClampDefaultPreviewAnchorInsideStage(refs);
             }
 
             return;
@@ -2956,82 +3012,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         refs.ReactionAnchor.ClipContents = false;
     }
 
-    private void ClampTwoSlotFinalRevealAnchorsToStage(SlotRefs refs)
-    {
-        /*
-         * The authored one/two-slot anchors have the correct vertical spacing, but
-         * can sit partially offscreen when the left/right Ancient card is near an edge.
-         * Shift or shrink only the horizontal offsets; leaving top/bottom alone avoids
-         * compressing all preview relic options into the reaction bubble area.
-         */
-        float sidePadding = ScaleFrom1080(PreviewAnchorSidePaddingAt1080);
-        ClampControlHorizontallyWithinStage(refs.PreviewAnchor, refs.CardRoot, sidePadding);
-        ClampControlHorizontallyWithinStage(refs.ReactionAnchor, refs.CardRoot, sidePadding);
-    }
-
-    private void ClampControlHorizontallyWithinStage(Control control, Control parent, float sidePadding)
-    {
-        if (_stageArea == null || parent.Size.X <= 1f)
-        {
-            return;
-        }
-
-        float stageWidth = _stageArea.Size.X;
-        if (stageWidth <= 1f)
-        {
-            return;
-        }
-
-        float minGlobalX = sidePadding;
-        float maxGlobalX = MathF.Max(minGlobalX + 1f, stageWidth - sidePadding);
-        float availableWidth = maxGlobalX - minGlobalX;
-
-        float localLeft = (parent.Size.X * control.AnchorLeft) + control.OffsetLeft;
-        float localRight = (parent.Size.X * control.AnchorRight) + control.OffsetRight;
-        float width = localRight - localLeft;
-        if (width <= 1f)
-        {
-            return;
-        }
-
-        float globalLeft = parent.Position.X + localLeft;
-        float globalRight = parent.Position.X + localRight;
-
-        if (width > availableWidth)
-        {
-            globalLeft = minGlobalX;
-            globalRight = maxGlobalX;
-        }
-        else
-        {
-            if (globalLeft < minGlobalX)
-            {
-                float shift = minGlobalX - globalLeft;
-                globalLeft += shift;
-                globalRight += shift;
-            }
-
-            if (globalRight > maxGlobalX)
-            {
-                float shift = globalRight - maxGlobalX;
-                globalLeft -= shift;
-                globalRight -= shift;
-            }
-
-            if (globalLeft < minGlobalX)
-            {
-                globalLeft = minGlobalX;
-                globalRight = minGlobalX + width;
-            }
-        }
-
-        float newLocalLeft = globalLeft - parent.Position.X;
-        float newLocalRight = globalRight - parent.Position.X;
-
-        control.OffsetLeft = newLocalLeft - (parent.Size.X * control.AnchorLeft);
-        control.OffsetRight = newLocalRight - (parent.Size.X * control.AnchorRight);
-    }
-
     /*
      * Code to add a Node to account for the Top Menu from the Base Game
      */
@@ -3054,7 +3034,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private static Control? GetTopUiControl()
     {
         /*
-         * How to retrieve the games TopBar
+         * Returns the top UI bar used as the upper layout cutoff.
          */
         return NRun.Instance?.GlobalUi?.TopBar;
     }
@@ -3082,10 +3062,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         return ScaleFrom1080(TopUiFallbackBottomPxAt1080);
     }
 
-    /*
-     * Handle the Layout of all nodes.
-     */
-    
     private void RefreshLayout()
     {
         /*
@@ -3231,7 +3207,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void LayoutReaction(SlotRefs refs)
     {
         /*
-         * Places the reaction bubble immediately above the preview list.
+         * Places the reaction bubble above the preview list and records its final transform for reveal animation.
          */
         if (refs.ReactionBubble == null)
         {
@@ -3246,7 +3222,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         PreviewLayoutMetrics metrics = GetPreviewLayoutMetrics(refs, anchorSize);
         float bubbleHeight = GetReactionBubbleHeight();
-        float bubbleY = MathF.Max(0f, metrics.StartY - bubbleHeight - ScaleFrom1080(ReactionBubbleGap));
+        float dialogueOptionGap = ScaleFrom1080(_roundType == VoteRoundType.FinalRevealVote
+            ? FinalRevealDialogueOptionGapAt1080
+            : ReactionBubbleGap);
+        float bubbleY = metrics.StartY - bubbleHeight - dialogueOptionGap;
+        if (_roundType != VoteRoundType.FinalRevealVote)
+        {
+            bubbleY = MathF.Max(0f, bubbleY);
+        }
 
         refs.ReactionBubble.LayoutMode = 1;
         refs.ReactionBubble.AnchorLeft = 0f;
@@ -3261,6 +3244,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         refs.ReactionBubble.OffsetTop = bubbleY;
         refs.ReactionBubble.OffsetRight = -bubbleRightInset;
         refs.ReactionBubble.OffsetBottom = bubbleY + bubbleHeight;
+        refs.ReactionBubbleBasePosition = new Vector2(bubbleLeft, bubbleY);
+        refs.ReactionBubbleBaseScale = IsValidScale(refs.ReactionBubble.Scale)
+            ? refs.ReactionBubble.Scale
+            : Vector2.One;
     }
 
     private static PortalShape[] BuildThreePortalShapes(Vector2 area, float cardWidth, float cardHeight)
