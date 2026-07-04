@@ -75,6 +75,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const double PreviewEntranceFadeDurationFast = 0.20;
     private const double PreviewEntranceInitialDelayNormal = 0.08;
     private const double PreviewEntranceInitialDelayFast = 0.04;
+    private const float ReactionBubbleEntranceOvershootAt1080 = 10f;
+    private const double ReactionBubbleEntranceCarryDurationNormal = 0.18;
+    private const double ReactionBubbleEntranceCarryDurationFast = 0.05;
+    private const double ReactionBubbleEntranceSettleDurationNormal = 0.14;
+    private const double ReactionBubbleEntranceSettleDurationFast = 0.09;
     private const double ReactionTextDurationNormal = 1.00;
     private const double ReactionTextDurationFast = 0.58;
     private const double FinalRoundStaggerNormal = 0.20;
@@ -1440,6 +1445,42 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             .SetTrans(Tween.TransitionType.Sine);
     }
 
+    private void TweenReactionBubbleEntrance(
+        Control bubble,
+        Vector2 basePosition,
+        Vector2 baseScale,
+        double delay,
+        double previewEntranceDuration,
+        double previewEntranceFadeDuration,
+        double carryDuration,
+        double settleDuration)
+    {
+        /*
+         * The dialogue line shares the option rows' bottom-to-top entrance, then travels slightly past its final position
+         * before easing back.
+         */
+        Vector2 overshootPosition = basePosition + new Vector2(0f, -ScaleFrom1080(ReactionBubbleEntranceOvershootAt1080));
+
+        Tween tween = CreateTween();
+        tween.TweenInterval(delay);
+
+        tween.TweenProperty(bubble, "modulate:a", 1f, previewEntranceFadeDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Sine);
+
+        tween.Parallel().TweenProperty(bubble, "position", overshootPosition, previewEntranceDuration + carryDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Sine);
+
+        tween.Parallel().TweenProperty(bubble, "scale", baseScale, previewEntranceDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Sine);
+
+        tween.TweenProperty(bubble, "position", basePosition, settleDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Sine);
+    }
+
     private void PrimePreviewWidgetEntrance(PreviewWidgetRefs widget)
     {
         PrimeFinalRevealControlEntrance(
@@ -1579,6 +1620,16 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         double previewEntranceDuration = GetPresentationDuration(PreviewEntranceDurationNormal, PreviewEntranceDurationFast);
         double previewEntranceFadeDuration = GetPresentationDuration(PreviewEntranceFadeDurationNormal, PreviewEntranceFadeDurationFast);
         double previewEntranceInitialDelay = GetPresentationDuration(PreviewEntranceInitialDelayNormal, PreviewEntranceInitialDelayFast);
+        double reactionBubbleEntranceCarryDuration = GetPresentationDuration(
+            ReactionBubbleEntranceCarryDurationNormal,
+            ReactionBubbleEntranceCarryDurationFast);
+        double reactionBubbleEntranceSettleDuration = GetPresentationDuration(
+            ReactionBubbleEntranceSettleDurationNormal,
+            ReactionBubbleEntranceSettleDurationFast);
+        double reactionWaveDelay = previewEntranceInitialDelay
+            + previewEntranceDuration
+            + reactionBubbleEntranceCarryDuration
+            + reactionBubbleEntranceSettleDuration;
 
         /*
          * Every visible element in a slot uses the same delay so the dialogue and option rows enter as one grouped stack.
@@ -1592,17 +1643,19 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                     ? refs.ReactionBubbleBaseScale
                     : Vector2.One;
 
-                TweenFinalRevealControlEntrance(
+                TweenReactionBubbleEntrance(
                     refs.ReactionBubble,
                     basePosition,
                     baseScale,
                     previewEntranceInitialDelay,
                     previewEntranceDuration,
-                    previewEntranceFadeDuration);
+                    previewEntranceFadeDuration,
+                    reactionBubbleEntranceCarryDuration,
+                    reactionBubbleEntranceSettleDuration);
 
                 StartReactionWaveAfterDelay(
                     refs.ReactionBubble,
-                    previewEntranceInitialDelay + previewEntranceDuration);
+                    reactionWaveDelay);
             }
 
             if (!refs.PreviewAnchor.Visible)

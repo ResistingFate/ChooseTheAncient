@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
     </list>
@@ -58,32 +57,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;.NET Executable. dotnet test ChooseTheAncient.Tests.executor&quot;: &quot;Run&quot;,
-    &quot;.NET Executable.SlayTheSpire2_Debug.executor&quot;: &quot;Run&quot;,
-    &quot;.NET Executable.clean rebuild tests.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient Tests to folder.executor&quot;: &quot;Run&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient to folder.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;RiderUnitTestingPageId&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    ".NET Executable. dotnet test ChooseTheAncient.Tests.executor": "Run",
+    ".NET Executable.SlayTheSpire2_Debug.executor": "Debug",
+    ".NET Executable.clean rebuild tests.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
+    "Publish to folder.Publish ChooseTheAncient to folder.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "RiderUnitTestingPageId",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected=".NET Executable.SlayTheSpire2_Debug">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
@@ -249,7 +248,7 @@
       <workItem from="1783034197793" duration="884000" />
       <workItem from="1783082353450" duration="18593000" />
       <workItem from="1783108539280" duration="9411000" />
-      <workItem from="1783166687681" duration="5978000" />
+      <workItem from="1783166687681" duration="10156000" />
     </task>
     <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
       <option name="closed" value="true" />
@@ -523,7 +522,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783118027925</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="Reveal options slide in closer to vanilla's style now.">
+      <option name="closed" value="true" />
+      <created>1783187057874</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1783187057874</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -580,7 +587,8 @@
     <MESSAGE value="ChooseTheAncientPlayerWarnings Registers from main and looks out for the event onModDetected from ModManager.&#10;&#10;EventSynchronizer patching is no longer using NeowOptionIdentitySyncPatch as a whole Harmony Patch but rather patching individual contstructor and methods in a try statement in the same place so it can fail safely by itself.&#10;&#10;Forgot to commit settitngs_ui.json before. Also added a mod warning to this table in case NeowOptionIdentitySyncPatch cannot build." />
     <MESSAGE value="changed json mod version number" />
     <MESSAGE value="- Left Hand Side relic reveals in selection screen now have their tooltip show to the right of the reveal option so it's no longer offscreen.&#10;- Selection screen relics reveal animaiton more in line with vanilla's animaiton." />
-    <option name="LAST_COMMIT_MESSAGE" value="- Left Hand Side relic reveals in selection screen now have their tooltip show to the right of the reveal option so it's no longer offscreen.&#10;- Selection screen relics reveal animaiton more in line with vanilla's animaiton." />
+    <MESSAGE value="Reveal options slide in closer to vanilla's style now." />
+    <option name="LAST_COMMIT_MESSAGE" value="Reveal options slide in closer to vanilla's style now." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
