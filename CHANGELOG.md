@@ -1,5 +1,17 @@
 # Changelog
 
+## Known Bugs to fix
+
+- ancient count at 8, possibly other has inconsistent card/button sizes so looks really off. (Might just be due to long title names)
+- Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen.
+- Modconfig implementation needs ta change as mod update, write now it just fails safely.
+
+Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.
+1. If PortalSourceNodePath is set, use that node.
+2. If it is a TextureRect, account for TextureRect size/stretch/offset.
+3. If it is a Control, use the Control rect.
+4. If it is a Node2D, use the node origin.
+5. If anything fails, fall back to root scene BaseSize math..
 ## Unrelesaed
 
 ## [v1.2.3]

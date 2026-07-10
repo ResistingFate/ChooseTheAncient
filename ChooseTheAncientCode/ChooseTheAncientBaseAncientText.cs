@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Localization;
+using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -9,7 +12,9 @@ public readonly record struct AncientTextContext(
     string ReactionAncientId,
     string? ReactionAncientTitle,
     string? SuppressedAncientId,
-    String? SuppressedAncientTitle);
+    string? SuppressedAncientTitle,
+    AncientEventModel? ReactionAncient = null,
+    string? CharacterId = null);
 
 public static class ChooseTheAncientBaseAncientText
 {
@@ -28,13 +33,11 @@ public static class ChooseTheAncientBaseAncientText
 
     public static string GetSecondRoundBannerText(AncientTextContext context)
     {
-            string key = AncientKeyExists($"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientTitle}")
-            ? $"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientId}"
-            : "choose_the_ancient.round_intro.final_reveal.default";
+        string key = GetSecondRoundBannerLocKey(context);
 
         LocString loc = new(AncientTableName, key);
         AddContextVariables(loc, context);
-        return SafeFormat(loc, $"{context.ReactionAncientTitle} Offers");
+        return SafeFormat(loc, $"{context.ReactionAncientTitle ?? context.ReactionAncientId} Offers");
     }
 
     public static string GetSecondRoundDialogueText(RunState? runState, AncientTextContext context)
@@ -47,7 +50,7 @@ public static class ChooseTheAncientBaseAncientText
                 context.ReactionAncientId,
                 context.SuppressedAncientId);
 
-        LocString loc = GetDialogueLocString(context.ReactionAncientId, rng)
+        LocString loc = GetDialogueLocString(context, rng)
             ?? new LocString(AncientTableName, "choose_the_ancient.second_round.dialogue.default.0");
 
         AddContextVariables(loc, context);
@@ -98,9 +101,42 @@ public static class ChooseTheAncientBaseAncientText
         return SafeFormat(new LocString(UiTableName, key), fallback);
     }
 
-    private static LocString? GetDialogueLocString(string reactionAncientId, Rng? rng)
+    private static string GetSecondRoundBannerLocKey(AncientTextContext context)
     {
-        string specificPrefix = $"choose_the_ancient.second_round.dialogue.{reactionAncientId}.";
+        if (ChooseTheAncientPresentationResolver.TryGetFinalRevealBannerLocKey(
+                context.ReactionAncient,
+                context.ReactionAncientId,
+                context.CharacterId,
+                context.NextActIndex,
+                context.SuppressedAncientId,
+                out string apiKey)
+            && AncientKeyExists(apiKey))
+        {
+            return apiKey;
+        }
+
+        string specificKey = $"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientId}";
+        return AncientKeyExists(specificKey)
+            ? specificKey
+            : "choose_the_ancient.round_intro.final_reveal.default";
+    }
+
+    private static LocString? GetDialogueLocString(AncientTextContext context, Rng? rng)
+    {
+        if (ChooseTheAncientPresentationResolver.TryGetSecondRoundDialogueLocPrefix(
+                context.ReactionAncient,
+                context.ReactionAncientId,
+                context.CharacterId,
+                context.NextActIndex,
+                context.SuppressedAncientId,
+                out string apiPrefix))
+        {
+            LocString? apiLoc = GetLocStringFromPrefixSearchOrder(apiPrefix, context, rng);
+            if (apiLoc != null)
+                return apiLoc;
+        }
+
+        string specificPrefix = $"choose_the_ancient.second_round.dialogue.{context.ReactionAncientId}.";
         if (AncientPrefixExists(specificPrefix))
         {
             return rng == null
@@ -119,6 +155,40 @@ public static class ChooseTheAncientBaseAncientText
         return null;
     }
 
+    private static LocString? GetLocStringFromPrefixSearchOrder(
+        string basePrefix,
+        AncientTextContext context,
+        Rng? rng)
+    {
+        foreach (string prefix in BuildPrefixSearchOrder(basePrefix, context))
+        {
+            if (!AncientPrefixExists(prefix))
+                continue;
+
+            return rng == null
+                ? TryGetFirstLocStringWithPrefix(AncientTableName, prefix)
+                : LocString.GetRandomWithPrefix(AncientTableName, prefix, rng);
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> BuildPrefixSearchOrder(string basePrefix, AncientTextContext context)
+    {
+        string normalized = ChooseTheAncientPresentationHelpers.NormalizeLocPrefix(basePrefix) ?? basePrefix;
+        string actSuffix = $"act{context.NextActIndex + 1}.";
+
+        if (!string.IsNullOrWhiteSpace(context.CharacterId))
+        {
+            yield return normalized + context.CharacterId + "." + actSuffix;
+            yield return normalized + context.CharacterId + ".";
+        }
+
+        yield return normalized + "ANY." + actSuffix;
+        yield return normalized + "ANY.";
+        yield return normalized;
+    }
+
     private static LocString? TryGetFirstLocStringWithPrefix(string tableName, string keyPrefix)
     {
         LocTable? table = TryGetTable(tableName);
@@ -131,10 +201,15 @@ public static class ChooseTheAncientBaseAncientText
 
     private static void AddContextVariables(LocString loc, AncientTextContext context)
     {
-        if (context.ReactionAncientTitle != null) loc.Add("ReactionAncientId", context.ReactionAncientTitle);
+        if (context.ReactionAncientTitle != null)
+            loc.Add("ReactionAncientId", context.ReactionAncientTitle);
+
         loc.Add("SuppressedAncientId", context.SuppressedAncientTitle ?? "that ancient");
         loc.Add("ActNumber", (context.NextActIndex + 1).ToString());
         loc.Add("ActLabel", GetActLabelText(context.NextActIndex));
+
+        if (!string.IsNullOrWhiteSpace(context.CharacterId))
+            loc.Add("CharacterId", context.CharacterId);
     }
 
     private static string SafeFormat(LocString loc, string fallback)
