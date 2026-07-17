@@ -185,7 +185,9 @@ public static class ChooseTheAncientHelpers
         if (streamParts.Length == 0)
             throw new ArgumentException("At least one RNG stream part is required.", nameof(streamParts));
 
-        return new Rng(runState.Rng.Seed, BuildRngStreamName(streamParts));
+        return SeedCompatibility.CreateNamedRng(
+            SeedCompatibility.GetRunSeed(runState),
+            BuildRngStreamName(streamParts));
     }
 
     public static string BuildRngStreamName(params object?[] streamParts)
@@ -1042,13 +1044,14 @@ public static class ChooseTheAncientHelpers
         AncientEventModel syntheticNeow = (AncientEventModel)ModelDb.AncientEvent<Neow>().ToMutable();
         EventOwnerBackingField.SetValue(syntheticNeow, player);
 
-        Rng bootstrapRng = CreatePreviewEventRng(runState, player, syntheticNeow);
+        ulong bootstrapSeed = ComputeVanillaEventSeedForCurrentGame(runState, player, syntheticNeow);
+        Rng bootstrapRng = SeedCompatibility.CreateRng(bootstrapSeed);
         EventRngBackingField.SetValue(syntheticNeow, bootstrapRng);
 
         syntheticNeow.CalculateVars();
 
         ModLog.Debug(
-            $"Created synthetic Neow for modifier bootstrap with seed {bootstrapRng.Seed} " +
+            $"Created synthetic Neow for modifier bootstrap with seed {bootstrapSeed} " +
             $"for player {player.NetId}.");
 
         return syntheticNeow;
@@ -1192,20 +1195,34 @@ public static class ChooseTheAncientHelpers
     
 
     public static uint ComputeVanillaEventSeed(RunState runState, Player player, EventModel eventModel)
+    {
+        return unchecked((uint)ComputeVanillaEventSeedForCurrentGame(runState, player, eventModel));
+    }
+
+    private static ulong ComputeVanillaEventSeedForCurrentGame(
+        RunState runState,
+        Player player,
+        EventModel eventModel)
     /*
-     * Computes the vanilla event RNG seed for a player/event pair so previewed ancient rewards match the later revealed event.
+     * Mirrors the active game's EventModel.BeginEvent seed formula.
+     * STS2 0.107.1 uses a 32-bit run seed/hash; STS2 0.109.0 beta uses 64-bit values.
      */
     {
-        /*
-         * Goal here is to copy the RNG method vanilla uses, so it'll be the same as when the ancient
-         * reveals the reward
-         */
-        int  ownerContribution = eventModel.IsShared ? 0 : runState.GetPlayerSlotIndex(player);
+        int ownerContribution = eventModel.IsShared ? 0 : runState.GetPlayerSlotIndex(player);
+        ulong runSeed = SeedCompatibility.GetRunSeed(runState);
 
-        return unchecked((uint)(
-            (int)runState.Rng.Seed
-            + ownerContribution
-            + StringHelper.GetDeterministicHashCode(eventModel.Id.Entry)));
+        if (SeedCompatibility.Uses64BitSeeds)
+        {
+            return unchecked(
+                runSeed
+                + (ulong)ownerContribution
+                + SeedCompatibility.GetDeterministicHash64(eventModel.Id.Entry));
+        }
+
+        return unchecked(
+            (uint)runSeed
+            + (uint)ownerContribution
+            + SeedCompatibility.GetDeterministicHash32(eventModel.Id.Entry));
     }
 
     public static Rng CreatePreviewEventRng(RunState runState, Player player, EventModel eventModel)
@@ -1213,7 +1230,25 @@ public static class ChooseTheAncientHelpers
      * Creates the vanilla event RNG used when simulating reward previews or modifier bootstrap events that should not use CTA reward offsets.
      */
     {
-        return new Rng(ComputeVanillaEventSeed(runState, player, eventModel));
+        return SeedCompatibility.CreateRng(
+            ComputeVanillaEventSeedForCurrentGame(runState, player, eventModel));
+    }
+
+    private static ulong ComputeAncientEventSeedForTargetAct(
+        RunState runState,
+        Player player,
+        EventModel eventModel,
+        int targetActIndex)
+    /*
+     * Computes CTA's event seed at the width used by the active game branch.
+     * Offset zero exactly matches vanilla; earlier/later appearances add the signed act offset.
+     */
+    {
+        ulong seed = ComputeVanillaEventSeedForCurrentGame(runState, player, eventModel);
+        int normalActIndex = GetNormalMinimumActIndexForAncient(runState, eventModel);
+        int actOffset = targetActIndex - normalActIndex;
+
+        return SeedCompatibility.AddSignedOffset(seed, actOffset);
     }
 
     public static Rng CreateAncientEventRngForTargetAct(
@@ -1223,19 +1258,14 @@ public static class ChooseTheAncientHelpers
         int targetActIndex)
     /*
      * Creates the RNG CTA should use for ancient reward previews or reveals in a target act.
-     * Offset zero exactly matches vanilla; earlier/later-than-normal appearances add only the signed act offset to the vanilla seed.
      */
     {
-        uint seed = ComputeVanillaEventSeed(runState, player, eventModel);
-        int normalActIndex = GetNormalMinimumActIndexForAncient(runState, eventModel);
-        int actOffset = targetActIndex - normalActIndex;
-
-        if (actOffset != 0)
-        {
-            seed = unchecked(seed + (uint)actOffset);
-        }
-
-        return new Rng(seed);
+        return SeedCompatibility.CreateRng(
+            ComputeAncientEventSeedForTargetAct(
+                runState,
+                player,
+                eventModel,
+                targetActIndex));
     }
 
     public static int GetRewardActOffsetForTargetAct(
@@ -1358,17 +1388,18 @@ public static class ChooseTheAncientHelpers
                 return false;
             }
 
-            Rng rng = CreateAncientEventRngForTargetAct(
+            ulong seed = ComputeAncientEventSeedForTargetAct(
                 runState,
                 owner,
                 ancient,
                 targetActIndex);
+            Rng rng = SeedCompatibility.CreateRng(seed);
 
             EventRngBackingField.SetValue(ancient, rng);
 
             ModLog.Info(
                 $"Applied CTA act-offset ancient reward RNG for {ancient.Id.Entry}. " +
-                $"TargetAct={targetActIndex + 1}, NormalAct={normalActIndex + 1}, ActOffset={actOffset}, Seed={rng.Seed}, Context={context}.");
+                $"TargetAct={targetActIndex + 1}, NormalAct={normalActIndex + 1}, ActOffset={actOffset}, Seed={seed}, Context={context}.");
 
             return true;
         }
@@ -1431,13 +1462,18 @@ public static class ChooseTheAncientHelpers
             {
                 runState.CurrentActIndex = nextActIndex;
                 EventOwnerBackingField.SetValue(previewEvent, player);
-                Rng previewRng = ResetPreviewEventRng(
+                ulong previewSeed = ComputeAncientEventSeedForTargetAct(
+                    runState,
+                    player,
+                    previewEvent,
+                    nextActIndex);
+                ResetPreviewEventRng(
                     runState,
                     player,
                     previewEvent,
                     nextActIndex);
                 ModLog.Debug(
-                    $"Generating preview data for {ancient.Id.Entry} with preview seed {previewRng.Seed} for player {player.NetId} " +
+                    $"Generating preview data for {ancient.Id.Entry} with preview seed {previewSeed} for player {player.NetId} " +
                     $"at act index {nextActIndex}. ActOffset={actOffset}.");
 
                 // This is what BeginEvents does in Megacritic EventModel
@@ -1853,7 +1889,15 @@ public static class ChooseTheAncientHelpers
     {
         runState.Map.StartingMapPoint.PointType = MapPointType.Ancient;
         RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
-        NMapScreen.Instance?.SetMap(runState.Map, runState.Rng.Seed, clearDrawings: true);
+        NMapScreen? mapScreen = NMapScreen.Instance;
+        if (mapScreen != null)
+        {
+            SeedCompatibility.SetMap(
+                mapScreen,
+                runState.Map,
+                SeedCompatibility.GetRunSeed(runState),
+                clearDrawings: true);
+        }
     }
 
     public static void RewriteCurrentMapPointHistoryToAncient(

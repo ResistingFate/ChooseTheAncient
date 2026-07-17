@@ -5,6 +5,8 @@
 - ancient count at 8, possibly other has inconsistent card/button sizes so looks really off. (Might just be due to long title names)
 - Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen.
 - Modconfig implementation needs ta change as mod update, write now it just fails safely.
+- Check if this is just an update issue for the modified ancient:
+  - The Phoenix custom ancient cannot determine its normal act on either version. CTA falls back to vanilla RNG. This could affect act-offset reward behaviour when Phoenix is moved between acts, including on 0.109.0, but it did not cause Neow’s missing rewards.
 
 Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.
 1. If PortalSourceNodePath is set, use that node.
@@ -13,6 +15,16 @@ Change ancientconfig so that position is based around a root detected in your cu
 4. If it is a Node2D, use the node origin.
 5. If anything fails, fall back to root scene BaseSize math..
 ## Unrelesaed
+
+## [v1.2.4] - Added compatability to the game's update v0.109.0 # Custom Ancient API improvements
+
+### Fixes
+- Seed is not ulong, not uint
+- Posiition is better for AncientConfigs that custom Ancient's will use to align their ancient scene to the selection screen slot
+
+### Techincal
+- Compatability branch so main branch v0.107.1 with seed length of uint is supported for now
+- all rng goes through a SeedCompatability.cs file and now supports ulong
 
 ## [v1.2.3]
 

@@ -67,9 +67,12 @@ public static class ChooseTheAncientBaseAncientText
             ? "none"
             : suppressedAncientId;
 
-        return new Rng(
-            runState.Rng.Seed,
-            $"choose_the_ancient_second_round_dialogue_{nextActIndex}_{reactionAncientId}_{suppressedPart}");
+        return ChooseTheAncientHelpers.CreateRunScopedRng(
+            runState,
+            "second_round_dialogue",
+            nextActIndex,
+            reactionAncientId,
+            suppressedPart);
     }
 
     public static string GetVoteForThisAncientButtonText() =>

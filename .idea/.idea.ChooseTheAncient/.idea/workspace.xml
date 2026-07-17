@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
       <change afterPath="$PROJECT_DIR$/workshop/CustomAncientSelectionScreenAlignmentGuide.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -130,7 +129,7 @@
       </method>
     </configuration>
     <configuration name="Editor" type="RunExe" factoryName=".NET Executable">
-      <option name="EXE_PATH" value="$USER_HOME$/Downloads/megadot-4.5.1-m.13/MegaDot_v4.5.1-stable_mono_win64.exe" />
+      <option name="EXE_PATH" value="$USER_HOME$/Downloads/megadot-4.5.1-m.14/MegaDot_v4.5.1-stable_mono_win64.exe" />
       <option name="PROGRAM_PARAMETERS" value="--path &quot;ChooseTheAncient&quot; --editor" />
       <option name="WORKING_DIRECTORY" value="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -146,7 +145,7 @@
       </method>
     </configuration>
     <configuration name="Player" type="RunExe" factoryName=".NET Executable">
-      <option name="EXE_PATH" value="$USER_HOME$/Downloads/megadot-4.5.1-m.13/MegaDot_v4.5.1-stable_mono_win64.exe" />
+      <option name="EXE_PATH" value="$USER_HOME$/Downloads/megadot-4.5.1-m.14/MegaDot_v4.5.1-stable_mono_win64.exe" />
       <option name="PROGRAM_PARAMETERS" value="--path &quot;ChooseTheAncient&quot;" />
       <option name="WORKING_DIRECTORY" value="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -254,23 +253,12 @@
       <workItem from="1783513607612" duration="604000" />
       <workItem from="1783610051428" duration="600000" />
       <workItem from="1783683050046" duration="2730000" />
-      <workItem from="1783707217063" duration="36379000" />
-    </task>
-    <task id="LOCAL-00001" summary="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay">
-      <option name="closed" value="true" />
-      <created>1774717268871</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1774717268871</updated>
-    </task>
-    <task id="LOCAL-00002" summary="fix: return replacement Task when intercepting EnterNextAct">
-      <option name="closed" value="true" />
-      <created>1774723588103</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1774723588103</updated>
+      <workItem from="1783707217063" duration="39832000" />
+      <workItem from="1783876343845" duration="4699000" />
+      <workItem from="1783950291602" duration="7254000" />
+      <workItem from="1784059718547" duration="606000" />
+      <workItem from="1784110834786" duration="1201000" />
+      <workItem from="1784303701456" duration="6282000" />
     </task>
     <task id="LOCAL-00003" summary="feat: synchronize ancient ban voting with player choice synchronizer">
       <option name="closed" value="true" />
@@ -616,7 +604,55 @@
       <option name="project" value="LOCAL" />
       <updated>1783809850807</updated>
     </task>
-    <option name="localTasksCounter" value="46" />
+    <task id="LOCAL-00046" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize.">
+      <option name="closed" value="true" />
+      <created>1783810695732</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1783810695732</updated>
+    </task>
+    <task id="LOCAL-00047" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize.">
+      <option name="closed" value="true" />
+      <created>1783810702048</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1783810702048</updated>
+    </task>
+    <task id="LOCAL-00048" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize.">
+      <option name="closed" value="true" />
+      <created>1784303739633</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1784303739633</updated>
+    </task>
+    <task id="LOCAL-00049" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize.">
+      <option name="closed" value="true" />
+      <created>1784305456645</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1784305456645</updated>
+    </task>
+    <task id="LOCAL-00050" summary="MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
+      <option name="closed" value="true" />
+      <created>1784308562742</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1784308562742</updated>
+    </task>
+    <task id="LOCAL-00051" summary="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
+      <option name="closed" value="true" />
+      <created>1784311531259</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1784311531259</updated>
+    </task>
+    <option name="localTasksCounter" value="52" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -652,10 +688,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="chore: scaffold ancient ban flow state and act transition patch&#10;feat: override next act ancient before map generation&#10;feat: add code-only ancient ban selection overlay" />
-    <MESSAGE value="fix: return replacement Task when intercepting EnterNextAct" />
-    <MESSAGE value="feat: synchronize ancient ban voting with player choice synchronizer" />
-    <MESSAGE value="fix: collect multiplayer ancient ban votes concurrently" />
     <MESSAGE value="feat: keep ancient vote overlay open until all multiplayer votes arrive" />
     <MESSAGE value="Implemented compatability with Ancient Config Plus and added unit test to test the weighted ancient selection pool as a result. Without the mod all ancients have the same probability so behaves like a normal shuffle.&#10;&#10;Change My Rider Settings so the sln has the main project and the test project that runs all the unit tests." />
     <MESSAGE value="updated csproj files to help improve the testing framework" />
@@ -677,7 +709,11 @@
     <MESSAGE value="Dialouge drifts slightly then repositions to emphasise the ancients dialuoge." />
     <MESSAGE value="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient." />
     <MESSAGE value="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.&#10;1. If PortalSourceNodePath is set, use that node.&#10;2. If it is a TextureRect, account for TextureRect size/stretch/offset.&#10;3. If it is a Control, use the Control rect.&#10;4. If it is a Node2D, use the node origin.&#10;5. If anything fails, fall back to root scene BaseSize math.." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.&#10;1. If PortalSourceNodePath is set, use that node.&#10;2. If it is a TextureRect, account for TextureRect size/stretch/offset.&#10;3. If it is a Control, use the Control rect.&#10;4. If it is a Node2D, use the node origin.&#10;5. If anything fails, fall back to root scene BaseSize math.." />
+    <MESSAGE value="Converts CTA event-seed calculations to ulong.&#10;Mirrors the 0.109.0 EventModel.BeginEvent seed formula.&#10;Preserves signed act offsets modulo 2⁶⁴.&#10;Replaces removed Rng.Seed log accesses with the seed used to construct the RNG.&#10;Adds the 0.109.0 EventSynchronizer(..., ulong seed) signature.&#10;Retains the 0.108 and 0.107 constructor fallbacks." />
+    <MESSAGE value="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize." />
+    <MESSAGE value="MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
+    <MESSAGE value="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
+    <option name="LAST_COMMIT_MESSAGE" value="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
