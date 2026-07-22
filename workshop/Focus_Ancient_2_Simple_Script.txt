@@ -1,0 +1,76 @@
+Focus Ancient 2 — Revised Simple Action-Only Script
+
+[0:00–0:03]
+Select the scene root, then record Layout → Transform → Size: (1152, 648).
+
+[0:03–0:06]
+Set baseSize for ChooseTheAncientBaseSize to (1152f, 648f).
+
+[0:06–0:09]
+Create a new scene in MegaDot.
+
+[0:09–0:12]
+Add a Control node as a child of the root.
+
+[0:12–0:18]
+Set the Control node’s Layout → Transform → Size to (1152, 648).
+
+[0:18–0:23]
+Download the 2-Slot and 3-Slot selection-screen templates.
+
+[0:23–0:27]
+Add both templates to the scene, then hide the 2-Slot template.
+
+[0:27–0:30]
+Right-click the Control node, select Instantiate Child Scene, and choose the ancient scene.
+
+[0:32–0:35]
+Add a Marker2D as a child of the ancient scene.
+
+[0:43–0:50]
+Move the marker to the desired SourceAnchor point.
+
+[0:50–0:55]
+For more precision, set Layout → Transform → Position to (574, 86).
+
+[0:55–1:00]
+Set ChooseTheAncientSourceAnchor to (574f / baseSize.X, 86f / baseSize.Y).
+
+[1:05–1:08]
+Reparent SourceAnchor above the Control node.
+
+[1:08–1:11]
+Place both templates under the root, then place the Control node under SourceAnchor.
+
+[1:13–1:21]
+Move SourceAnchor to a 3-Slot centre:
+Left: (335.65, 556)
+Middle: (997.36, 556)
+Right: (1620.71, 556)
+
+[1:21–1:26]
+Select the Anchor tool, hold Shift, and click the slot centre.
+
+[1:26–1:30]
+Select the Scale tool and hold Shift.
+
+[1:30–1:33]
+Drag to scale the ancient.
+
+[1:33–1:37]
+For more precision, set Layout → Transform → Scale to 2.75.
+
+[1:37–1:40]
+Set ChooseTheAncientScale to 2.75f.
+
+[1:40–1:43]
+Build the mod and compare it in-game.
+
+[1:48–1:55]
+Move SourceAnchor between the slot centres and check the fit.
+
+[2:01–2:04]
+Hide the 3-Slot template, show the 2-Slot template, and check the fit.
+
+[2:04–2:06]
+Now you have aligned your Custom Ancient to the Selection Screen.

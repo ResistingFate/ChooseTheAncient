@@ -1,0 +1,30 @@
+[0.00 - 0.05s] - Just like in the allign Custom Ancients video, you should take a note of Neow's root node size vales. In this case (1920, 1080) is the default baseSize which is already the default baseSize variable example so no changes are needed in code.
+[0.05 - 0.07s] - Now create a new scene.
+[0.07 - 0.10s] - Make a new Control node as a child of the root. Instantiating the ancient scene as the child of Control will allow it to retain it's default Megadot position.
+[0.10 - 0.15s] - Set the control node Layout -> Transform -> Size to the same as the root node in your scene, in this case (1920, 1080).
+[0.15 - 0.17s] - Download the Choose The Ancient Selection Screen templates. I've added them next to my scene but there is no need to compile thim into your mod.
+[0.18 - 0.20s] - Drag the 3 Slot Selection Screen template. You can drag both the 2 Slots and 3 Slots templates, I just wanted to be brief.
+[0.20 - 0.24s] - Now only add your scene to this scene throuh right clicking the control node and choosing Instantiate Child Scene. Your scene will show up in the list since you've opened the godot project with your scene. I've made a Neow Idle scene where Neow's head is animated by default.
+[0.24 - 0.27s] - Now you have your scene position exactly like it is in the Neow project, only consisting of one node.
+[0.27 - 0.30s] - Add a Marker2D as child of the Neow scene. We will use markers to figure out the positions. The SourceAnchor position in this case.
+[0.30 - 0.33s] -  Only with the marker first created as a child of the Neow scene will it displayed coordinates that correspond to the actual Neow scenes coordinate space.
+[0.33 - 0.40s] - The SourceAnchor marker spawns at the origin. Use the move tool to position SourceAnchor to your desired point. For this template ancient, we will center inside Neow's mouth.
+[0.40 - 0.44s] - For a more precise coordinate, go into Layout -> Transform -> Position and set the values. In this case I've choosen (757, 542).
+[0.44 - 0.48s] - In your class copy the marker's coordinate as the ChooseTheAncientSourceAnchor property, in this case 757f / baseSize.X, 542f / baseSize.Y). Source Anchor positions in percentages. Make sure if you are using the marker's coordinate that you divide by the baseSize as done here.
+[0.48 -0.51s] - I don't expect you to work out the SourceAnchor without playing around a bit, but basically you should pick the point you want your ancient to center before centering or scaling your ancient scene. You can nudge after scaling later.
+[0.51 - 0.54s] - Now drag SourceAnchor in the node tree and drop it underneath the control root node. We want to make the marker the parent of the Control Node and Neow scene so it appears on top, and that when we now move the marker we will also move the Neow scene.
+[0.54 - 0.56s] - Drag the Selection screen templates and drop under the root node. Also Drop the Control Node with Neow under the SourceAnchor node so SourceAnchor is now the parent.
+[0.56 - 0.59s] - The Selection screens and the SourceAnchor should now show over the Neow Scene. Useful as we are now going to drag our SourceAnchor point and move it to the center of the selection screen slots.
+[0.59 - 1.04s] - Select the move tool and drag the marker to center point of the selection screen. If you want to be precise use the center positions for the 3 slot template. Left: (335.65, 556), Middle: (997.36, 556), Right: (1620.71, 556)
+[1.04 - 1.07s] - Select the Anchor tool and Hold Shift and click the center point. This will make a temporary anchor so that scaling the scene will scale around our chosen point. Useful for judging the right scale to fit your ancient into the slot.
+[1.07 - 1.12s] - Select the ruler tool, and hold shift down so that scaling will preserve aspect ratio. Hold shift and drag up or down to scale the scene in and out.
+[1.12 - 1.16s] - For more precision go into Layout - Transform -> Scale. I set the Scale to 0.88 here as Neow was a bit too big for the slot.
+[1.16 - 1.20s] - Copy the scale into ChooseTheAncientScale. In this case 0.88f.
+[1.20 - 1.26s] - Okay, Neow still needs adjustment. Select the Move tool and approximate how far left Neow needs to travel.
+[1.26 - 1.30s] - It's about 100. Go into Layout -> Transform -> Position for more precision. You can do calculations in the field boxes, so I apply -93 which fits Neow inside the slot. Negative moves left.
+[1.32 - 1.36s] - Copy this (-93f, 0f) change in value into ChooseTheAncientExtraOffset property in your class. You do not need to divide by baseSize as its not in percentages.
+[1.36 - 1.41s] - Make a new Marker under Neow so it lives in the same coordinate space. Call it Center.
+[1.41 - 1.52s] - Drag Center in the node tree so its now a child of the root. Then drag Sourceanchor with Control and Neow and drop it under Center so the previous marker is now the child of Center. Also drag the selection templates under root again so the Center marker and selection templates appear over Neow.
+[1.52 - 1.55s] - We will use Center to drag the ancient to the slot centers for comparison. A new marker was needed a we offset SourceAnchor from the ancient's center.
+[1.55 - 2.00s] - use the Move tool to drag the Center to the slot centers. Neow fits, now let's compare Neow in the 3rd slot to the game.
+[2.00 - 2.05s] - The game scene now matches our template. We have now aligned Neow to the Choose The Ancient Selection Screen. Well done.

@@ -5,9 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/workshop/SelectionScreen_Position_Tutorial_Scripts.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/workshop/Focus_Ancient_2_Script.txt" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/Focus_Ancient_2_Script.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -265,55 +267,7 @@
       <workItem from="1784418648648" duration="5156000" />
       <workItem from="1784568870630" duration="7644000" />
       <workItem from="1784643211039" duration="10449000" />
-      <workItem from="1784731796713" duration="6586000" />
-    </task>
-    <task id="LOCAL-00008" summary="[v1.2.1] Added compatability to Ancient Config Plus">
-      <option name="closed" value="true" />
-      <created>1782167913663</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1782167913663</updated>
-    </task>
-    <task id="LOCAL-00009" summary="[v1.2.1] Added compatability to Ancient Config Plus">
-      <option name="closed" value="true" />
-      <created>1782171607515</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1782171607515</updated>
-    </task>
-    <task id="LOCAL-00010" summary="Attempting an implementation to allow unknown modifiers presumably from mods to activate During act 1 with our Neow Patch. Neow Patch is called in helper.">
-      <option name="closed" value="true" />
-      <created>1782441711881</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1782441711881</updated>
-    </task>
-    <task id="LOCAL-00011" summary="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1.">
-      <option name="closed" value="true" />
-      <created>1782444945685</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1782444945685</updated>
-    </task>
-    <task id="LOCAL-00012" summary="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1.">
-      <option name="closed" value="true" />
-      <created>1782444996269</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1782444996269</updated>
-    </task>
-    <task id="LOCAL-00013" summary="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1.">
-      <option name="closed" value="true" />
-      <created>1782445001163</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1782445001163</updated>
+      <workItem from="1784731796713" duration="10078000" />
     </task>
     <task id="LOCAL-00014" summary="Added coop testing for modifiers in act 1">
       <option name="closed" value="true" />
@@ -659,7 +613,55 @@
       <option name="project" value="LOCAL" />
       <updated>1784743083434</updated>
     </task>
-    <option name="localTasksCounter" value="57" />
+    <task id="LOCAL-00057" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged.">
+      <option name="closed" value="true" />
+      <created>1784743575998</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1784743575998</updated>
+    </task>
+    <task id="LOCAL-00058" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged.">
+      <option name="closed" value="true" />
+      <created>1784743598743</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1784743598743</updated>
+    </task>
+    <task id="LOCAL-00059" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
+      <option name="closed" value="true" />
+      <created>1784744074251</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1784744074251</updated>
+    </task>
+    <task id="LOCAL-00060" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
+      <option name="closed" value="true" />
+      <created>1784744144700</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1784744144700</updated>
+    </task>
+    <task id="LOCAL-00061" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
+      <option name="closed" value="true" />
+      <created>1784744451126</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1784744451126</updated>
+    </task>
+    <task id="LOCAL-00062" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
+      <option name="closed" value="true" />
+      <created>1784754252787</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1784754252787</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -695,8 +697,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="updated csproj files to help improve the testing framework" />
-    <MESSAGE value="[v1.2.1] Added compatability to Ancient Config Plus" />
     <MESSAGE value="Attempting an implementation to allow unknown modifiers presumably from mods to activate During act 1 with our Neow Patch. Neow Patch is called in helper." />
     <MESSAGE value="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1." />
     <MESSAGE value="Added coop testing for modifiers in act 1" />
@@ -720,7 +720,9 @@
     <MESSAGE value="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
     <MESSAGE value="Added tutorial Scripts for the aligning custom ancients videos in the workshop folder" />
     <MESSAGE value="Changing up how acts past act 3 are handleed so skip ancient selection when no next act exists. Also the EnterNextAct has been updated in 0.109.0 to include Victor Room guards, se we've updated the patch too." />
-    <option name="LAST_COMMIT_MESSAGE" value="Changing up how acts past act 3 are handleed so skip ancient selection when no next act exists. Also the EnterNextAct has been updated in 0.109.0 to include Victor Room guards, se we've updated the patch too." />
+    <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged." />
+    <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients." />
+    <option name="LAST_COMMIT_MESSAGE" value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
