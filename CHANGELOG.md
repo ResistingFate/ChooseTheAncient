@@ -22,10 +22,13 @@ Change ancientconfig so that position is based around a root detected in your cu
 ### Fixes
 - Seed is not ulong, not uint
 - Posiition is better for AncientConfigs that custom Ancient's will use to align their ancient scene to the selection screen slot
+- Updated EnterNextAct patch so doesn't show selection screen again in the Victor Room
+- Changed EnterNextAct to fix small bugs in Endless Modes Mods but they still don't work on every level 
 
 ### Techincal
 - Compatability branch so main branch v0.107.1 with seed length of uint is supported for now
 - all rng goes through a SeedCompatability.cs file and now supports ulong
+- Updated EnterNextAct patch as 0.109.0 gave it 3 transitions changing the logic.
 
 ## [v1.2.3]
 

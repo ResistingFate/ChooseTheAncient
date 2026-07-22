@@ -507,10 +507,14 @@ public static class ChooseTheAncientCoordinator
                 localScreen = null;
 
                 ModLog.Debug(
-                    $"Preparing clean screen state before EnterNextAct for act {nextActIndex + 1}. " +
-                    "Closing CTA screen, clearing RunManager screens, then waiting one process frame.");
+                    $"Preparing CTA screen state before EnterNextAct for act {nextActIndex + 1}. " +
+                    "Closing only the CTA screen, then waiting one process frame.");
 
-                InvokeRunManagerVoid(ClearScreensMethod, runManager);
+                // Intentionally clear all RunManager screens before continuing so the
+                // completed boss room is not briefly shown behind the transition.
+                // Some endless mods reuse map-screen nodes across act cycles and may be
+                // incompatible with this cleanup, but vanilla transitions expect a clean screen stack.
+                InvokeRunManagerVoid(ClearScreensMethod, runManager); 
                 await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
 
                 enterNextActStarted = true;

@@ -25,9 +25,10 @@ public static class EnterNextActPatch
         // entering another indexed act, entering The Architect after the final
         // indexed act, and finishing the run from a victory room. Selection Screen
         // should only intercept the first case.
-        bool isVictoryRoom = runState.CurrentRoom?.IsVictoryRoom == true;
-        if (isVictoryRoom || nextActIndex >= runState.Acts.Count)
+        bool hasIndexedNextAct = nextActIndex < runState.Acts.Count;
+        if (!hasIndexedNextAct)
         {
+            bool isVictoryRoom = runState.CurrentRoom?.IsVictoryRoom == true;
             string terminalTransition = isVictoryRoom
                 ? "finish the run from a victory room"
                 : "enter The Architect because no indexed next act exists";
