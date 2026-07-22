@@ -1,0 +1,31 @@
+﻿[0.00 - 0.03s] - First open your scene, click on the root node, go into Layout -> Transform  -> Size and record the values. (1152, 648) in this case.
+[0.03 - 0.06s] - Copy these values as the baseSize variable used for the ChooseTheAncientBaseSize property needed for Custom Ancient positioning: (1152f, 648f). This will be done in your Custom Ancient's class. I've made an example code excerpt downloadable to add to your class. Same for BaseLib or Ritslib ancients.
+[0.06 - 0.09s] - Make a new scene in Megadot. This is the most relibale way to chose where to center you ancient for the selection screen and will work for any scene type.
+[0.09 - 0.12s] - Make a new Control node as a child of the root. Instantiating the ancient scene as the child of Control will allow it to retain it's default Megadot position.
+[0.12 - 0.18s] - Set the control node Layout -> Transform -> Size to the same as the root node in your scene, in this case (1152, 648).
+[0.18 - 0.23s] - Download the Choose The Ancient Selection Screen templates. I've added them next to my scene but there is no need to compile thim into your mod.
+[0.23 - 0.27s] - Drag both the 2 Slots and 3 Slots template, hiding the 2 Slots template for now.
+[0.27 - 0.30s] - Now only add your scene to this scene throuh right clicking the control node and choosing Instantiate Child Scene. Your scene will show up in the list since you've opened the godot project with your scene.
+[0.30 - 0.32s] - Now you have your scene position exactly like it is in it's own scene project, only consisting of one node.
+[0.32 - 0.35s] - Add a Marker2D as child of the Ancient scene. We will use markers to figure out the positions.
+[0.35 - 0.38s] - The SourceAnchor position in this case.
+[0.38 - 0.43s] -  Only with the marker first created as a child of the Ancient scene will it displayed coordinates that correspond to the actual Ancient scene's coordinate space.
+[0.43 - 0.50s] - The SourceAnchor marker spawns at the origin. Use the move tool to position SourceAnchor to your desired point. For this template ancient, we will pick the middle of the 2-Circle.
+[0.50 - 0.55s] - For a more precise coordinate, go into Layout -> Transform -> Position and set the values. In this case I've choosen (574, 86), as that's the center of the 2-Circle.
+[0.55 - 1.00s] - In your class copy the marker's coordinate as the ChooseTheAncientSourceAnchor property, in this case (574f / baseSize.X, 86f / baseSize.Y). Source Anchor positions in percentages which some godot scenes like this one can skew. Make sure if you are using the marker's coordinate that you divide by the baseSize as done here.
+[1.00 -1.05s] - I don't expect you to work out the SourceAnchor without playing around a bit, but basically you should pick the point you want your ancient to center before centering or scaling your ancient scene. You can nudge after scaling later.
+[1.05 - 1.08s] - Now drag SourceAnchor in the node tree and drop it underneath the control root node. We want to make the marker the parent of the Control Node and the Ancient scene so it appears on top, and that when we now move the marker we will also move the Ancient scene.
+[1.08 - 1.11s] - Drag the Selection screen templates and drop under the root node. Also Drop the Control Node with the Ancient under the SourceAnchor node so SourceAnchor is now the parent.
+[1.11 - 1.13s] - The Selection screens and the SourceAnchor should now show over the Ancient Scene. Useful as we are now going to drag our SourceAnchor point and move it to the center of the selection screen slots.
+[1.13 - 1.21s] - Select the move tool and drag the marker to center point of the selection screen. If you want to be precise use the center positions for the 3 slot template. Left: (335.65, 556), Middle: (997.36, 556), Right: (1620.71, 556)
+[1.21 - 1.26s] - Select the Anchor tool and Hold Shift and click the center point. This will make a temporary anchor so that scaling the scene will scale around our chosen point. Useful for judging the right scale to fit your ancient into the slot.
+[1.26 - 1.30s] - Select the ruler tool, and hold shift down so that scaling will preserve aspect ratio.
+[1.30 - 1.33s] - Hold shift and drag up or down to scale the scene in and out.
+[1.33 - 1.37s] - For more precision go into Layout - Transform -> Scale. I set the Scale to 2.75 here as that fits the 2-Circle in the slot.
+[1.37 - 1.40s] - Copy the scale into ChooseTheAncientScale. In this case 2.75f.
+[1.40 - 1.43s] - Build and compare to the game as I've prepared here.
+[1.43 - 1.46s] - The game scene now matches our template.
+[1.48 - 1.55s] - You can use the move tool to drag the scene from the SourceAnchor marker to other slot centers to see if the values you chose allow the Ancient to fit in all the slots.
+[1.55 - 2.01s] - After scaling, you can adjust the ancient's final position by adding ChooseTheAncientExtraOffset property in your class. It takes in coordinate adjustments, not percentages. See the Aligning Neow video for an example.
+[2.01 - 2.04s] - Have you managed to position your ancient to look good in all solts. Hide the 3 slot template and show the 2 slot template to determine if your scene looks good in the bigger slots too.
+[2.04 - 2.06s] - If everything has gone well, you should now have aligned your Custom Ancients to the Choose The Ancient Selection Screen. Well done.
