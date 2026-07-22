@@ -5,10 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -265,31 +263,7 @@
       <workItem from="1784418648648" duration="5156000" />
       <workItem from="1784568870630" duration="7644000" />
       <workItem from="1784643211039" duration="10449000" />
-      <workItem from="1784731796713" duration="11266000" />
-    </task>
-    <task id="LOCAL-00015" summary="- First and Second Selection Round ties flicker to the winning Ancient now.&#10;- Second round doesn't fix the first round winner ancient to the left.">
-      <option name="closed" value="true" />
-      <created>1782452571815</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1782452571815</updated>
-    </task>
-    <task id="LOCAL-00016" summary="Made code more robust to handle infinite and looping act transitions and still has selection screen in some situation, and to also exit safely.&#10;- Remove hard-coded Act 2/3 for EnterNextAct Patch&#10; - Resolve target act models from longer act lists or looping act sequences&#10;- Fall back to vanilla progression when no target act can be resolved&#10;- Avoid treating repeated act indexes as already-resolved in endless-style runs&#10;- Separate CTA setup failures from EnterNextAct failures&#10;- Only fall back to EnterNextAct when the ancient selection flow fails before transition begins&#10;- Do not retry EnterNextAct after the transition has started, preventing skipped acts after partial failures&#10;- Close CTA screen state before continuing into the vanilla act transition">
-      <option name="closed" value="true" />
-      <created>1782864489987</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1782864489987</updated>
-    </task>
-    <task id="LOCAL-00017" summary="Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
-      <option name="closed" value="true" />
-      <created>1782999681493</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1782999681493</updated>
+      <workItem from="1784731796713" duration="13893000" />
     </task>
     <task id="LOCAL-00018" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
       <option name="closed" value="true" />
@@ -659,7 +633,31 @@
       <option name="project" value="LOCAL" />
       <updated>1784755622438</updated>
     </task>
-    <option name="localTasksCounter" value="64" />
+    <task id="LOCAL-00064" summary="Edited the Neow Script.">
+      <option name="closed" value="true" />
+      <created>1784757377463</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1784757377463</updated>
+    </task>
+    <task id="LOCAL-00065" summary="Removed ChooseTheAncientPortalSourceNodePath and ChooseTheAncientPortalAutoDetectSourceNode properties from the API. Also removed all the code they required in Selection Screen to change the positions and baseSize. The API is simpler without them now that we have a consistent tutorial to get the values manually from godot.">
+      <option name="closed" value="true" />
+      <created>1784757485626</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1784757485626</updated>
+    </task>
+    <task id="LOCAL-00066" summary="Removed ChooseTheAncientPortalSourceNodePath and ChooseTheAncientPortalAutoDetectSourceNode properties from the API. Also removed all the code they required in Selection Screen to change the positions and baseSize. The API is simpler without them now that we have a consistent tutorial to get the values manually from godot.">
+      <option name="closed" value="true" />
+      <created>1784757551214</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1784757551215</updated>
+    </task>
+    <option name="localTasksCounter" value="67" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -695,8 +693,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Added coop testing for modifiers in act 1" />
-    <MESSAGE value="- First and Second Selection Round ties flicker to the winning Ancient now.&#10;- Second round doesn't fix the first round winner ancient to the left." />
     <MESSAGE value="Made code more robust to handle infinite and looping act transitions and still has selection screen in some situation, and to also exit safely.&#10;- Remove hard-coded Act 2/3 for EnterNextAct Patch&#10; - Resolve target act models from longer act lists or looping act sequences&#10;- Fall back to vanilla progression when no target act can be resolved&#10;- Avoid treating repeated act indexes as already-resolved in endless-style runs&#10;- Separate CTA setup failures from EnterNextAct failures&#10;- Only fall back to EnterNextAct when the ancient selection flow fails before transition begins&#10;- Do not retry EnterNextAct after the transition has started, preventing skipped acts after partial failures&#10;- Close CTA screen state before continuing into the vanilla act transition" />
     <MESSAGE value="Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
     <MESSAGE value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
@@ -720,7 +716,9 @@
     <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients." />
     <MESSAGE value="Edited the aligning custom ancient scipts. Added the alligning Neow script. Added the simplified scripts." />
     <MESSAGE value="Edited the Focus Ancient 2 Script. Added the simplified script for Focus Ancient 2. Added the Neow script." />
-    <option name="LAST_COMMIT_MESSAGE" value="Edited the Focus Ancient 2 Script. Added the simplified script for Focus Ancient 2. Added the Neow script." />
+    <MESSAGE value="Edited the Neow Script." />
+    <MESSAGE value="Removed ChooseTheAncientPortalSourceNodePath and ChooseTheAncientPortalAutoDetectSourceNode properties from the API. Also removed all the code they required in Selection Screen to change the positions and baseSize. The API is simpler without them now that we have a consistent tutorial to get the values manually from godot." />
+    <option name="LAST_COMMIT_MESSAGE" value="Removed ChooseTheAncientPortalSourceNodePath and ChooseTheAncientPortalAutoDetectSourceNode properties from the API. Also removed all the code they required in Selection Screen to change the positions and baseSize. The API is simpler without them now that we have a consistent tutorial to get the values manually from godot." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

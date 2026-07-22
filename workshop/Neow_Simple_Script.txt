@@ -1,0 +1,79 @@
+Aligning Neow — Simple Action-Only Script
+
+[0:00–0:05]
+Select Neow’s root node and record Layout → Transform → Size: (1920, 1080).
+
+[0:05–0:07]
+Create a new scene.
+
+[0:07–0:10]
+Add a Control node as a child of the root.
+
+[0:10–0:15]
+Set the Control node’s Layout → Transform → Size to (1920, 1080).
+
+[0:15–0:17]
+Download the Choose the Ancient selection-screen templates.
+
+[0:18–0:20]
+Add the 3-Slot selection-screen template.
+
+[0:20–0:24]
+Right-click the Control node, select Instantiate Child Scene, and add the Neow scene.
+
+[0:27–0:30]
+Add a Marker2D as a child of Neow and use it as SourceAnchor.
+
+[0:33–0:40]
+Move SourceAnchor to the centre of Neow’s mouth.
+
+[0:40–0:44]
+For more precision, set Layout → Transform → Position to (757, 542).
+
+[0:44–0:48]
+Set ChooseTheAncientSourceAnchor to (757f / baseSize.X, 542f / baseSize.Y).
+
+[0:51–0:54]
+Reparent the Control node under SourceAnchor.
+
+[0:54–0:56]
+Move the selection-screen template under the root node.
+
+[0:59–1:04]
+Move SourceAnchor to a 3-Slot centre:
+Left: (335.65, 556)
+Middle: (997.36, 556)
+Right: (1620.71, 556)
+
+[1:04–1:07]
+Select the Anchor tool, hold Shift, and click the slot centre.
+
+[1:07–1:12]
+Select the Scale tool, hold Shift, and drag to scale Neow.
+
+[1:12–1:16]
+For more precision, set Layout → Transform → Scale to 0.88.
+
+[1:16–1:20]
+Set ChooseTheAncientScale to 0.88f.
+
+[1:20–1:26]
+Use the Move tool to move Neow left.
+
+[1:26–1:30]
+For more precision, append -93 in the Layout → Transform → Position X field.
+
+[1:32–1:36]
+Set ChooseTheAncientExtraOffset to (-93f, 0f).
+
+[1:36–1:41]
+Add another Marker2D under Neow and rename it Center.
+
+[1:41–1:52]
+Reparent Center under the root, then move the SourceAnchor branch under Center.
+
+[1:55–2:00]
+Move Center between the slot centres and check Neow’s fit.
+
+[2:00–2:05]
+Now you have aligned Neow to the Choose the Ancient selection screen.
