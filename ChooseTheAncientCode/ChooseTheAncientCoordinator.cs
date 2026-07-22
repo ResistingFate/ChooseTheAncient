@@ -407,26 +407,29 @@ public static class ChooseTheAncientCoordinator
 
         try
         {
-            List<Player> orderedPlayers = runState.Players
-                .OrderBy(runState.GetPlayerSlotIndex)
-                .ToList();
-
-            int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
-            ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
-            IReadOnlyList<int>? effectiveAncientPoolSourceActs =
-                await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, nextActIndex);
-            IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
-                await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, nextActIndex);
-
+            // Resolve the actual indexed ActModel before reading ballot settings.
+            // A missing index means EnterNextAct is handling The Architect or
+            // run completion, not entering another act.
             if (!TryResolveTargetAct(runState, nextActIndex, out ActModel? nextAct, out int resolvedActModelIndex))
             {
-                ModLog.Warn(
-                    $"Could not resolve a target ActModel for act {nextActIndex + 1}. " +
-                    $"RunState.Acts.Count={runState.Acts.Count}. Falling back to vanilla EnterNextAct().");
+                ModLog.Info(
+                    $"Skipping CTA flow for act {nextActIndex + 1} because no indexed ActModel exists. " +
+                    $"RunState.Acts.Count={runState.Acts.Count}. Continuing vanilla EnterNextAct().");
                 shouldEnterNextAct = true;
             }
             else
             {
+                List<Player> orderedPlayers = runState.Players
+                    .OrderBy(runState.GetPlayerSlotIndex)
+                    .ToList();
+
+                int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
+                ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
+                IReadOnlyList<int>? effectiveAncientPoolSourceActs =
+                    await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, nextActIndex);
+                IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
+                    await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, nextActIndex);
+
                 List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
                     nextAct,
                     runState,
@@ -547,64 +550,32 @@ public static class ChooseTheAncientCoordinator
         [NotNullWhen(true)] out ActModel? targetAct,
         out int resolvedActModelIndex)
     /*
-     * Resolves the ActModel CTA should use for the next transition without assuming the run only has three acts.
-     * - If a longer/infinite act list already contains nextActIndex, use it directly.
-     * - If the active run loops a finite act list, use modulo so act 4 can use act 1's model, act 5 can use act 2's, etc.
-     * - If no act model is available, let vanilla handle EnterNextAct without CTA selection.
+     * CTA only opens for an ActModel that actually exists at nextActIndex.
+     * Endless or extended-act mods remain supported when they add their real
+     * ActModel entries to RunState.Acts before requesting the transition.
      */
     {
         targetAct = null;
         resolvedActModelIndex = -1;
 
-        if (nextActIndex < 0)
+        if (nextActIndex < 0 || nextActIndex >= runState.Acts.Count)
         {
-            ModLog.Warn($"Cannot resolve a negative target act index: {nextActIndex}.");
             return false;
         }
 
-        int actCount = runState.Acts.Count;
-        if (actCount <= 0)
-        {
-            ModLog.Warn("Cannot resolve a target act because runState.Acts is empty.");
-            return false;
-        }
-
-        if (nextActIndex < actCount)
-        {
-            ActModel? directAct = runState.Acts[nextActIndex];
-            if (directAct == null)
-            {
-                ModLog.Warn(
-                    $"Cannot resolve target act {nextActIndex + 1}: runState.Acts[{nextActIndex}] is null. " +
-                    $"RunState.Acts.Count={actCount}.");
-                return false;
-            }
-
-            targetAct = directAct;
-            resolvedActModelIndex = nextActIndex;
-            return true;
-        }
-
-        int loopedActModelIndex = nextActIndex % actCount;
-        ActModel? loopedAct = runState.Acts[loopedActModelIndex];
-        if (loopedAct == null)
+        ActModel? directAct = runState.Acts[nextActIndex];
+        if (directAct == null)
         {
             ModLog.Warn(
-                $"Cannot resolve target act {nextActIndex + 1} through looped act model {loopedActModelIndex + 1}: " +
-                $"runState.Acts[{loopedActModelIndex}] is null. RunState.Acts.Count={actCount}.");
+                $"Cannot resolve target act {nextActIndex + 1}: runState.Acts[{nextActIndex}] is null. " +
+                $"RunState.Acts.Count={runState.Acts.Count}.");
             return false;
         }
 
-        resolvedActModelIndex = loopedActModelIndex;
-        targetAct = loopedAct;
-
-        ModLog.Info(
-            $"Resolved act {nextActIndex + 1} through looped act model {resolvedActModelIndex + 1} " +
-            $"({targetAct.Id.Entry}). RunState.Acts.Count={actCount}.");
-
+        targetAct = directAct;
+        resolvedActModelIndex = nextActIndex;
         return true;
     }
-
 
     private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionScreen? LocalScreen)> RunAncientSelectionBallotAsync(
         RunState runState,

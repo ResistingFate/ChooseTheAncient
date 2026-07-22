@@ -7,6 +7,7 @@
 - Modconfig implementation needs ta change as mod update, write now it just fails safely.
 - Check if this is just an update issue for the modified ancient:
   - The Phoenix custom ancient cannot determine its normal act on either version. CTA falls back to vanilla RNG. This could affect act-offset reward behaviour when Phoenix is moved between acts, including on 0.109.0, but it did not cause Neow’s missing rewards.
+- Question mark should be bigger and Ancient coded as players can see it if they open the map at the start of act 1.
 
 Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.
 1. If PortalSourceNodePath is set, use that node.

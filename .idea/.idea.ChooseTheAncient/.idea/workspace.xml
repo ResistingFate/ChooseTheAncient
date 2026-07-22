@@ -5,7 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/workshop/CustomAncientSelectionScreenAlignmentGuide.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/workshop/SelectionScreen_Position_Tutorial_Scripts.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/EnterNextActPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/EnterNextActPatch.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workshop/Focus_Ancient_2_Script.txt" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/Focus_Ancient_2_Script.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,32 +64,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;.NET Executable. dotnet test ChooseTheAncient.Tests.executor&quot;: &quot;Run&quot;,
-    &quot;.NET Executable.SlayTheSpire2_Debug.executor&quot;: &quot;Run&quot;,
-    &quot;.NET Executable.clean rebuild tests.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient Tests to folder.executor&quot;: &quot;Run&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient to folder.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;CodeLensConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    ".NET Executable. dotnet test ChooseTheAncient.Tests.executor": "Run",
+    ".NET Executable.SlayTheSpire2_Debug.executor": "Run",
+    ".NET Executable.clean rebuild tests.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
+    "Publish to folder.Publish ChooseTheAncient to folder.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.editor",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
@@ -258,39 +265,11 @@
       <workItem from="1783950291602" duration="7254000" />
       <workItem from="1784059718547" duration="606000" />
       <workItem from="1784110834786" duration="1201000" />
-      <workItem from="1784303701456" duration="6282000" />
-    </task>
-    <task id="LOCAL-00003" summary="feat: synchronize ancient ban voting with player choice synchronizer">
-      <option name="closed" value="true" />
-      <created>1774727553194</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1774727553194</updated>
-    </task>
-    <task id="LOCAL-00004" summary="fix: collect multiplayer ancient ban votes concurrently">
-      <option name="closed" value="true" />
-      <created>1774729246181</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1774729246181</updated>
-    </task>
-    <task id="LOCAL-00005" summary="feat: keep ancient vote overlay open until all multiplayer votes arrive">
-      <option name="closed" value="true" />
-      <created>1774732320974</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1774732320974</updated>
-    </task>
-    <task id="LOCAL-00006" summary="Implemented compatability with Ancient Config Plus and added unit test to test the weighted ancient selection pool as a result. Without the mod all ancients have the same probability so behaves like a normal shuffle.&#10;&#10;Change My Rider Settings so the sln has the main project and the test project that runs all the unit tests.">
-      <option name="closed" value="true" />
-      <created>1782164833673</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1782164833673</updated>
+      <workItem from="1784303701456" duration="16516000" />
+      <workItem from="1784418648648" duration="5156000" />
+      <workItem from="1784568870630" duration="7644000" />
+      <workItem from="1784643211039" duration="10449000" />
+      <workItem from="1784731796713" duration="3712000" />
     </task>
     <task id="LOCAL-00007" summary="updated csproj files to help improve the testing framework">
       <option name="closed" value="true" />
@@ -652,7 +631,39 @@
       <option name="project" value="LOCAL" />
       <updated>1784311531259</updated>
     </task>
-    <option name="localTasksCounter" value="52" />
+    <task id="LOCAL-00052" summary="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
+      <option name="closed" value="true" />
+      <created>1784315106993</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1784315106993</updated>
+    </task>
+    <task id="LOCAL-00053" summary="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
+      <option name="closed" value="true" />
+      <created>1784315166976</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1784315166976</updated>
+    </task>
+    <task id="LOCAL-00054" summary="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
+      <option name="closed" value="true" />
+      <created>1784315179816</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1784315179816</updated>
+    </task>
+    <task id="LOCAL-00055" summary="Added tutorial Scripts for the aligning custom ancients videos in the workshop folder">
+      <option name="closed" value="true" />
+      <created>1784732147521</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1784732147521</updated>
+    </task>
+    <option name="localTasksCounter" value="56" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -688,7 +699,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="feat: keep ancient vote overlay open until all multiplayer votes arrive" />
     <MESSAGE value="Implemented compatability with Ancient Config Plus and added unit test to test the weighted ancient selection pool as a result. Without the mod all ancients have the same probability so behaves like a normal shuffle.&#10;&#10;Change My Rider Settings so the sln has the main project and the test project that runs all the unit tests." />
     <MESSAGE value="updated csproj files to help improve the testing framework" />
     <MESSAGE value="[v1.2.1] Added compatability to Ancient Config Plus" />
@@ -713,7 +723,8 @@
     <MESSAGE value="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize." />
     <MESSAGE value="MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
     <MESSAGE value="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
-    <option name="LAST_COMMIT_MESSAGE" value="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
+    <MESSAGE value="Added tutorial Scripts for the aligning custom ancients videos in the workshop folder" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added tutorial Scripts for the aligning custom ancients videos in the workshop folder" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

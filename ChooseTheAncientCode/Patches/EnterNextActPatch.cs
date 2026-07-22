@@ -21,6 +21,24 @@ public static class EnterNextActPatch
             return true;
         }
 
+        // EnterNextAct owns three different transitions since 0.109.0:
+        // entering another indexed act, entering The Architect after the final
+        // indexed act, and finishing the run from a victory room. Selection Screen
+        // should only intercept the first case.
+        bool isVictoryRoom = runState.CurrentRoom?.IsVictoryRoom == true;
+        if (isVictoryRoom || nextActIndex >= runState.Acts.Count)
+        {
+            string terminalTransition = isVictoryRoom
+                ? "finish the run from a victory room"
+                : "enter The Architect because no indexed next act exists";
+
+            ModLog.Info(
+                $"Skipping CTA before EnterNextAct; vanilla will {terminalTransition}. " +
+                $"CurrentActIndex={runState.CurrentActIndex}, NextActIndex={nextActIndex}, " +
+                $"Acts.Count={runState.Acts.Count}, CurrentRoomIsVictory={isVictoryRoom}.");
+            return true;
+        }
+
         ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);
 
         if (flow.ContinueEnterNextAct)
