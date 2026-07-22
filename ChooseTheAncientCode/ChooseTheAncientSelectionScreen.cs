@@ -67,8 +67,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     private static readonly string DialogueItalicFontPath = "res://themes/bitter_medium_italic_glyph_space_one.tres";
 
-    private static readonly HashSet<string> SourceAnchorWarningKeys = new();
-
     private const float PreviewEntranceOffsetAt1080 = 68f;
     private const double ReactionEntranceDurationNormal = 1.00;
     private const double ReactionEntranceDurationFast = 0.82;
@@ -150,9 +148,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         Vector2 BaseSize,
         float Scale,
         Vector2 SourceAnchor,
-        Vector2 ExtraOffset,
-        string? SourceNodePath = null,
-        bool AutoDetectSourceNode = false);
+        Vector2 ExtraOffset);
 
     private readonly record struct AncientSceneColor(
         List<Color> Accents);
@@ -277,10 +273,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     {
         ["DARV"] = DefaultAncientSceneConfig,
         ["OROBAS"] =
-            new AncientSceneConfig(Vector2.Zero, 1.24f, new Vector2(0.39f, 0.08f), new Vector2(-0.06f, -0.01f)),
-        ["PAEL"] = new AncientSceneConfig(Vector2.Zero, 1.52f, new Vector2(0.50f, 0.03f), new Vector2(0f, -0.01f)),
+            new AncientSceneConfig(Vector2.Zero, 1.24f, new Vector2(0.39f, 0.08f), new Vector2(-115.2f, -10.8f)),
+        ["PAEL"] = new AncientSceneConfig(Vector2.Zero, 1.52f, new Vector2(0.50f, 0.03f), new Vector2(0f, -10.8f)),
         ["TEZCATARA"] =
-            new AncientSceneConfig(Vector2.Zero, 1.22f, new Vector2(0.58f, 0.06f), new Vector2(0.06f, -0.01f)),
+            new AncientSceneConfig(Vector2.Zero, 1.22f, new Vector2(0.58f, 0.06f), new Vector2(115.2f, -10.8f)),
         ["NONUPEIPE"] = DefaultAncientSceneConfig,
         ["TANX"] = DefaultAncientSceneConfig,
         ["VAKUU"] = DefaultAncientSceneConfig,
@@ -288,9 +284,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             new Vector2(1920f, 1080f),
             0.88f,
             new Vector2(
-                (-20f -330f + 997f + 92f / 0.88f) / 1920f,
-                (-49f + 542f) / 1080f),
-            Vector2.Zero),
+                (757f) / 1920f,
+                (542f) / 1080f),
+            new Vector2(-93f, 0f)),
     };
 
     // Dialouge and Event Options Colors are defined in the Ancient Class alerady
@@ -3656,9 +3652,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             BaseSize = presentation.PortalBaseSize ?? config.BaseSize,
             Scale = presentation.PortalScale ?? config.Scale,
             SourceAnchor = presentation.PortalSourceAnchor ?? config.SourceAnchor,
-            ExtraOffset = presentation.PortalExtraOffset ?? config.ExtraOffset,
-            SourceNodePath = presentation.PortalSourceNodePath ?? config.SourceNodePath,
-            AutoDetectSourceNode = presentation.PortalAutoDetectSourceNode ?? config.AutoDetectSourceNode
+            ExtraOffset = presentation.PortalExtraOffset ?? config.ExtraOffset
         };
     }
 
@@ -3697,13 +3691,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          * Calculates the target scene size, position, and scale for a slot's background scene.
          *
          * Mental model:
-         *   Take a source point.
+         *   Take a normalized source point inside the scene's base size.
          *   Put that point at the slot center.
-         *   Then apply ExtraOffset.
-         *
-         * SourceAnchor is measured in root-scene space by default. If a source node path
-         * is provided, SourceAnchor is measured inside that node and converted back to
-         * root-scene space before the slot transform is applied.
+         *   Then apply ExtraOffset directly in pixels.
          */
         AncientSceneConfig cfg = GetSceneConfig(refs.Ancient);
         Vector2 baseSize = ResolveSceneBaseSize(refs, cfg);
@@ -3713,271 +3703,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             (refs.Shape.TopLeft.X + refs.Shape.TopRight.X + refs.Shape.BottomLeft.X + refs.Shape.BottomRight.X) * 0.25f,
             (refs.Shape.TopLeft.Y + refs.Shape.TopRight.Y + refs.Shape.BottomLeft.Y + refs.Shape.BottomRight.Y) * 0.25f);
 
-        Vector2 sourceAnchorPx = ResolveSourceAnchorPx(
-            refs,
-            cfg,
-            baseSize,
-            appliedScale,
-            out bool ignoreExtraOffset);
-
-        Vector2 extraPx = ignoreExtraOffset
-            ? Vector2.Zero
-            : new Vector2(
-                refs.BaseSize.X * cfg.ExtraOffset.X,
-                refs.BaseSize.Y * cfg.ExtraOffset.Y);
+        Vector2 sourceAnchorPx = new(
+            baseSize.X * appliedScale * cfg.SourceAnchor.X,
+            baseSize.Y * appliedScale * cfg.SourceAnchor.Y);
 
         return new SceneTransform(
             baseSize,
-            slotAnchorPx - sourceAnchorPx + extraPx,
+            slotAnchorPx - sourceAnchorPx + cfg.ExtraOffset,
             Vector2.One * appliedScale);
-    }
-
-    private Vector2 ResolveSourceAnchorPx(
-        SlotRefs refs,
-        AncientSceneConfig cfg,
-        Vector2 baseSize,
-        float appliedScale,
-        out bool ignoreExtraOffset)
-    {
-        /*
-         * Root mode:
-         *   SourceAnchor is normalized inside the root scene's base size.
-         *
-         * Explicit node mode:
-         *   SourceAnchor is normalized inside SourceNodePath and converted back into
-         *   root scene space.
-         *
-         * Auto-detect mode:
-         *   If ChooseTheAncientPortalAutoDetectSourceNode is true and no explicit path
-         *   is provided, CTA will use the only visible TextureRect with a texture. If
-         *   there are zero or multiple candidates, it falls back to root mode.
-         */
-        ignoreExtraOffset = false;
-
-        if (!string.IsNullOrWhiteSpace(cfg.SourceNodePath))
-        {
-            if (refs.SceneRoot != null
-                && TryResolveSourceAnchorFromNodePath(
-                    refs.SceneRoot,
-                    cfg.SourceNodePath!,
-                    cfg.SourceAnchor,
-                    out Vector2 nodeAnchorPx))
-            {
-                return nodeAnchorPx * appliedScale;
-            }
-
-            WarnSourceAnchorOnce(
-                refs.Ancient.Id.Entry,
-                $"Could not resolve ChooseTheAncientPortalSourceNodePath '{cfg.SourceNodePath}' for {refs.Ancient.Id.Entry}; " +
-                "using a safe centered preview and ignoring PortalExtraOffset for this preview.");
-
-            ignoreExtraOffset = true;
-            return new Vector2(
-                baseSize.X * appliedScale * 0.5f,
-                baseSize.Y * appliedScale * 0.5f);
-        }
-
-        if (cfg.AutoDetectSourceNode && refs.SceneRoot != null)
-        {
-            if (TryResolveAutoDetectedTextureRectAnchor(
-                    refs.SceneRoot,
-                    cfg.SourceAnchor,
-                    out Vector2 detectedAnchorPx,
-                    out string failureReason))
-            {
-                return detectedAnchorPx * appliedScale;
-            }
-
-            WarnSourceAnchorOnce(
-                refs.Ancient.Id.Entry,
-                $"Could not auto-detect a TextureRect source node for {refs.Ancient.Id.Entry}: {failureReason}. " +
-                "Falling back to root scene PortalBaseSize anchoring.");
-        }
-
-        return new Vector2(
-            baseSize.X * appliedScale * cfg.SourceAnchor.X,
-            baseSize.Y * appliedScale * cfg.SourceAnchor.Y);
-    }
-
-    private static bool TryResolveSourceAnchorFromNodePath(
-        Node root,
-        string sourceNodePath,
-        Vector2 anchor,
-        out Vector2 rootPoint)
-    {
-        rootPoint = Vector2.Zero;
-
-        Node? node = root.GetNodeOrNull(new NodePath(sourceNodePath));
-        if (node == null)
-            return false;
-
-        if (node is TextureRect textureRect)
-            return TryResolveTextureRectAnchorInRoot(root, textureRect, anchor, out rootPoint);
-
-        if (node is Control control)
-        {
-            Vector2 localPoint = control.Size * anchor;
-            return TryTransformCanvasItemPointToRoot(root, control, localPoint, out rootPoint);
-        }
-
-        if (node is Node2D node2D)
-            return TryTransformCanvasItemPointToRoot(root, node2D, Vector2.Zero, out rootPoint);
-
-        return false;
-    }
-
-    private static bool TryResolveAutoDetectedTextureRectAnchor(
-        Node root,
-        Vector2 anchor,
-        out Vector2 rootPoint,
-        out string failureReason)
-    {
-        rootPoint = Vector2.Zero;
-        failureReason = string.Empty;
-
-        List<TextureRect> candidates = new();
-        CollectTextureRectCandidates(root, candidates);
-
-        if (candidates.Count == 1)
-            return TryResolveTextureRectAnchorInRoot(root, candidates[0], anchor, out rootPoint);
-
-        failureReason = candidates.Count == 0
-            ? "no visible TextureRect with a texture was found"
-            : $"{candidates.Count} visible TextureRects with textures were found; set ChooseTheAncientPortalSourceNodePath explicitly";
-
-        return false;
-    }
-
-    private static void CollectTextureRectCandidates(Node node, List<TextureRect> candidates)
-    {
-        foreach (Node child in node.GetChildren())
-        {
-            if (child is TextureRect textureRect
-                && textureRect.Texture != null
-                && textureRect.Visible
-                && textureRect.Size.X > 0f
-                && textureRect.Size.Y > 0f)
-            {
-                candidates.Add(textureRect);
-            }
-
-            CollectTextureRectCandidates(child, candidates);
-        }
-    }
-
-    private static bool TryResolveTextureRectAnchorInRoot(
-        Node root,
-        TextureRect textureRect,
-        Vector2 anchor,
-        out Vector2 rootPoint)
-    {
-        Texture2D? texture = textureRect.Texture;
-        if (texture == null)
-            return TryTransformCanvasItemPointToRoot(root, textureRect, textureRect.Size * anchor, out rootPoint);
-
-        Vector2 textureSize = texture.GetSize();
-        Vector2 rectSize = textureRect.Size;
-
-        if (textureSize.X <= 0f || textureSize.Y <= 0f || rectSize.X <= 0f || rectSize.Y <= 0f)
-            return TryTransformCanvasItemPointToRoot(root, textureRect, rectSize * anchor, out rootPoint);
-
-        Vector2 scale;
-        Vector2 offset;
-
-        switch (textureRect.StretchMode)
-        {
-            case TextureRect.StretchModeEnum.Scale:
-                scale = new Vector2(
-                    rectSize.X / textureSize.X,
-                    rectSize.Y / textureSize.Y);
-                offset = Vector2.Zero;
-                break;
-
-            case TextureRect.StretchModeEnum.Tile:
-                scale = Vector2.One;
-                offset = Vector2.Zero;
-                break;
-
-            case TextureRect.StretchModeEnum.Keep:
-                scale = Vector2.One;
-                offset = Vector2.Zero;
-                break;
-
-            case TextureRect.StretchModeEnum.KeepCentered:
-                scale = Vector2.One;
-                offset = (rectSize - textureSize) * 0.5f;
-                break;
-
-            case TextureRect.StretchModeEnum.KeepAspect:
-            {
-                float s = Mathf.Min(
-                    rectSize.X / textureSize.X,
-                    rectSize.Y / textureSize.Y);
-                scale = new Vector2(s, s);
-                offset = Vector2.Zero;
-                break;
-            }
-
-            case TextureRect.StretchModeEnum.KeepAspectCentered:
-            {
-                float s = Mathf.Min(
-                    rectSize.X / textureSize.X,
-                    rectSize.Y / textureSize.Y);
-                scale = new Vector2(s, s);
-                offset = (rectSize - textureSize * s) * 0.5f;
-                break;
-            }
-
-            case TextureRect.StretchModeEnum.KeepAspectCovered:
-            {
-                float s = Mathf.Max(
-                    rectSize.X / textureSize.X,
-                    rectSize.Y / textureSize.Y);
-                scale = new Vector2(s, s);
-                offset = (rectSize - textureSize * s) * 0.5f;
-                break;
-            }
-
-            default:
-                scale = new Vector2(
-                    rectSize.X / textureSize.X,
-                    rectSize.Y / textureSize.Y);
-                offset = Vector2.Zero;
-                break;
-        }
-
-        Vector2 texturePointInRectLocal =
-            offset + textureSize * anchor * scale;
-
-        return TryTransformCanvasItemPointToRoot(root, textureRect, texturePointInRectLocal, out rootPoint);
-    }
-
-    private static bool TryTransformCanvasItemPointToRoot(
-        Node root,
-        CanvasItem item,
-        Vector2 itemLocalPoint,
-        out Vector2 rootPoint)
-    {
-        rootPoint = Vector2.Zero;
-
-        if (root is not CanvasItem rootCanvas)
-            return false;
-
-        Transform2D itemToCanvas = item.GetGlobalTransformWithCanvas();
-        Transform2D rootToCanvas = rootCanvas.GetGlobalTransformWithCanvas();
-
-        Vector2 pointInCanvas = itemToCanvas * itemLocalPoint;
-        rootPoint = rootToCanvas.AffineInverse() * pointInCanvas;
-        return true;
-    }
-
-    private static void WarnSourceAnchorOnce(string ancientId, string message)
-    {
-        string key = $"{ancientId}|{message}";
-        if (!SourceAnchorWarningKeys.Add(key))
-            return;
-
-        ModLog.Warn(message);
     }
 
     private void ApplySceneTransform(SlotRefs refs, bool hovered, bool animate)

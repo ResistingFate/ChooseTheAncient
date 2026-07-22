@@ -10,11 +10,10 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Interop;
 internal sealed record ChooseTheAncientPresentation
 {
     public float? PortalScale { get; init; }
+
+    public Vector2? PortalBaseSize { get; init; }
     public Vector2? PortalSourceAnchor { get; init; }
     public Vector2? PortalExtraOffset { get; init; }
-    public Vector2? PortalBaseSize { get; init; }
-    public string? PortalSourceNodePath { get; init; }
-    public bool? PortalAutoDetectSourceNode { get; init; }
 
     public Color? AccentColor { get; init; }
     public Color? DialogueColor { get; init; }
@@ -38,12 +37,6 @@ internal static class ChooseTheAncientPresentationHelpers
         {
             return null;
         }
-    }
-
-
-    internal static string? NormalizeNodePath(string? nodePath)
-    {
-        return string.IsNullOrWhiteSpace(nodePath) ? null : nodePath.Trim();
     }
 
     internal static string? NormalizeLocPrefix(string? prefix)

@@ -84,12 +84,9 @@ internal static class ChooseTheAncientPresentationResolver
         return new ChooseTheAncientPresentation
         {
             PortalScale = TryReadFloatProperty(type, ancient, "ChooseTheAncientPortalScale"),
+            PortalBaseSize = TryReadVector2Property(type, ancient, "ChooseTheAncientPortalBaseSize"),
             PortalSourceAnchor = TryReadVector2Property(type, ancient, "ChooseTheAncientPortalSourceAnchor"),
             PortalExtraOffset = TryReadVector2Property(type, ancient, "ChooseTheAncientPortalExtraOffset"),
-            PortalBaseSize = TryReadVector2Property(type, ancient, "ChooseTheAncientPortalBaseSize"),
-            PortalSourceNodePath = ChooseTheAncientPresentationHelpers.NormalizeNodePath(
-                TryReadStringProperty(type, ancient, "ChooseTheAncientPortalSourceNodePath")),
-            PortalAutoDetectSourceNode = TryReadBoolProperty(type, ancient, "ChooseTheAncientPortalAutoDetectSourceNode"),
             AccentColor =
                 TryReadColorProperty(type, ancient, "ChooseTheAncientAccentColor")
                 ?? TryReadColorHexProperty(type, ancient, "ChooseTheAncientAccentHex"),
@@ -128,30 +125,6 @@ internal static class ChooseTheAncientPresentationResolver
             return null;
         }
     }
-
-    private static bool? TryReadBoolProperty(Type type, object instance, string propertyName)
-    {
-        if (!TryReadPropertyValue(type, instance, propertyName, out object? value) || value == null)
-            return null;
-
-        try
-        {
-            return value switch
-            {
-                bool b => b,
-                string s when bool.TryParse(s, out bool parsed) => parsed,
-                int i => i != 0,
-                long l => l != 0,
-                IConvertible convertible => convertible.ToBoolean(CultureInfo.InvariantCulture),
-                _ => null
-            };
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
 
     private static Vector2? TryReadVector2Property(Type type, object instance, string propertyName)
     {
