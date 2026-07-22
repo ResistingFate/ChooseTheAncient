@@ -5,12 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/workshop/Focus_Ancient_2_Script.txt" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/Focus_Ancient_2_Script.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -267,15 +265,7 @@
       <workItem from="1784418648648" duration="5156000" />
       <workItem from="1784568870630" duration="7644000" />
       <workItem from="1784643211039" duration="10449000" />
-      <workItem from="1784731796713" duration="10078000" />
-    </task>
-    <task id="LOCAL-00014" summary="Added coop testing for modifiers in act 1">
-      <option name="closed" value="true" />
-      <created>1782447392592</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1782447392592</updated>
+      <workItem from="1784731796713" duration="11266000" />
     </task>
     <task id="LOCAL-00015" summary="- First and Second Selection Round ties flicker to the winning Ancient now.&#10;- Second round doesn't fix the first round winner ancient to the left.">
       <option name="closed" value="true" />
@@ -661,7 +651,15 @@
       <option name="project" value="LOCAL" />
       <updated>1784754252787</updated>
     </task>
-    <option name="localTasksCounter" value="63" />
+    <task id="LOCAL-00063" summary="Edited the Focus Ancient 2 Script. Added the simplified script for Focus Ancient 2. Added the Neow script.">
+      <option name="closed" value="true" />
+      <created>1784755622433</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1784755622438</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -697,8 +695,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Attempting an implementation to allow unknown modifiers presumably from mods to activate During act 1 with our Neow Patch. Neow Patch is called in helper." />
-    <MESSAGE value="Implemented testing to check the new implementation on hnadler modifiers and custom modifiers during act 1." />
     <MESSAGE value="Added coop testing for modifiers in act 1" />
     <MESSAGE value="- First and Second Selection Round ties flicker to the winning Ancient now.&#10;- Second round doesn't fix the first round winner ancient to the left." />
     <MESSAGE value="Made code more robust to handle infinite and looping act transitions and still has selection screen in some situation, and to also exit safely.&#10;- Remove hard-coded Act 2/3 for EnterNextAct Patch&#10; - Resolve target act models from longer act lists or looping act sequences&#10;- Fall back to vanilla progression when no target act can be resolved&#10;- Avoid treating repeated act indexes as already-resolved in endless-style runs&#10;- Separate CTA setup failures from EnterNextAct failures&#10;- Only fall back to EnterNextAct when the ancient selection flow fails before transition begins&#10;- Do not retry EnterNextAct after the transition has started, preventing skipped acts after partial failures&#10;- Close CTA screen state before continuing into the vanilla act transition" />
@@ -722,7 +718,9 @@
     <MESSAGE value="Changing up how acts past act 3 are handleed so skip ancient selection when no next act exists. Also the EnterNextAct has been updated in 0.109.0 to include Victor Room guards, se we've updated the patch too." />
     <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged." />
     <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients." />
-    <option name="LAST_COMMIT_MESSAGE" value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients." />
+    <MESSAGE value="Edited the aligning custom ancient scipts. Added the alligning Neow script. Added the simplified scripts." />
+    <MESSAGE value="Edited the Focus Ancient 2 Script. Added the simplified script for Focus Ancient 2. Added the Neow script." />
+    <option name="LAST_COMMIT_MESSAGE" value="Edited the Focus Ancient 2 Script. Added the simplified script for Focus Ancient 2. Added the Neow script." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
