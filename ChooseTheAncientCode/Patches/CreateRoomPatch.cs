@@ -21,7 +21,7 @@ public static class CreateRoomPatch
         if (runState == null)
             return true;
 
-        if (mapPointType != MapPointType.Unknown)
+        if (mapPointType != MapPointType.Ancient)
             return true;
 
         ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);

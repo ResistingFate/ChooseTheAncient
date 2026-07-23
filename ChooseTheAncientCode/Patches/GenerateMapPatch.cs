@@ -21,9 +21,9 @@ public static class GenerateMapPatch
         if (!ChooseTheAncientHelpers.ShouldUseAct1StartShell(mutableRunState, flow))
             return;
 
-        if (__result.StartingMapPoint.PointType != MapPointType.Unknown)
+        if (__result.StartingMapPoint.PointType != MapPointType.Ancient)
         {
-            __result.StartingMapPoint.PointType = MapPointType.Unknown;
+            __result.StartingMapPoint.PointType = MapPointType.Ancient;
             ModLog.Info("GenerateMapPatch converted the Act 1 starting map point into the ChooseTheAncient shell node before map display.");
         }
     }
