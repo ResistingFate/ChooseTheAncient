@@ -9,7 +9,8 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Interop;
 internal static class ChooseTheAncientPresentationResolver
 {
     private const BindingFlags InstanceMemberFlags =
-        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy;
+        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+        BindingFlags.FlattenHierarchy;
 
     internal static ChooseTheAncientPresentation ResolveVisualPresentation(AncientEventModel ancient)
     {
@@ -27,56 +28,6 @@ internal static class ChooseTheAncientPresentationResolver
         return ResolveVisualPresentation(ancient).AccentColor;
     }
 
-    internal static bool TryGetSecondRoundDialogueLocPrefix(
-        AncientEventModel? ancient,
-        string ancientId,
-        string? characterId,
-        int nextActIndex,
-        string? suppressedAncientId,
-        out string prefix)
-    {
-        if (ancient == null)
-        {
-            prefix = string.Empty;
-            return false;
-        }
-
-        ChooseTheAncientPresentation presentation = ReadConventionProperties(ancient);
-        if (!string.IsNullOrWhiteSpace(presentation.SecondRoundDialogueLocPrefix))
-        {
-            prefix = presentation.SecondRoundDialogueLocPrefix!;
-            return true;
-        }
-
-        prefix = string.Empty;
-        return false;
-    }
-
-    internal static bool TryGetFinalRevealBannerLocKey(
-        AncientEventModel? ancient,
-        string ancientId,
-        string? characterId,
-        int nextActIndex,
-        string? suppressedAncientId,
-        out string key)
-    {
-        if (ancient == null)
-        {
-            key = string.Empty;
-            return false;
-        }
-
-        ChooseTheAncientPresentation presentation = ReadConventionProperties(ancient);
-        if (!string.IsNullOrWhiteSpace(presentation.FinalRevealBannerLocKey))
-        {
-            key = presentation.FinalRevealBannerLocKey!;
-            return true;
-        }
-
-        key = string.Empty;
-        return false;
-    }
-
     private static ChooseTheAncientPresentation ReadConventionProperties(AncientEventModel ancient)
     {
         Type type = ancient.GetType();
@@ -92,13 +43,7 @@ internal static class ChooseTheAncientPresentationResolver
                 ?? TryReadColorHexProperty(type, ancient, "ChooseTheAncientAccentHex"),
             DialogueColor =
                 TryReadColorProperty(type, ancient, "ChooseTheAncientDialogueColor")
-                ?? TryReadColorHexProperty(type, ancient, "ChooseTheAncientDialogueColorHex"),
-            SecondRoundDialogueLocPrefix =
-                ChooseTheAncientPresentationHelpers.NormalizeLocPrefix(
-                    TryReadStringProperty(type, ancient, "ChooseTheAncientSecondRoundDialoguePrefix")),
-            FinalRevealBannerLocKey =
-                ChooseTheAncientPresentationHelpers.NormalizeLocKey(
-                    TryReadStringProperty(type, ancient, "ChooseTheAncientFinalRevealBannerKey"))
+                ?? TryReadColorHexProperty(type, ancient, "ChooseTheAncientDialogueColorHex")
         };
     }
 
@@ -128,14 +73,16 @@ internal static class ChooseTheAncientPresentationResolver
 
     private static Vector2? TryReadVector2Property(Type type, object instance, string propertyName)
     {
-        return TryReadPropertyValue(type, instance, propertyName, out object? value) && value is Vector2 vector
+        return TryReadPropertyValue(type, instance, propertyName, out object? value)
+               && value is Vector2 vector
             ? vector
             : null;
     }
 
     private static Color? TryReadColorProperty(Type type, object instance, string propertyName)
     {
-        return TryReadPropertyValue(type, instance, propertyName, out object? value) && value is Color color
+        return TryReadPropertyValue(type, instance, propertyName, out object? value)
+               && value is Color color
             ? color
             : null;
     }

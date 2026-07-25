@@ -7,17 +7,28 @@
 - Modconfig implementation needs ta change as mod update, write now it just fails safely.
 - Check if this is just an update issue for the modified ancient:
   - The Phoenix custom ancient cannot determine its normal act on either version. CTA falls back to vanilla RNG. This could affect act-offset reward behaviour when Phoenix is moved between acts, including on 0.109.0, but it did not cause Neow’s missing rewards.
-- Question mark should be bigger and Ancient coded as players can see it if they open the map at the start of act 1.
+  - coordinator changes so host also controls selection ballet
+    - Need a comment noting adding rng cosuming to the selection screen node in this case when choosing ancients shouldn't be done or has to be somehow done for the client at the same time
+    - every peer must begin with the same set of valid candidate ancient IDs. The patch detects invalid indexes and duplicates, but index-based synchronization could theoretically map incorrectly if two peers had different candidate sets of the same size. With matching gameplay mods and the already-synchronized CTA settings, that should not occur.
 
-Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.
-1. If PortalSourceNodePath is set, use that node.
-2. If it is a TextureRect, account for TextureRect size/stretch/offset.
-3. If it is a Control, use the Control rect.
-4. If it is a Node2D, use the node origin.
-5. If anything fails, fall back to root scene BaseSize math..
+TODO
+- Check if the game still works on the Main Branch
+- Test if Act 4 ancients work when Act 4 Heart mod by making an ancient for act 4
+- Change the title font with custom font so striking thick letter perimetr for the white text
+
 ## Unrelesaed
 
 ## [v1.2.4] - Added compatability to the game's update v0.109.0 # Custom Ancient API improvements
+
+### Features
+- Custom Ancient API has now been improved. Just add the properties to your class.
+- Readjusted Ancient Config positions for the vanilla ancients.
+- Act 1 map, if you bring the map up before the act 1 ancient has been chosen, will temporarily show a unique Neow/Tanx Choose The Ancient Icon.
+- Dialouge changed dynamic variables
+- Added dialouge for the choosen ancient to repond to the ancient that reveals their offers
+  - Needs dialouge bubble implemented but will be recognized in the ancient.json
+- Added a way for mods to register new keys in the ancient.json that will happen based on code in your mods.
+  - Say Ancient Affection tells you the ancient has a close bond, then the dialouge could change to say "why are you ignoring me?". Developers can come up with whatever they want and put it in the ancient.json.
 
 ### Fixes
 - Seed is not ulong, not uint
@@ -29,6 +40,9 @@ Change ancientconfig so that position is based around a root detected in your cu
 - Compatability branch so main branch v0.107.1 with seed length of uint is supported for now
 - all rng goes through a SeedCompatability.cs file and now supports ulong
 - Updated EnterNextAct patch as 0.109.0 gave it 3 transitions changing the logic.
+- The Custom Ancient Positioning API now starts at the center of the imahge.
+- The ExtraOffset now takes a offset in coordinates instead of a percentage value
+- Added a clean PostFix patch to Act1StartMapIcon to change the act 1 ancient icon before the room is entered.
 
 ## [v1.2.3]
 

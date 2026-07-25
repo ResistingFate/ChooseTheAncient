@@ -751,12 +751,6 @@ public static class ChooseTheAncientCoordinator
                 firstVotes,
                 firstAncient.Id.Entry);
 
-            if (gameMode == ChooseTheAncientConfig.SelectionGameMode.FairFight)
-            {
-                suppressedPreviewAncient = null;
-                suppressedPreviewAncientId = null;
-            }
-
             var secondRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
                 finalists,
                 ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote,
@@ -764,7 +758,9 @@ public static class ChooseTheAncientCoordinator
                 suppressedPreviewAncientId,
                 suppressedPreviewAncient,
                 reactionAncientId,
-                reactionAncient);
+                reactionAncient,
+                HideSuppressedPreview:
+                    gameMode == ChooseTheAncientConfig.SelectionGameMode.MontyHall);
 
             List<int> finalVotes = await CollectVotes(
                 orderedPlayers,

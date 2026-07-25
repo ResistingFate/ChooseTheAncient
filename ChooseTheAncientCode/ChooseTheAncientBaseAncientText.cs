@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
@@ -9,12 +12,14 @@ namespace ChooseTheAncient.ChooseTheAncientCode;
 
 public readonly record struct AncientTextContext(
     int NextActIndex,
-    string ReactionAncientId,
+    string ReactionAncientEntry,
     string? ReactionAncientTitle,
-    string? SuppressedAncientId,
+    string? SuppressedAncientEntry,
     string? SuppressedAncientTitle,
-    AncientEventModel? ReactionAncient = null,
-    string? CharacterId = null);
+    string? CharacterEntry = null,
+    string? CharacterTitle = null,
+    string? ActEntry = null,
+    string? ActTitle = null);
 
 public static class ChooseTheAncientBaseAncientText
 {
@@ -22,57 +27,147 @@ public static class ChooseTheAncientBaseAncientText
     // Generic UI goes in gameplay_ui.json, ancient-specific lines go in ancients.json.
     private const string UiTableName = "gameplay_ui";
     private const string AncientTableName = "ancients";
+    private const string SecondRoundDialogueRoot = "choose_the_ancient.second_round.dialogue.";
 
     public static string GetInitialRoundBannerText(int nextActIndex)
     {
         LocString loc = new(UiTableName, "choose_the_ancient.round_intro.initial_keep_vote");
-        loc.Add("ActLabel", GetActLabelText(nextActIndex));
-        loc.Add("ActNumber", (nextActIndex + 1).ToString());
+        loc.Add("ActLabel", GetNumberedActLabelText(nextActIndex));
+        loc.Add("ActNumber", (nextActIndex + 1).ToString(CultureInfo.InvariantCulture));
         return SafeFormat(loc, $"Choose the Act {nextActIndex + 1} Ancients");
     }
 
     public static string GetSecondRoundBannerText(AncientTextContext context)
     {
+        return GetSecondRoundBannerText(null, context);
+    }
+
+    public static string GetSecondRoundBannerText(RunState? runState, AncientTextContext context)
+    {
+        context = ResolveRuntimeActContext(runState, context);
         string key = GetSecondRoundBannerLocKey(context);
 
         LocString loc = new(AncientTableName, key);
-        AddContextVariables(loc, context);
-        return SafeFormat(loc, $"{context.ReactionAncientTitle ?? context.ReactionAncientId} Offers");
+        AddFinalRevealVariables(loc, context);
+
+        return SafeFormat(
+            loc,
+            $"{context.ReactionAncientTitle ?? context.ReactionAncientEntry} Offers");
     }
 
     public static string GetSecondRoundDialogueText(RunState? runState, AncientTextContext context)
     {
-        Rng? rng = runState == null
+        return GetSecondRoundDialogueText(
+            runState,
+            context,
+            DialogueSpeakerRole.Reaction);
+    }
+
+    /// <summary>
+    /// Resolves a line spoken by the suppressed ancient in Fair Fight mode.
+    /// TODO does not display this line yet; this resolver exists so the localization schema is ready.
+    /// </summary>
+    public static string GetSuppressedSecondRoundDialogueText(
+        RunState? runState,
+        AncientTextContext context)
+    {
+        return GetSecondRoundDialogueText(
+            runState,
+            context,
+            DialogueSpeakerRole.Suppressed);
+    }
+
+    private static string GetSecondRoundDialogueText(
+        RunState? runState,
+        AncientTextContext context,
+        DialogueSpeakerRole speakerRole)
+    {
+        context = ResolveRuntimeActContext(runState, context);
+
+        string? speakerEntry = GetSpeakerAncientEntry(context, speakerRole);
+        string? otherAncientEntry = GetOtherAncientEntry(context, speakerRole);
+
+        Rng? rng = runState == null || string.IsNullOrWhiteSpace(speakerEntry)
             ? null
             : CreateSecondRoundAncientDialoguePickerRng(
                 runState,
                 context.NextActIndex,
-                context.ReactionAncientId,
-                context.SuppressedAncientId);
+                speakerRole,
+                speakerEntry!,
+                otherAncientEntry);
 
-        LocString loc = GetDialogueLocString(context, rng)
-            ?? new LocString(AncientTableName, "choose_the_ancient.second_round.dialogue.default.0");
+        LocString? loc = GetDialogueLocString(
+            context,
+            speakerRole,
+            rng,
+            out bool usedDefaultDialogue);
 
-        AddContextVariables(loc, context);
-        return SafeFormat(loc, "You must know my offerings.");
+        if (loc == null)
+        {
+            string warning = BuildMissingDialogueAndDefaultWarning(context, speakerRole);
+            ModLog.Warn(warning);
+            return warning;
+        }
+
+        AddDialogueVariables(
+            loc,
+            context,
+            speakerRole);
+
+        string formattingWarning = BuildInvalidDialogueWarning(
+            context,
+            speakerRole,
+            loc.LocEntryKey);
+        string formattedText = SafeFormat(loc, formattingWarning, out Exception? formattingError);
+        if (formattingError != null)
+        {
+            ModLog.Warn($"{formattingWarning} Formatting failed: {formattingError.Message}");
+            return formattedText;
+        }
+
+        ModLog.Debug(
+            $"Second-round dialogue resolved: role={speakerRole}, " +
+            $"speaker={speakerEntry ?? "<none>"}, other={otherAncientEntry ?? "<none>"}, " +
+            $"key={loc.LocEntryKey}, default={usedDefaultDialogue}, text={formattedText}");
+
+        return formattedText;
     }
 
     public static Rng CreateSecondRoundAncientDialoguePickerRng(
         RunState runState,
         int nextActIndex,
-        string reactionAncientId,
-        string? suppressedAncientId)
+        string reactionAncientEntry,
+        string? suppressedAncientEntry)
     {
-        string suppressedPart = string.IsNullOrWhiteSpace(suppressedAncientId)
+        return CreateSecondRoundAncientDialoguePickerRng(
+            runState,
+            nextActIndex,
+            DialogueSpeakerRole.Reaction,
+            reactionAncientEntry,
+            suppressedAncientEntry);
+    }
+
+    private static Rng CreateSecondRoundAncientDialoguePickerRng(
+        RunState runState,
+        int nextActIndex,
+        DialogueSpeakerRole speakerRole,
+        string speakerAncientEntry,
+        string? otherAncientEntry)
+    {
+        string otherPart = string.IsNullOrWhiteSpace(otherAncientEntry)
             ? "none"
-            : suppressedAncientId;
+            : otherAncientEntry;
+        string rolePart = speakerRole == DialogueSpeakerRole.Suppressed
+            ? "suppressed"
+            : "reaction";
 
         return ChooseTheAncientHelpers.CreateRunScopedRng(
             runState,
             "second_round_dialogue",
+            rolePart,
             nextActIndex,
-            reactionAncientId,
-            suppressedPart);
+            speakerAncientEntry,
+            otherPart);
     }
 
     public static string GetVoteForThisAncientButtonText() =>
@@ -90,7 +185,7 @@ public static class ChooseTheAncientBaseAncientText
     public static string GetUnavailableButtonText() =>
         GetUiText("choose_the_ancient.button.unavailable", "Unavailable");
 
-    private static string GetActLabelText(int nextActIndex)
+    private static string GetNumberedActLabelText(int nextActIndex)
     {
         int actNumber = nextActIndex + 1;
         return GetUiText($"choose_the_ancient.act_label.{actNumber}", $"Act {actNumber}");
@@ -104,125 +199,327 @@ public static class ChooseTheAncientBaseAncientText
         return SafeFormat(new LocString(UiTableName, key), fallback);
     }
 
-    private static string GetSecondRoundBannerLocKey(AncientTextContext context)
+    private static string GetSecondRoundBannerLocKey(
+        AncientTextContext context)
     {
-        if (ChooseTheAncientPresentationResolver.TryGetFinalRevealBannerLocKey(
-                context.ReactionAncient,
-                context.ReactionAncientId,
-                context.CharacterId,
-                context.NextActIndex,
-                context.SuppressedAncientId,
-                out string apiKey)
-            && AncientKeyExists(apiKey))
-        {
-            return apiKey;
-        }
+        string specificKey =
+            $"choose_the_ancient.round_intro.final_reveal." +
+            context.ReactionAncientEntry;
 
-        string specificKey = $"choose_the_ancient.round_intro.final_reveal.{context.ReactionAncientId}";
         return AncientKeyExists(specificKey)
             ? specificKey
             : "choose_the_ancient.round_intro.final_reveal.default";
     }
 
-    private static LocString? GetDialogueLocString(AncientTextContext context, Rng? rng)
-    {
-        if (ChooseTheAncientPresentationResolver.TryGetSecondRoundDialogueLocPrefix(
-                context.ReactionAncient,
-                context.ReactionAncientId,
-                context.CharacterId,
-                context.NextActIndex,
-                context.SuppressedAncientId,
-                out string apiPrefix))
-        {
-            LocString? apiLoc = GetLocStringFromPrefixSearchOrder(apiPrefix, context, rng);
-            if (apiLoc != null)
-                return apiLoc;
-        }
-
-        string specificPrefix = $"choose_the_ancient.second_round.dialogue.{context.ReactionAncientId}.";
-        if (AncientPrefixExists(specificPrefix))
-        {
-            return rng == null
-                ? TryGetFirstLocStringWithPrefix(AncientTableName, specificPrefix)
-                : LocString.GetRandomWithPrefix(AncientTableName, specificPrefix, rng);
-        }
-
-        const string defaultPrefix = "choose_the_ancient.second_round.dialogue.default.";
-        if (AncientPrefixExists(defaultPrefix))
-        {
-            return rng == null
-                ? TryGetFirstLocStringWithPrefix(AncientTableName, defaultPrefix)
-                : LocString.GetRandomWithPrefix(AncientTableName, defaultPrefix, rng);
-        }
-
-        return null;
-    }
-
-    private static LocString? GetLocStringFromPrefixSearchOrder(
-        string basePrefix,
+    private static LocString? GetDialogueLocString(
         AncientTextContext context,
-        Rng? rng)
+        DialogueSpeakerRole speakerRole,
+        Rng? rng,
+        out bool usedDefaultDialogue)
     {
-        foreach (string prefix in BuildPrefixSearchOrder(basePrefix, context))
+        string? speakerEntry = GetSpeakerAncientEntry(context, speakerRole);
+        if (!string.IsNullOrWhiteSpace(speakerEntry))
         {
-            if (!AncientPrefixExists(prefix))
-                continue;
+            string? otherAncientEntry =
+                GetOtherAncientEntry(context, speakerRole);
 
-            return rng == null
-                ? TryGetFirstLocStringWithPrefix(AncientTableName, prefix)
-                : LocString.GetRandomWithPrefix(AncientTableName, prefix, rng);
+            DialogueLocalizationLookupContext lookupContext = new(
+                SpeakerRole: speakerRole,
+                SpeakerAncientEntry: speakerEntry!,
+                OtherAncientEntry: otherAncientEntry,
+                CharacterEntry: context.CharacterEntry,
+                ActEntry: context.ActEntry);
+
+            ChooseTheAncientDialogueBranchContext branchContext = new(
+                SpeakerAncientEntry: speakerEntry!,
+                OtherAncientEntry: otherAncientEntry,
+                CharacterEntry: context.CharacterEntry,
+                ActEntry: context.ActEntry,
+                IsSuppressedDialogue:
+                    speakerRole == DialogueSpeakerRole.Suppressed);
+
+            foreach (ResolvedDialogueBranch branch in
+                     ChooseTheAncientApi.ResolveDialogueBranches(
+                         branchContext))
+            {
+                foreach (string prefix in
+                         ChooseTheAncientDialogueLocalizationRules
+                             .BuildBranchPrefixSearchOrder(
+                                 SecondRoundDialogueRoot,
+                                 lookupContext,
+                                 branch.Name,
+                                 branch.Value))
+                {
+                    LocString? loc =
+                        GetDirectIndexedLocString(prefix, rng);
+                    if (loc != null)
+                    {
+                        usedDefaultDialogue = false;
+                        return loc;
+                    }
+                }
+            }
+
+            foreach (string prefix in
+                     ChooseTheAncientDialogueLocalizationRules
+                         .BuildPrefixSearchOrder(
+                             SecondRoundDialogueRoot,
+                             lookupContext))
+            {
+                LocString? loc = GetDirectIndexedLocString(prefix, rng);
+                if (loc != null)
+                {
+                    usedDefaultDialogue = false;
+                    return loc;
+                }
+            }
         }
 
-        return null;
+        string defaultPrefix =
+            ChooseTheAncientDialogueLocalizationRules.BuildDefaultPrefix(
+                SecondRoundDialogueRoot,
+                speakerRole);
+        LocString? defaultLoc = GetDirectIndexedLocString(defaultPrefix, rng);
+        usedDefaultDialogue = defaultLoc != null;
+        return defaultLoc;
     }
 
-    private static IEnumerable<string> BuildPrefixSearchOrder(string basePrefix, AncientTextContext context)
+    private static string? GetSpeakerAncientEntry(
+        AncientTextContext context,
+        DialogueSpeakerRole speakerRole)
     {
-        string normalized = ChooseTheAncientPresentationHelpers.NormalizeLocPrefix(basePrefix) ?? basePrefix;
-        string actSuffix = $"act{context.NextActIndex + 1}.";
-
-        if (!string.IsNullOrWhiteSpace(context.CharacterId))
-        {
-            yield return normalized + context.CharacterId + "." + actSuffix;
-            yield return normalized + context.CharacterId + ".";
-        }
-
-        yield return normalized + "ANY." + actSuffix;
-        yield return normalized + "ANY.";
-        yield return normalized;
+        return speakerRole == DialogueSpeakerRole.Suppressed
+            ? context.SuppressedAncientEntry
+            : context.ReactionAncientEntry;
     }
 
-    private static LocString? TryGetFirstLocStringWithPrefix(string tableName, string keyPrefix)
+    private static string? GetOtherAncientEntry(
+        AncientTextContext context,
+        DialogueSpeakerRole speakerRole)
+    {
+        return speakerRole == DialogueSpeakerRole.Suppressed
+            ? context.ReactionAncientEntry
+            : context.SuppressedAncientEntry;
+    }
+
+    private static LocString? GetDirectIndexedLocString(string keyPrefix, Rng? rng)
+    {
+        IReadOnlyList<LocString> options = GetDirectIndexedLocStrings(AncientTableName, keyPrefix);
+        if (options.Count == 0)
+            return null;
+
+        return rng == null
+            ? options[0]
+            : rng.NextItem(options);
+    }
+
+    internal static IReadOnlyList<LocString> GetDirectIndexedLocStrings(
+        string tableName,
+        string keyPrefix)
     {
         LocTable? table = TryGetTable(tableName);
         if (table == null)
-            return null;
+            return Array.Empty<LocString>();
 
-        IReadOnlyList<LocString> options = table.GetLocStringsWithPrefix(keyPrefix);
-        return options.Count > 0 ? options[0] : null;
+        List<(int Index, LocString Loc)> indexedOptions = [];
+
+        foreach (LocString loc in table.GetLocStringsWithPrefix(keyPrefix))
+        {
+            if (!table.IsLocalKey(loc.LocEntryKey))
+                continue;
+
+            if (ChooseTheAncientDialogueLocalizationRules.TryGetDirectNumericIndex(
+                    loc.LocEntryKey,
+                    keyPrefix,
+                    out int index))
+                indexedOptions.Add((index, loc));
+        }
+
+        indexedOptions.Sort(static (left, right) =>
+        {
+            int indexComparison = left.Index.CompareTo(right.Index);
+            return indexComparison != 0
+                ? indexComparison
+                : string.Compare(left.Loc.LocEntryKey, right.Loc.LocEntryKey, StringComparison.Ordinal);
+        });
+
+        return indexedOptions.Select(option => option.Loc).ToList();
     }
 
-    private static void AddContextVariables(LocString loc, AncientTextContext context)
+    private static AncientTextContext ResolveRuntimeActContext(
+        RunState? runState,
+        AncientTextContext context)
     {
-        if (context.ReactionAncientTitle != null)
-            loc.Add("ReactionAncientId", context.ReactionAncientTitle);
+        ActModel? act = TryGetTargetAct(runState, context.NextActIndex);
+        if (act == null)
+            return context;
 
-        loc.Add("SuppressedAncientId", context.SuppressedAncientTitle ?? "that ancient");
-        loc.Add("ActNumber", (context.NextActIndex + 1).ToString());
-        loc.Add("ActLabel", GetActLabelText(context.NextActIndex));
+        string actEntry = act.Id.Entry;
+        string actTitle = SafeFormat(act.Title, actEntry);
 
-        if (!string.IsNullOrWhiteSpace(context.CharacterId))
-            loc.Add("CharacterId", context.CharacterId);
+        return context with
+        {
+            ActEntry = actEntry,
+            ActTitle = actTitle
+        };
+    }
+
+    private static ActModel? TryGetTargetAct(RunState? runState, int nextActIndex)
+    {
+        if (runState == null || nextActIndex < 0 || nextActIndex >= runState.Acts.Count)
+            return null;
+
+        try
+        {
+            return runState.Acts[nextActIndex];
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Could not resolve ActModel at runState.Acts[{nextActIndex}] for dialogue localization: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static void AddFinalRevealVariables(
+        LocString loc,
+        AncientTextContext context)
+    {
+        Dictionary<string, object> variables =
+            BuildBuiltInVariables(context, DialogueSpeakerRole.Reaction);
+
+        AddVariablesToLocString(loc, variables);
+    }
+
+    private static void AddDialogueVariables(
+        LocString loc,
+        AncientTextContext context,
+        DialogueSpeakerRole speakerRole)
+    {
+        Dictionary<string, object> variables =
+            BuildBuiltInVariables(context, speakerRole);
+
+        AddVariablesToLocString(loc, variables);
+    }
+
+    private static Dictionary<string, object> BuildBuiltInVariables(
+        AncientTextContext context,
+        DialogueSpeakerRole speakerRole)
+    {
+        string reactionAncient =
+            context.ReactionAncientTitle
+            ?? context.ReactionAncientEntry;
+        string suppressedAncient =
+            context.SuppressedAncientTitle
+            ?? context.SuppressedAncientEntry
+            ?? "UNKNOWN_ANCIENT";
+        string character =
+            context.CharacterTitle
+            ?? context.CharacterEntry
+            ?? "UNKNOWN_CHARACTER";
+        string actTitle =
+            context.ActTitle
+            ?? context.ActEntry
+            ?? GetNumberedActLabelText(context.NextActIndex);
+
+        string speakerAncient =
+            speakerRole == DialogueSpeakerRole.Suppressed
+                ? suppressedAncient
+                : reactionAncient;
+        string otherAncient =
+            speakerRole == DialogueSpeakerRole.Suppressed
+                ? reactionAncient
+                : suppressedAncient;
+
+        return new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            ["SpeakerAncient"] = speakerAncient,
+            ["OtherAncient"] = otherAncient,
+            ["Character"] = character,
+            ["ActTitle"] = actTitle
+        };
+    }
+
+    private static void AddVariablesToLocString(
+        LocString loc,
+        IReadOnlyDictionary<string, object> variables)
+    {
+        foreach (KeyValuePair<string, object> pair in variables.OrderBy(
+                     pair => pair.Key,
+                     StringComparer.Ordinal))
+        {
+            loc.AddObj(pair.Key, pair.Value);
+        }
+    }
+
+    private static string BuildMissingDialogueAndDefaultWarning(
+        AncientTextContext context,
+        DialogueSpeakerRole speakerRole)
+    {
+        string language = TryGetActiveLanguage() ?? "UNKNOWN_LANGUAGE";
+        string roleSegment = speakerRole == DialogueSpeakerRole.Suppressed
+            ? "suppressed"
+            : "reaction";
+        string speakerEntry = GetSpeakerAncientEntry(context, speakerRole)
+            ?? "UNKNOWN_ANCIENT";
+        string defaultPrefix =
+            ChooseTheAncientDialogueLocalizationRules.BuildDefaultPrefix(
+                SecondRoundDialogueRoot,
+                speakerRole);
+
+        return
+            $"WARNING: ChooseTheAncient found no {roleSegment} second-round dialogue " +
+            $"for ancient '{speakerEntry}' and no {roleSegment} default dialogue for " +
+            $"language '{language}'. No defaults activated. This language should be supported. " +
+            $"Add '{defaultPrefix}0' to this locale's ancients.json.";
+    }
+
+    private static string BuildInvalidDialogueWarning(
+        AncientTextContext context,
+        DialogueSpeakerRole speakerRole,
+        string locEntryKey)
+    {
+        string roleSegment = speakerRole == DialogueSpeakerRole.Suppressed
+            ? "suppressed"
+            : "reaction";
+        string speakerEntry = GetSpeakerAncientEntry(context, speakerRole)
+            ?? "UNKNOWN_ANCIENT";
+
+        return
+            $"WARNING: ChooseTheAncient could not format {roleSegment} second-round " +
+            $"dialogue localization '{locEntryKey}' for ancient '{speakerEntry}'.";
+    }
+
+    private static string? TryGetActiveLanguage()
+    {
+        try
+        {
+            return LocManager.Instance.Language;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string SafeFormat(LocString loc, string fallback)
     {
+        return SafeFormat(loc, fallback, out _);
+    }
+
+    private static string SafeFormat(
+        LocString loc,
+        string fallback,
+        out Exception? formattingError)
+    {
         try
         {
+            formattingError = null;
             return loc.GetFormattedText();
         }
-        catch
+        catch (Exception ex)
         {
+            formattingError = ex;
             return fallback;
         }
     }
@@ -237,12 +534,6 @@ public static class ChooseTheAncientBaseAncientText
     {
         LocTable? table = TryGetTable(AncientTableName);
         return table?.HasEntry(key) ?? false;
-    }
-
-    private static bool AncientPrefixExists(string keyPrefix)
-    {
-        LocTable? table = TryGetTable(AncientTableName);
-        return table != null && table.GetLocStringsWithPrefix(keyPrefix).Count > 0;
     }
 
     private static LocTable? TryGetTable(string tableName)

@@ -4,19 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/Act1StartMapIconPatch.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/map/ancient_node_random.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/map/ancient_node_random.png.import" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/map/ancient_node_random_outline.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/map/ancient_node_random_outline.png.import" afterDir="false" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too.">
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/CreateRoomPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/CreateRoomPatch.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/GenerateMapPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/GenerateMapPatch.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/ancients.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/ancients.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientDialogueLocalizationRules.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientDialogueLocalizationRules.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientDialogueLocalizationTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientDialogueLocalizationTests.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,6 +47,7 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/14/90399323/RunManager.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/3a/a3d41f0a/LocalContext.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/48/11a79d22/NetGameType.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/a49d35375a424dcd9877663e394f2b4492a000/d9/ba0bdb12/Cmd.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f76dbe67be824f0da0c703c3dce57e34e8e728/e0/0a0b050d/Task`1.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/d33115dfb913de138d3e64a16bc31f1e7654a63ea23729ff60a54b5776dd6/Control.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient.json" root0="FORCE_HIGHLIGHTING" />
@@ -274,23 +276,14 @@
       <workItem from="1784568870630" duration="7644000" />
       <workItem from="1784643211039" duration="10449000" />
       <workItem from="1784731796713" duration="13893000" />
-      <workItem from="1784814705751" duration="3704000" />
-    </task>
-    <task id="LOCAL-00021" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
-      <option name="closed" value="true" />
-      <created>1783001014720</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1783001014720</updated>
-    </task>
-    <task id="LOCAL-00022" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
-      <option name="closed" value="true" />
-      <created>1783001146330</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
-      <option name="project" value="LOCAL" />
-      <updated>1783001146330</updated>
+      <workItem from="1784814705751" duration="12065000" />
+      <workItem from="1784885459535" duration="24326000" />
+      <workItem from="1784936063819" duration="853000" />
+      <workItem from="1784936973998" duration="3925000" />
+      <workItem from="1784986757989" duration="1836000" />
+      <workItem from="1784998310327" duration="19328000" />
+      <workItem from="1785085985067" duration="4189000" />
+      <workItem from="1785161027678" duration="2990000" />
     </task>
     <task id="LOCAL-00023" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
       <option name="closed" value="true" />
@@ -668,7 +661,23 @@
       <option name="project" value="LOCAL" />
       <updated>1784775838384</updated>
     </task>
-    <option name="localTasksCounter" value="70" />
+    <task id="LOCAL-00070" summary="Update the act 1 node with a post fix patch to have a new ancient node random icon. The icon is saved under scenes -&gt; map">
+      <option name="closed" value="true" />
+      <created>1784825636182</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1784825636183</updated>
+    </task>
+    <task id="LOCAL-00071" summary="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too.">
+      <option name="closed" value="true" />
+      <created>1785021318783</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1785021318784</updated>
+    </task>
+    <option name="localTasksCounter" value="72" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -704,8 +713,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib." />
-    <MESSAGE value="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options." />
     <MESSAGE value="Update for sts2 v0.108.0" />
     <MESSAGE value="adding back the gif" />
     <MESSAGE value="ChooseTheAncientPlayerWarnings Registers from main and looks out for the event onModDetected from ModManager.&#10;&#10;EventSynchronizer patching is no longer using NeowOptionIdentitySyncPatch as a whole Harmony Patch but rather patching individual contstructor and methods in a try statement in the same place so it can fail safely by itself.&#10;&#10;Forgot to commit settitngs_ui.json before. Also added a mod warning to this table in case NeowOptionIdentitySyncPatch cannot build." />
@@ -729,7 +736,9 @@
     <MESSAGE value="Removed ChooseTheAncientPortalSourceNodePath and ChooseTheAncientPortalAutoDetectSourceNode properties from the API. Also removed all the code they required in Selection Screen to change the positions and baseSize. The API is simpler without them now that we have a consistent tutorial to get the values manually from godot." />
     <MESSAGE value="Added tutorials for aligning the API to the workshop folder" />
     <MESSAGE value="Adjusted all the vanilla ancients position in their ancient config" />
-    <option name="LAST_COMMIT_MESSAGE" value="" />
+    <MESSAGE value="Update the act 1 node with a post fix patch to have a new ancient node random icon. The icon is saved under scenes -&gt; map" />
+    <MESSAGE value="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too." />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

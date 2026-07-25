@@ -142,7 +142,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         AncientEventModel? SuppressedPreviewAncient,
         string? ReactionAncientId,
         AncientEventModel? ReactionAncient,
-        string? InitialFocusAncientId = null);
+        string? InitialFocusAncientId = null,
+        bool HideSuppressedPreview = false);
 
     private readonly record struct AncientSceneConfig(
         Vector2 BaseSize,
@@ -482,7 +483,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private IReadOnlyList<AncientEventModel> _pool = Array.Empty<AncientEventModel>();
     private VoteRoundType _roundType = VoteRoundType.InitialKeepVote;
     private Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData> _previewDataByAncientId = new();
-    private string? _suppressedPreviewAncientId; // ancient that does not reveal options, the initial vote
+    private string? _suppressedPreviewAncientId; // first-round winner used as the other ancient in second-round dialogue
+    private bool _hideSuppressedPreview;
     private string? _reactionAncientId; // ancient that reacts with dialogue on the final preview vote
     private string? _initialFocusAncientId; // ancient that should receive initial second-round focus/emphasis
     private int _nextActIndex;
@@ -1020,6 +1022,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             ?? new Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>();
         _suppressedPreviewAncientId = round.SuppressedPreviewAncientId;
         _suppressedPreviewAncient = round.SuppressedPreviewAncient;
+        _hideSuppressedPreview = round.HideSuppressedPreview;
         _reactionAncientId = round.ReactionAncientId;
         _reactionAncient = round.ReactionAncient;
         _initialFocusAncientId = round.InitialFocusAncientId;
@@ -1028,6 +1031,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             $"RunRoundAsync start: roundType={_roundType}, " +
             $"incomingPreviewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}, " +
             $"suppressed={_suppressedPreviewAncientId ?? "<none>"}, " +
+            $"hideSuppressedPreview={_hideSuppressedPreview}, " +
             $"reaction={_reactionAncientId ?? "<none>"}, " +
             $"initialFocus={_initialFocusAncientId ?? "<none>"}, " +
             $"pool={string.Join(", ", _pool.Select(ancient => ancient.Id.Entry))}");
@@ -1206,9 +1210,26 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
      * Builds and animates the round-intro text as well as the final-round banner reveal timing.
      */
 
-    private string? GetLocalCharacterId()
+    private string? GetLocalCharacterEntry()
     {
         return _localPlayer?.Character.Id.Entry;
+    }
+
+    private string? GetLocalCharacterTitle()
+    {
+        if (_localPlayer?.Character == null)
+            return null;
+
+        string fallback = _localPlayer.Character.Id.Entry;
+
+        try
+        {
+            return _localPlayer.Character.Title.GetFormattedText();
+        }
+        catch
+        {
+            return fallback;
+        }
     }
 
     private string GetRoundIntroText()
@@ -1234,31 +1255,52 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return ChooseTheAncientBaseAncientText.GetInitialRoundBannerText(_nextActIndex);
         }
 
-        AncientEventModel? reactionAncient = _reactionAncient;
-        if (reactionAncient == null && !string.IsNullOrEmpty(_reactionAncientId))
-        {
-            reactionAncient = _pool.FirstOrDefault(ancient => ancient.Id.Entry == _reactionAncientId);
-        }
+        AncientEventModel? reactionAncient =
+            ResolvePoolAncient(_reactionAncient, _reactionAncientId);
 
-        string reactionAncientId = reactionAncient?.Id.Entry
+        string reactionAncientEntry = reactionAncient?.Id.Entry
             ?? _reactionAncientId
             ?? _pool.FirstOrDefault()?.Id.Entry
             ?? "UNKNOWN_ANCIENT";
 
         string reactionAncientTitle = reactionAncient?.Title?.GetFormattedText()
-            ?? reactionAncientId;
+            ?? reactionAncientEntry;
+
+        AncientEventModel? suppressedAncient =
+            ResolvePoolAncient(
+                _suppressedPreviewAncient,
+                _suppressedPreviewAncientId);
+
+        RunState? runState = RunManager.Instance != null
+            ? ChooseTheAncientHelpers.GetRunState(RunManager.Instance)
+            : null;
 
         return ChooseTheAncientBaseAncientText.GetSecondRoundBannerText(
+            runState,
             new AncientTextContext(
-                _nextActIndex,
-                reactionAncientId,
-                reactionAncientTitle,
-                _suppressedPreviewAncientId,
-                null,
-                reactionAncient,
-                GetLocalCharacterId())
+                NextActIndex: _nextActIndex,
+                ReactionAncientEntry: reactionAncientEntry,
+                ReactionAncientTitle: reactionAncientTitle,
+                SuppressedAncientEntry: suppressedAncient?.Id.Entry ?? _suppressedPreviewAncientId,
+                SuppressedAncientTitle: suppressedAncient?.Title?.GetFormattedText(),
+                CharacterEntry: GetLocalCharacterEntry(),
+                CharacterTitle: GetLocalCharacterTitle())
             );
-}
+    }
+
+    private AncientEventModel? ResolvePoolAncient(
+        AncientEventModel? ancient,
+        string? ancientEntry)
+    {
+        if (ancient != null)
+            return ancient;
+
+        if (string.IsNullOrEmpty(ancientEntry))
+            return null;
+
+        return _pool.FirstOrDefault(
+            candidate => candidate.Id.Entry == ancientEntry);
+    }
 
     private void ShowRoundIntro()
     {
@@ -1781,7 +1823,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             LoadAncientScene(refs);
             string populatePreviewAncientId = refs.Ancient?.Id?.Entry ?? "<null>";
             bool populatePreviewHasKey = refs.Ancient != null && _previewDataByAncientId.ContainsKey(populatePreviewAncientId);
-            bool populatePreviewIsSuppressed = !string.IsNullOrEmpty(_suppressedPreviewAncientId)
+            bool populatePreviewIsSuppressed = _hideSuppressedPreview
+                && !string.IsNullOrEmpty(_suppressedPreviewAncientId)
                 && populatePreviewAncientId == _suppressedPreviewAncientId;
             bool populatePreviewIsReaction = !string.IsNullOrEmpty(_reactionAncientId)
                 && populatePreviewAncientId == _reactionAncientId;
@@ -2272,7 +2315,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             $"PopulatePreview lookup: requested={requestedAncientId}, " +
             $"found={hasPreview}, " +
             $"availableKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}, " +
-            $"isSuppressed={(!string.IsNullOrEmpty(_suppressedPreviewAncientId) && requestedAncientId == _suppressedPreviewAncientId)}, " +
+            $"isSuppressed={(_hideSuppressedPreview && !string.IsNullOrEmpty(_suppressedPreviewAncientId) && requestedAncientId == _suppressedPreviewAncientId)}, " +
             $"isReaction={(!string.IsNullOrEmpty(_reactionAncientId) && requestedAncientId == _reactionAncientId)}");
 
         if (!hasPreview || preview == null || preview.Options.Count == 0)
@@ -2413,7 +2456,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         for (int i = 0; i < _slots.Count; i++)
         {
             SlotRefs refs = _slots[i];
-            bool suppressPreview = !string.IsNullOrEmpty(_suppressedPreviewAncientId)
+            bool suppressPreview = _hideSuppressedPreview
+                && !string.IsNullOrEmpty(_suppressedPreviewAncientId)
                 && refs.Ancient.Id.Entry == _suppressedPreviewAncientId;
             bool isReactionSlot = !string.IsNullOrEmpty(_reactionAncientId)
                 && refs.Ancient.Id.Entry == _reactionAncientId;
@@ -2436,6 +2480,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         ModLog.Debug(
             $"Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, " +
+            $"hideSuppressedPreview={_hideSuppressedPreview}, " +
             $"reaction={_reactionAncientId ?? "<none>"}, " +
             $"previewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}");
     }
@@ -2447,15 +2492,21 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         refs.ReactionBubble = null;
 
+        AncientEventModel? suppressedAncient =
+            ResolvePoolAncient(
+                _suppressedPreviewAncient,
+                _suppressedPreviewAncientId);
+
         AncientTextContext context = new(
-            _nextActIndex,
-            refs.Ancient.Id.Entry,
-            refs.Ancient.Title.GetFormattedText(),
-            _suppressedPreviewAncientId,
-            _suppressedPreviewAncient?.Title.GetFormattedText(),
-            refs.Ancient,
-            GetLocalCharacterId()
-            );
+            NextActIndex: _nextActIndex,
+            ReactionAncientEntry: refs.Ancient.Id.Entry,
+            ReactionAncientTitle: refs.Ancient.Title.GetFormattedText(),
+            SuppressedAncientEntry:
+                suppressedAncient?.Id.Entry ?? _suppressedPreviewAncientId,
+            SuppressedAncientTitle:
+                suppressedAncient?.Title.GetFormattedText(),
+            CharacterEntry: GetLocalCharacterEntry(),
+            CharacterTitle: GetLocalCharacterTitle());
 
         RunState? runState = RunManager.Instance != null
             ? ChooseTheAncientHelpers.GetRunState(RunManager.Instance)
