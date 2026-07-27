@@ -195,6 +195,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public required ColorRect CardShade { get; init; }
         public required ColorRect TopAccent { get; init; }
         public required Panel CardOutline { get; init; }
+        public required MarginContainer CardPadding { get; init; }
+        public required VBoxContainer CardVBox { get; init; }
+        public required HBoxContainer CardHeader { get; init; }
+        public required VBoxContainer CardTextBox { get; init; }
         public required TextureRect Icon { get; init; }
         public required Label NameLabel { get; init; }
         public required Label EpithetLabel { get; init; }
@@ -2109,6 +2113,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ColorRect cardShade = cardRoot.GetNode<ColorRect>("BottomShade");
         ColorRect topAccent = cardRoot.GetNode<ColorRect>("TopAccent");
         Panel cardOutline = cardRoot.GetNode<Panel>("CardOutline");
+        MarginContainer cardPadding = cardRoot.GetNode<MarginContainer>("Padding");
+        VBoxContainer cardVBox = cardRoot.GetNode<VBoxContainer>("Padding/VBox");
+        HBoxContainer cardHeader = cardRoot.GetNode<HBoxContainer>("Padding/VBox/Header");
+        VBoxContainer cardTextBox = cardRoot.GetNode<VBoxContainer>("Padding/VBox/Header/TextBox");
         TextureRect icon = cardRoot.GetNode<TextureRect>("Padding/VBox/Header/Icon");
         Label nameLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/NameLabel");
         Label epithetLabel = cardRoot.GetNode<Label>("Padding/VBox/Header/TextBox/EpithetLabel");
@@ -2197,6 +2205,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             CardShade = cardShade,
             TopAccent = topAccent,
             CardOutline = cardOutline,
+            CardPadding = cardPadding,
+            CardVBox = cardVBox,
+            CardHeader = cardHeader,
+            CardTextBox = cardTextBox,
             Icon = icon,
             NameLabel = nameLabel,
             EpithetLabel = epithetLabel,
@@ -3518,6 +3530,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             refs.CardRoot.Position = refs.CardBasePosition;
             refs.CardRoot.Size = shape.CardRect.Size;
             refs.CardRoot.PivotOffset = refs.CardRoot.Size * 0.5f;
+            ApplyResponsiveCardLayout(refs);
             refs.SlotClickTarget.Position = shape.PortalRect.Position;
             refs.SlotClickTarget.Size = shape.PortalRect.Size;
 
@@ -3529,6 +3542,68 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             LayoutPreview(refs);
             LayoutReaction(refs);
         }
+    }
+
+    private static void ApplyResponsiveCardLayout(SlotRefs refs)
+    {
+        /*
+         * Keeps every card shell and vote button on the same authored scale while crowded ballots shrink the card width.
+         */
+        const float narrowCardWidth = 210f;
+        const float fullCardWidth = 430f;
+
+        float widthFactor = Mathf.Clamp(
+            (refs.CardRoot.Size.X - narrowCardWidth) / (fullCardWidth - narrowCardWidth),
+            0f,
+            1f);
+
+        float horizontalPadding = MathF.Round(Mathf.Lerp(10f, 20f, widthFactor));
+        float topPadding = MathF.Round(Mathf.Lerp(14f, 22f, widthFactor));
+        float bottomPadding = MathF.Round(Mathf.Lerp(4f, 8f, widthFactor));
+        float iconSize = MathF.Round(Mathf.Lerp(36f, 56f, widthFactor));
+        float buttonHeight = MathF.Round(Mathf.Lerp(52f, 72f, widthFactor));
+        float accentInset = MathF.Round(Mathf.Lerp(12f, 22f, widthFactor));
+
+        int cardGap = (int)MathF.Round(Mathf.Lerp(8f, 14f, widthFactor));
+        int headerGap = (int)MathF.Round(Mathf.Lerp(6f, 14f, widthFactor));
+        int nameFontSize = (int)MathF.Round(Mathf.Lerp(16f, 22f, widthFactor));
+        int epithetFontSize = (int)MathF.Round(Mathf.Lerp(12f, 15f, widthFactor));
+        int buttonFontSize = (int)MathF.Round(Mathf.Lerp(15f, 24f, widthFactor));
+        int buttonOutlineSize = (int)MathF.Round(Mathf.Lerp(4f, 6f, widthFactor));
+
+        refs.CardPadding.OffsetLeft = horizontalPadding;
+        refs.CardPadding.OffsetTop = topPadding;
+        refs.CardPadding.OffsetRight = -horizontalPadding;
+        refs.CardPadding.OffsetBottom = -bottomPadding;
+
+        refs.CardVBox.AddThemeConstantOverride("separation", cardGap);
+        refs.CardHeader.AddThemeConstantOverride("separation", headerGap);
+        refs.CardHeader.ClipContents = true;
+        refs.CardTextBox.CustomMinimumSize = Vector2.Zero;
+        refs.CardTextBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+
+        refs.Icon.CustomMinimumSize = new Vector2(iconSize, iconSize);
+
+        refs.NameLabel.ClipText = true;
+        refs.NameLabel.AutowrapMode = TextServer.AutowrapMode.Off;
+        refs.NameLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        refs.NameLabel.AddThemeFontSizeOverride("font_size", nameFontSize);
+
+        refs.EpithetLabel.ClipText = true;
+        refs.EpithetLabel.AutowrapMode = TextServer.AutowrapMode.Off;
+        refs.EpithetLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        refs.EpithetLabel.AddThemeFontSizeOverride("font_size", epithetFontSize);
+
+        refs.ChooseButtonWrap.CustomMinimumSize = new Vector2(0f, buttonHeight);
+        refs.ChooseButton.CustomMinimumSize = new Vector2(0f, buttonHeight);
+        refs.ChooseButton.ClipText = true;
+        refs.ChooseButton.AutowrapMode = TextServer.AutowrapMode.Off;
+        refs.ChooseButton.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        refs.ChooseButton.AddThemeFontSizeOverride("font_size", buttonFontSize);
+        refs.ChooseButton.AddThemeConstantOverride("outline_size", buttonOutlineSize);
+
+        refs.TopAccent.OffsetLeft = accentInset;
+        refs.TopAccent.OffsetRight = -accentInset;
     }
 
     private void LayoutVoteButtonControllerIcon(SlotRefs refs)

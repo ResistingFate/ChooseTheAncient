@@ -2,14 +2,10 @@
 
 ## Known Bugs to fix
 
-- ancient count at 8, possibly other has inconsistent card/button sizes so looks really off. (Might just be due to long title names)
 - Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen.
 - Modconfig implementation needs ta change as mod update, write now it just fails safely.
 - Check if this is just an update issue for the modified ancient:
   - The Phoenix custom ancient cannot determine its normal act on either version. CTA falls back to vanilla RNG. This could affect act-offset reward behaviour when Phoenix is moved between acts, including on 0.109.0, but it did not cause Neow’s missing rewards.
-  - coordinator changes so host also controls selection ballet
-    - Need a comment noting adding rng cosuming to the selection screen node in this case when choosing ancients shouldn't be done or has to be somehow done for the client at the same time
-    - every peer must begin with the same set of valid candidate ancient IDs. The patch detects invalid indexes and duplicates, but index-based synchronization could theoretically map incorrectly if two peers had different candidate sets of the same size. With matching gameplay mods and the already-synchronized CTA settings, that should not occur.
 
 TODO
 - Check if the game still works on the Main Branch
@@ -25,16 +21,17 @@ TODO
 - Readjusted Ancient Config positions for the vanilla ancients.
 - Act 1 map, if you bring the map up before the act 1 ancient has been chosen, will temporarily show a unique Neow/Tanx Choose The Ancient Icon.
 - Dialouge changed dynamic variables
-- Added dialouge for the choosen ancient to repond to the ancient that reveals their offers
-  - Needs dialouge bubble implemented but will be recognized in the ancient.json
+- Added dialouge for the choosen ancient to repond to the ancient that reveals offers
 - Added a way for mods to register new keys in the ancient.json that will happen based on code in your mods.
   - Say Ancient Affection tells you the ancient has a close bond, then the dialouge could change to say "why are you ignoring me?". Developers can come up with whatever they want and put it in the ancient.json.
+- Now Choose the Ancient controls which ancients show for the selection ballet, so accidently in Ancient Config Plus where the host and client have different settings don't cause a state divergence.
 
 ### Fixes
 - Seed is not ulong, not uint
 - Posiition is better for AncientConfigs that custom Ancient's will use to align their ancient scene to the selection screen slot
 - Updated EnterNextAct patch so doesn't show selection screen again in the Victor Room
 - Changed EnterNextAct to fix small bugs in Endless Modes Mods but they still don't work on every level 
+- Cards and button on selection screen are more cosistent when ancient count is high, or ancient names are way too long.
 
 ### Techincal
 - Compatability branch so main branch v0.107.1 with seed length of uint is supported for now
