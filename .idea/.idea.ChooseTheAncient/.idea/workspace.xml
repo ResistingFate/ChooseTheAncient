@@ -4,20 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too.">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/ancients.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/ancients.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientDialogueLocalizationRules.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientDialogueLocalizationRules.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientDialogueLocalizationTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientDialogueLocalizationTests.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -283,23 +273,7 @@
       <workItem from="1784986757989" duration="1836000" />
       <workItem from="1784998310327" duration="19328000" />
       <workItem from="1785085985067" duration="4189000" />
-      <workItem from="1785161027678" duration="2990000" />
-    </task>
-    <task id="LOCAL-00023" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
-      <option name="closed" value="true" />
-      <created>1783001213252</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1783001213252</updated>
-    </task>
-    <task id="LOCAL-00024" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.">
-      <option name="closed" value="true" />
-      <created>1783001522858</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1783001522858</updated>
+      <workItem from="1785161027678" duration="4016000" />
     </task>
     <task id="LOCAL-00025" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
       <option name="closed" value="true" />
@@ -677,7 +651,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785021318784</updated>
     </task>
-    <option name="localTasksCounter" value="72" />
+    <task id="LOCAL-00072" summary="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too.">
+      <option name="closed" value="true" />
+      <created>1785167501560</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1785167501561</updated>
+    </task>
+    <task id="LOCAL-00073" summary="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too.">
+      <option name="closed" value="true" />
+      <created>1785167921013</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1785167921013</updated>
+    </task>
+    <option name="localTasksCounter" value="74" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

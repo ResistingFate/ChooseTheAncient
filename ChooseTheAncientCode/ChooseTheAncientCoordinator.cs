@@ -173,7 +173,12 @@ public static class ChooseTheAncientCoordinator
                 enabledSourceActsOverride: effectiveAncientPoolSourceActs,
                 specialAncientOverridesOverride: effectiveSpecialAncientOverrides);
 
-            pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, 0, pool, ancientCount);
+            pool = await GetEffectiveBallotAsync(
+                runState,
+                targetActIndex: 0,
+                orderedPlayers,
+                pool,
+                ancientCount);
 
             if (pool.Count == 0)
             {
@@ -443,7 +448,12 @@ public static class ChooseTheAncientCoordinator
                     ModLog.Debug($"Available ancients to draw {ancientCount} from for act {nextActIndex + 1}: {ancientPool}");
                 }
 
-                pool = ChooseTheAncientHelpers.LimitCandidatePoolForVote(runState, nextActIndex, pool, ancientCount);
+                pool = await GetEffectiveBallotAsync(
+                    runState,
+                    nextActIndex,
+                    orderedPlayers,
+                    pool,
+                    ancientCount);
                 ChooseTheAncientHelpers.LogPool($"Act {nextActIndex + 1} initial ballot", pool);
                 ModLog.Info($"Using game mode {gameMode} for act {nextActIndex + 1}.");
 
@@ -1711,6 +1721,156 @@ public static class ChooseTheAncientCoordinator
 
         return orderedPlayers[0];
     }
+
+    /// <summary>
+    /// Mkes the host authoritative for the Selection Screen Ballot in mulitplayer. 
+    /// </summary>
+    private static async Task<List<AncientEventModel>> GetEffectiveBallotAsync(
+        RunState runState,
+        int targetActIndex,
+        IReadOnlyList<Player> orderedPlayers,
+        List<AncientEventModel> candidatePool,
+        int ancientCount)
+    /*
+     * The host applies all local weighting/filtering, then broadcasts the selected ballot as
+     * indices into a stable, ID-sorted copy of the pre-filter candidate pool. Every peer reserves
+     * and consumes the same fixed number of host choices for the configured ballot size.
+     */
+    {
+        if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
+        {
+            return ChooseTheAncientHelpers.LimitCandidatePoolForVote(
+                runState,
+                targetActIndex,
+                candidatePool,
+                ancientCount);
+        }
+
+        List<AncientEventModel> canonicalPool = candidatePool
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry, StringComparer.Ordinal)
+            .ToList();
+
+        Player hostPlayer = GetHostPlayer(orderedPlayers);
+        int syncedSlotCount = Math.Clamp(ancientCount, 0, 8);
+
+        uint ballotCountChoiceId =
+            RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+
+        uint[] ballotSlotChoiceIds = new uint[syncedSlotCount];
+        for (int slot = 0; slot < syncedSlotCount; slot++)
+        {
+            ballotSlotChoiceIds[slot] =
+                RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+        }
+
+        if (LocalContext.IsMe(hostPlayer))
+        {
+            List<AncientEventModel> hostBallot =
+                ChooseTheAncientHelpers.LimitCandidatePoolForVote(
+                    runState,
+                    targetActIndex,
+                    candidatePool,
+                    ancientCount);
+
+            if (hostBallot.Count > syncedSlotCount)
+            {
+                throw new InvalidOperationException(
+                    $"Host CTA ballot for act {targetActIndex + 1} contained {hostBallot.Count} candidates, " +
+                    $"but only {syncedSlotCount} synchronized slots were reserved.");
+            }
+
+            RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+                hostPlayer,
+                ballotCountChoiceId,
+                PlayerChoiceResult.FromIndex(hostBallot.Count));
+
+            List<int> canonicalIndices = new(hostBallot.Count);
+            for (int slot = 0; slot < syncedSlotCount; slot++)
+            {
+                int canonicalIndex = 0;
+
+                if (slot < hostBallot.Count)
+                {
+                    AncientEventModel selectedAncient = hostBallot[slot];
+                    canonicalIndex = canonicalPool.FindIndex(ancient =>
+                        string.Equals(ancient.Id.Entry, selectedAncient.Id.Entry, StringComparison.Ordinal));
+
+                    if (canonicalIndex < 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Host CTA ballot ancient {selectedAncient.Id.Entry} was not present in the canonical " +
+                            $"candidate pool for act {targetActIndex + 1}.");
+                    }
+
+                    canonicalIndices.Add(canonicalIndex);
+                }
+
+                RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+                    hostPlayer,
+                    ballotSlotChoiceIds[slot],
+                    PlayerChoiceResult.FromIndex(canonicalIndex));
+            }
+
+            ModLog.Info(
+                $"Broadcasting host-authoritative CTA ballot for act {targetActIndex + 1}: " +
+                $"count={hostBallot.Count}, canonicalIndices={string.Join(",", canonicalIndices)}, " +
+                $"ancients={ChooseTheAncientHelpers.DescribeAncients(hostBallot)}");
+
+            return hostBallot;
+        }
+
+        int syncedBallotCount = (await RunManager.Instance.PlayerChoiceSynchronizer
+                .WaitForRemoteChoice(hostPlayer, ballotCountChoiceId))
+            .AsIndex();
+
+        int[] syncedCanonicalIndices = new int[syncedSlotCount];
+        for (int slot = 0; slot < syncedSlotCount; slot++)
+        {
+            syncedCanonicalIndices[slot] = (await RunManager.Instance.PlayerChoiceSynchronizer
+                    .WaitForRemoteChoice(hostPlayer, ballotSlotChoiceIds[slot]))
+                .AsIndex();
+        }
+
+        if (syncedBallotCount < 0 || syncedBallotCount > syncedSlotCount)
+        {
+            throw new InvalidOperationException(
+                $"Received invalid host CTA ballot count {syncedBallotCount} for act {targetActIndex + 1}; " +
+                $"reserved slots={syncedSlotCount}.");
+        }
+
+        List<AncientEventModel> syncedBallot = new(syncedBallotCount);
+        HashSet<string> selectedIds = new(StringComparer.Ordinal);
+
+        for (int slot = 0; slot < syncedBallotCount; slot++)
+        {
+            int canonicalIndex = syncedCanonicalIndices[slot];
+            if (canonicalIndex < 0 || canonicalIndex >= canonicalPool.Count)
+            {
+                throw new InvalidOperationException(
+                    $"Received invalid host CTA ballot index {canonicalIndex} at slot {slot} " +
+                    $"for act {targetActIndex + 1}; canonical pool count={canonicalPool.Count}.");
+            }
+
+            AncientEventModel selectedAncient = canonicalPool[canonicalIndex];
+            if (!selectedIds.Add(selectedAncient.Id.Entry))
+            {
+                throw new InvalidOperationException(
+                    $"Received duplicate host CTA ballot ancient {selectedAncient.Id.Entry} " +
+                    $"for act {targetActIndex + 1}.");
+            }
+
+            syncedBallot.Add(selectedAncient);
+        }
+
+        ModLog.Info(
+            $"Received host-authoritative CTA ballot for act {targetActIndex + 1}: " +
+            $"count={syncedBallot.Count}, canonicalIndices={string.Join(",", syncedCanonicalIndices.Take(syncedBallotCount))}, " +
+            $"ancients={ChooseTheAncientHelpers.DescribeAncients(syncedBallot)}");
+
+        return syncedBallot;
+    }
+
 
     private static async Task<IReadOnlyList<int>?> GetEffectiveAncientPoolSourceActsAsync(
         IReadOnlyList<Player> orderedPlayers,
