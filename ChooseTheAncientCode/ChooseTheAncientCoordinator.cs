@@ -770,6 +770,8 @@ public static class ChooseTheAncientCoordinator
                 reactionAncientId,
                 reactionAncient,
                 HideSuppressedPreview:
+                    gameMode == ChooseTheAncientConfig.SelectionGameMode.MontyHall,
+                HideSuppressedDialogue:
                     gameMode == ChooseTheAncientConfig.SelectionGameMode.MontyHall);
 
             List<int> finalVotes = await CollectVotes(

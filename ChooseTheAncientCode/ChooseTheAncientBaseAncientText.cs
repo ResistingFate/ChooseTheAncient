@@ -63,10 +63,6 @@ public static class ChooseTheAncientBaseAncientText
             DialogueSpeakerRole.Reaction);
     }
 
-    /// <summary>
-    /// Resolves a line spoken by the suppressed ancient in Fair Fight mode.
-    /// TODO does not display this line yet; this resolver exists so the localization schema is ready.
-    /// </summary>
     public static string GetSuppressedSecondRoundDialogueText(
         RunState? runState,
         AncientTextContext context)

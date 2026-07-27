@@ -50,6 +50,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const float PortalRimThickness = 6f;
     private const float ReactionBubbleHeight = 112f;
     private const float ReactionBubbleGap = 10f;
+    private const float DialogueLineMinimumHeight = 78f;
+    private const float DialogueTextMinimumHeight = 34f;
+    private const float DialogueVerticalChrome = 44f;
+    private const float DialogueHorizontalChrome = 138f;
     private const float FinalRevealDialogueOptionGapAt1080 = 2f;
     private const float TopUiCutoffExtraPxAt1080 = 18f;
     private const float TopUiFallbackBottomPxAt1080 = 86f;
@@ -81,8 +85,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const double ReactionBubbleEntranceCarryDurationFast = 0.05;
     private const double ReactionBubbleEntranceSettleDurationNormal = 0.14;
     private const double ReactionBubbleEntranceSettleDurationFast = 0.09;
-    private const double ReactionTextDurationNormal = 1.00;
-    private const double ReactionTextDurationFast = 0.58;
+    private const double ReactionTextDurationNormal = 0.85;
+    private const double ReactionTextDurationFast = 0.50;
+    private const double SuppressedDialoguePauseNormal = 0.12;
+    private const double SuppressedDialoguePauseFast = 0.05;
+    private const double DialogueStackMoveDurationNormal = 1.00;
+    private const double DialogueStackMoveDurationFast = 1.00;
+    private const double PreviousDialogueFadeDuration = 0.10;
+    private const float PreviousDialogueOpacity = 0.25f;
     private const double FinalRoundStaggerNormal = 0.20;
     private const double FinalRoundStaggerFast = 0.10;
     private const double ReactionEntranceInitialDelayNormal = 0.50;
@@ -143,7 +153,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         string? ReactionAncientId,
         AncientEventModel? ReactionAncient,
         string? InitialFocusAncientId = null,
-        bool HideSuppressedPreview = false);
+        bool HideSuppressedPreview = false,
+        bool HideSuppressedDialogue = false);
 
     private readonly record struct AncientSceneConfig(
         Vector2 BaseSize,
@@ -203,7 +214,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public NMultiplayerVoteContainer? VoteContainer { get; set; }
         public Control? ReactionBubble { get; set; }
         public Vector2 ReactionBubbleBasePosition { get; set; }
+        public Vector2 ReactionBubbleStackedPosition { get; set; }
         public Vector2 ReactionBubbleBaseScale { get; set; } = Vector2.One;
+        public Control? SuppressedBubble { get; set; }
+        public Vector2 SuppressedBubbleBasePosition { get; set; }
+        public Vector2 SuppressedBubbleBaseScale { get; set; } = Vector2.One;
         public Vector2 BaseSize { get; set; }
         public Vector2 CardBasePosition { get; set; }
         public PortalShape Shape { get; set; }
@@ -485,6 +500,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData> _previewDataByAncientId = new();
     private string? _suppressedPreviewAncientId; // first-round winner used as the other ancient in second-round dialogue
     private bool _hideSuppressedPreview;
+    private bool _hideSuppressedDialogue;
     private string? _reactionAncientId; // ancient that reacts with dialogue on the final preview vote
     private string? _initialFocusAncientId; // ancient that should receive initial second-round focus/emphasis
     private int _nextActIndex;
@@ -1023,6 +1039,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _suppressedPreviewAncientId = round.SuppressedPreviewAncientId;
         _suppressedPreviewAncient = round.SuppressedPreviewAncient;
         _hideSuppressedPreview = round.HideSuppressedPreview;
+        _hideSuppressedDialogue = round.HideSuppressedDialogue;
         _reactionAncientId = round.ReactionAncientId;
         _reactionAncient = round.ReactionAncient;
         _initialFocusAncientId = round.InitialFocusAncientId;
@@ -1032,6 +1049,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             $"incomingPreviewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}, " +
             $"suppressed={_suppressedPreviewAncientId ?? "<none>"}, " +
             $"hideSuppressedPreview={_hideSuppressedPreview}, " +
+            $"hideSuppressedDialogue={_hideSuppressedDialogue}, " +
             $"reaction={_reactionAncientId ?? "<none>"}, " +
             $"initialFocus={_initialFocusAncientId ?? "<none>"}, " +
             $"pool={string.Join(", ", _pool.Select(ancient => ancient.Id.Entry))}");
@@ -1626,27 +1644,18 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             if (refs.ReactionBubble != null)
             {
-                Vector2 basePosition = refs.ReactionBubbleBasePosition;
-                Vector2 baseScale = IsValidScale(refs.ReactionBubbleBaseScale)
-                    ? refs.ReactionBubbleBaseScale
-                    : refs.ReactionBubble.Scale;
+                PrimeDialogueBubbleEntrance(
+                    refs.ReactionBubble,
+                    refs.ReactionBubbleBasePosition,
+                    refs.ReactionBubbleBaseScale);
+            }
 
-                /*
-                 * The bubble's child nodes stay visible while the parent bubble is animated as a single control.
-                 */
-                Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
-                if (icon != null)
-                {
-                    icon.Modulate = Colors.White;
-                }
-
-                Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
-                if (text != null)
-                {
-                    text.Modulate = Colors.White;
-                }
-
-                PrimeFinalRevealControlEntrance(refs.ReactionBubble, basePosition, baseScale);
+            if (refs.SuppressedBubble != null)
+            {
+                PrimeDialogueBubbleEntrance(
+                    refs.SuppressedBubble,
+                    refs.SuppressedBubbleBasePosition,
+                    refs.SuppressedBubbleBaseScale);
             }
 
             if (refs.PreviewAnchor.Visible)
@@ -1659,32 +1668,77 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
     }
 
+    private void PrimeDialogueBubbleEntrance(
+        Control bubble,
+        Vector2 basePosition,
+        Vector2 baseScale)
+    {
+        /*
+         * Keeps each dialogue bubble's children visible while the bubble itself is staged as one animated control.
+         */
+        Control? icon = bubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
+        if (icon != null)
+        {
+            icon.Modulate = Colors.White;
+        }
+
+        Control? text = bubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineIndent/LineText");
+        if (text != null)
+        {
+            text.Modulate = Colors.White;
+        }
+
+        Vector2 resolvedScale = IsValidScale(baseScale)
+            ? baseScale
+            : bubble.Scale;
+
+        PrimeFinalRevealControlEntrance(bubble, basePosition, resolvedScale);
+    }
+
     private void CompleteFinalRoundElementAnimationInstantly()
     {
+        bool stackReactionBubble = !_hideSuppressedDialogue
+            && _slots.Any(refs => refs.SuppressedBubble != null);
+
         foreach (SlotRefs refs in _slots)
         {
             if (refs.ReactionBubble != null)
             {
-                Vector2 basePosition = refs.ReactionBubbleBasePosition;
+                Vector2 targetPosition = stackReactionBubble
+                    ? refs.ReactionBubbleStackedPosition
+                    : refs.ReactionBubbleBasePosition;
                 Vector2 baseScale = IsValidScale(refs.ReactionBubbleBaseScale)
                     ? refs.ReactionBubbleBaseScale
                     : Vector2.One;
 
-                CompleteFinalRevealControlEntrance(refs.ReactionBubble, basePosition, baseScale);
+                CompleteFinalRevealControlEntrance(
+                    refs.ReactionBubble,
+                    targetPosition,
+                    baseScale);
 
-                Control? icon = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/AncientIcon");
-                if (icon != null)
+                if (stackReactionBubble)
                 {
-                    icon.Modulate = Colors.White;
-                }
-
-                Control? text = refs.ReactionBubble.GetNodeOrNull<Control>("LineRoot/DialogueContainer/TextContainer/TextBox/LineText");
-                if (text != null)
-                {
-                    text.Modulate = Colors.White;
+                    refs.ReactionBubble.Modulate = new Color(
+                        refs.ReactionBubble.Modulate.R,
+                        refs.ReactionBubble.Modulate.G,
+                        refs.ReactionBubble.Modulate.B,
+                        PreviousDialogueOpacity);
                 }
 
                 StartReactionWave(refs.ReactionBubble);
+            }
+
+            if (refs.SuppressedBubble != null)
+            {
+                Vector2 baseScale = IsValidScale(refs.SuppressedBubbleBaseScale)
+                    ? refs.SuppressedBubbleBaseScale
+                    : Vector2.One;
+
+                CompleteFinalRevealControlEntrance(
+                    refs.SuppressedBubble,
+                    refs.SuppressedBubbleBasePosition,
+                    baseScale);
+                StartReactionWave(refs.SuppressedBubble);
             }
 
             if (refs.PreviewAnchor.Visible)
@@ -1727,13 +1781,19 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             + reactionBubbleEntranceCarryDuration
             + reactionBubbleEntranceSettleDuration;
 
+        SlotRefs? reactionRefs = null;
+        SlotRefs? suppressedRefs = null;
+
         /*
-         * Every visible element in a slot uses the same delay so the dialogue and option rows enter as one grouped stack.
+         * Every visible element in a slot uses the same delay so the first dialogue and option rows enter as one group.
+         * The suppressed dialogue remains staged until the reaction line has completed its presentation.
          */
         foreach (SlotRefs refs in _slots)
         {
             if (refs.ReactionBubble != null)
             {
+                reactionRefs = refs;
+
                 Vector2 basePosition = refs.ReactionBubbleBasePosition;
                 Vector2 baseScale = IsValidScale(refs.ReactionBubbleBaseScale)
                     ? refs.ReactionBubbleBaseScale
@@ -1754,6 +1814,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                     reactionWaveDelay);
             }
 
+            if (refs.SuppressedBubble != null)
+            {
+                suppressedRefs = refs;
+            }
+
             if (!refs.PreviewAnchor.Visible)
             {
                 continue;
@@ -1768,6 +1833,91 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                     previewEntranceFadeDuration);
             }
         }
+
+        StartSuppressedDialogueSequence(
+            reactionRefs,
+            suppressedRefs,
+            reactionWaveDelay);
+    }
+
+    private void StartSuppressedDialogueSequence(
+        SlotRefs? reactionRefs,
+        SlotRefs? suppressedRefs,
+        double reactionWaveDelay)
+    {
+        if (_hideSuppressedDialogue
+            || reactionRefs == null
+            || reactionRefs.ReactionBubble == null
+            || suppressedRefs == null
+            || suppressedRefs.SuppressedBubble == null)
+        {
+            return;
+        }
+
+        Control reactionBubble = reactionRefs.ReactionBubble;
+        Control suppressedBubble = suppressedRefs.SuppressedBubble;
+
+        double reactionTextDuration = GetPresentationDuration(
+            ReactionTextDurationNormal,
+            ReactionTextDurationFast);
+        double pauseDuration = GetPresentationDuration(
+            SuppressedDialoguePauseNormal,
+            SuppressedDialoguePauseFast);
+        double stackMoveDuration = GetPresentationDuration(
+            DialogueStackMoveDurationNormal,
+            DialogueStackMoveDurationFast);
+        double stackMoveDelay = reactionWaveDelay
+            + reactionTextDuration
+            + pauseDuration;
+
+        Vector2 stackOffset =
+            reactionRefs.ReactionBubbleStackedPosition
+            - reactionRefs.ReactionBubbleBasePosition;
+        Vector2 suppressedScale = IsValidScale(suppressedRefs.SuppressedBubbleBaseScale)
+            ? suppressedRefs.SuppressedBubbleBaseScale
+            : Vector2.One;
+
+        suppressedBubble.Position =
+            suppressedRefs.SuppressedBubbleBasePosition
+            - stackOffset;
+        suppressedBubble.Scale = suppressedScale;
+        suppressedBubble.Modulate = new Color(
+            suppressedBubble.Modulate.R,
+            suppressedBubble.Modulate.G,
+            suppressedBubble.Modulate.B,
+            0f);
+
+        Tween stackTween = CreateTween();
+        stackTween.TweenInterval(stackMoveDelay);
+        stackTween.TweenProperty(
+                reactionBubble,
+                "position",
+                reactionRefs.ReactionBubbleStackedPosition,
+                stackMoveDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Expo);
+        stackTween.Parallel()
+            .TweenProperty(
+                suppressedBubble,
+                "position",
+                suppressedRefs.SuppressedBubbleBasePosition,
+                stackMoveDuration)
+            .SetEase(Tween.EaseType.Out)
+            .SetTrans(Tween.TransitionType.Expo);
+        stackTween.Parallel().TweenProperty(
+            reactionBubble,
+            "modulate:a",
+            PreviousDialogueOpacity,
+            PreviousDialogueFadeDuration);
+        stackTween.Parallel().TweenProperty(
+            suppressedBubble,
+            "modulate:a",
+            1f,
+            PreviousDialogueFadeDuration);
+
+        StartReactionWaveAfterDelay(
+            suppressedBubble,
+            stackMoveDelay + PreviousDialogueFadeDuration);
     }
 
     #endregion
@@ -2423,11 +2573,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void ApplySecondVotePresentation(bool animate)
     {
         /*
-         * Applies final-round preview visibility rules and spawns any configured reaction bubble.
-         */
-        /*
-         * is the “final-round visibility policy” method: it hides the suppressed ancient’s preview, shows other previews,
-         * and attaches the special reaction bubble to the designated ancient.
+         * Applies final-round preview visibility rules and builds the configured dialogue bubbles.
          */
         foreach (SlotRefs refs in _slots)
         {
@@ -2436,8 +2582,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 refs.ReactionBubble.QueueFree();
             }
 
+            if (refs.SuppressedBubble != null && GodotObject.IsInstanceValid(refs.SuppressedBubble))
+            {
+                refs.SuppressedBubble.QueueFree();
+            }
+
             ClearChildren(refs.ReactionAnchor);
             refs.ReactionBubble = null;
+            refs.SuppressedBubble = null;
             refs.ReactionAnchor.Visible = false;
             refs.ReactionAnchor.Modulate = Colors.White;
             refs.PreviewAnchor.Modulate = Colors.White;
@@ -2453,6 +2605,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
+        AncientEventModel? suppressedDialogueAncient = !_hideSuppressedDialogue
+            ? ResolvePoolAncient(
+                _suppressedPreviewAncient,
+                _suppressedPreviewAncientId)
+            : null;
+
         for (int i = 0; i < _slots.Count; i++)
         {
             SlotRefs refs = _slots[i];
@@ -2461,8 +2619,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 && refs.Ancient.Id.Entry == _suppressedPreviewAncientId;
             bool isReactionSlot = !string.IsNullOrEmpty(_reactionAncientId)
                 && refs.Ancient.Id.Entry == _reactionAncientId;
+            bool hostsSuppressedDialogue =
+                isReactionSlot && suppressedDialogueAncient != null;
 
-            refs.PreviewAnchor.Visible = refs.PreviewWidgets.Count > 0 && !suppressPreview;
+            refs.PreviewAnchor.Visible = !suppressPreview
+                && (refs.PreviewWidgets.Count > 0
+                    || isReactionSlot);
 
             ModLog.Trace(
                 $"ApplySecondVotePresentation slot {i}: ancient={refs.Ancient.Id.Entry}, " +
@@ -2470,25 +2632,53 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 $"previewWidgetCount={refs.PreviewWidgets.Count}, " +
                 $"suppressPreview={suppressPreview}, " +
                 $"isReactionSlot={isReactionSlot}, " +
+                $"hostsSuppressedDialogue={hostsSuppressedDialogue}, " +
                 $"previewVisible={refs.PreviewAnchor.Visible}");
 
-            if (isReactionSlot)
+            if (!isReactionSlot)
             {
-                TryShowReactionBubble(refs, animate);
+                continue;
+            }
+
+            TryShowReactionBubble(refs, animate);
+
+            if (suppressedDialogueAncient != null)
+            {
+                TryShowSuppressedBubble(
+                    refs,
+                    suppressedDialogueAncient,
+                    animate);
             }
         }
 
         ModLog.Debug(
             $"Second vote presentation: suppressed={_suppressedPreviewAncientId ?? "<none>"}, " +
             $"hideSuppressedPreview={_hideSuppressedPreview}, " +
+            $"hideSuppressedDialogue={_hideSuppressedDialogue}, " +
             $"reaction={_reactionAncientId ?? "<none>"}, " +
             $"previewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}");
+    }
+
+    private AncientTextContext CreateSecondRoundDialogueContext(
+        AncientEventModel reactionAncient,
+        AncientEventModel? suppressedAncient)
+    {
+        return new AncientTextContext(
+            NextActIndex: _nextActIndex,
+            ReactionAncientEntry: reactionAncient.Id.Entry,
+            ReactionAncientTitle: reactionAncient.Title.GetFormattedText(),
+            SuppressedAncientEntry:
+                suppressedAncient?.Id.Entry ?? _suppressedPreviewAncientId,
+            SuppressedAncientTitle:
+                suppressedAncient?.Title.GetFormattedText(),
+            CharacterEntry: GetLocalCharacterEntry(),
+            CharacterTitle: GetLocalCharacterTitle());
     }
 
     private void TryShowReactionBubble(SlotRefs refs, bool animate)
     {
         /*
-         * Creates and stages the reaction bubble for the configured reacting ancient.
+         * Creates and stages the dialogue bubble for the configured reacting ancient.
          */
         refs.ReactionBubble = null;
 
@@ -2497,16 +2687,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 _suppressedPreviewAncient,
                 _suppressedPreviewAncientId);
 
-        AncientTextContext context = new(
-            NextActIndex: _nextActIndex,
-            ReactionAncientEntry: refs.Ancient.Id.Entry,
-            ReactionAncientTitle: refs.Ancient.Title.GetFormattedText(),
-            SuppressedAncientEntry:
-                suppressedAncient?.Id.Entry ?? _suppressedPreviewAncientId,
-            SuppressedAncientTitle:
-                suppressedAncient?.Title.GetFormattedText(),
-            CharacterEntry: GetLocalCharacterEntry(),
-            CharacterTitle: GetLocalCharacterTitle());
+        AncientTextContext context = CreateSecondRoundDialogueContext(
+            refs.Ancient,
+            suppressedAncient);
 
         RunState? runState = RunManager.Instance != null
             ? ChooseTheAncientHelpers.GetRunState(RunManager.Instance)
@@ -2514,7 +2697,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         string dialogueText = ChooseTheAncientBaseAncientText.GetSecondRoundDialogueText(runState, context);
 
-        Control bubble = BuildReactionBubble(refs.Ancient, dialogueText);
+        Control bubble = BuildDialogueBubble(refs.Ancient, dialogueText, "Reaction");
         bubble.ZIndex = 6;
         refs.PreviewAnchor.AddChild(bubble);
         refs.ReactionBubble = bubble;
@@ -2539,11 +2722,62 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             $"previewChildren={refs.PreviewAnchor.GetChildCount()}, " +
             $"reactionChildren={refs.ReactionAnchor.GetChildCount()}");
     }
-    
-    private Control BuildReactionBubble(AncientEventModel ancient, string dialogueText)
+
+    private void TryShowSuppressedBubble(
+        SlotRefs reactionRefs,
+        AncientEventModel suppressedAncient,
+        bool animate)
     {
         /*
-         * Builds the full reaction bubble control tree, fonts, icon, and text styling.
+         * Creates the Fair Fight follow-up line with the suppressed ancient's identity, but hosts it in the reaction
+         * ancient's slot so both dialogue bubbles form one vanilla-style stack.
+         */
+        reactionRefs.SuppressedBubble = null;
+
+        AncientEventModel? reactionAncient =
+            ResolvePoolAncient(
+                _reactionAncient,
+                _reactionAncientId);
+
+        if (reactionAncient == null)
+        {
+            ModLog.Warn(
+                $"Could not build suppressed dialogue for {suppressedAncient.Id.Entry} because the reaction ancient was unavailable.");
+            return;
+        }
+
+        AncientTextContext context = CreateSecondRoundDialogueContext(
+            reactionAncient,
+            suppressedAncient);
+
+        RunState? runState = RunManager.Instance != null
+            ? ChooseTheAncientHelpers.GetRunState(RunManager.Instance)
+            : null;
+
+        string dialogueText =
+            ChooseTheAncientBaseAncientText.GetSuppressedSecondRoundDialogueText(
+                runState,
+                context);
+
+        Control bubble = BuildDialogueBubble(
+            suppressedAncient,
+            dialogueText,
+            "Suppressed");
+        bubble.ZIndex = 6;
+        reactionRefs.PreviewAnchor.AddChild(bubble);
+        reactionRefs.SuppressedBubble = bubble;
+        reactionRefs.ReactionAnchor.Visible = false;
+        bubble.Modulate = new Color(1f, 1f, 1f, 0f);
+
+        ModLog.Trace(
+            $"Showing custom suppressed bubble for {suppressedAncient.Id.Entry} " +
+            $"in reaction slot {reactionRefs.Ancient.Id.Entry}: {dialogueText}");
+    }
+
+    private Control BuildDialogueBubble(AncientEventModel ancient, string dialogueText, string roleName)
+    {
+        /*
+         * Builds a full ancient dialogue bubble control tree, fonts, icon, and text styling.
          */
         Texture2D bubbleTexture = GD.Load<Texture2D>(DialogueBubbleTexturePath)
             ?? throw new InvalidOperationException($"Could not load {DialogueBubbleTexturePath}");
@@ -2557,10 +2791,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             ?? throw new InvalidOperationException($"Could not load {DialogueItalicFontPath}");
 
         Color dialogueColor = ChooseTheAncientPresentationResolver.GetDialogueColor(ancient);
+        bool speakerOnRight = string.Equals(
+            roleName,
+            "Suppressed",
+            StringComparison.Ordinal);
 
         Control root = new()
         {
-            Name = $"ReactionBubble_{ancient.Id.Entry}",
+            Name = $"{roleName}Bubble_{ancient.Id.Entry}",
             MouseFilter = MouseFilterEnum.Ignore,
             FocusMode = FocusModeEnum.None,
             CustomMinimumSize = new Vector2(0f, ReactionBubbleHeight),
@@ -2665,8 +2903,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         TextureRect tail = new()
         {
-            Name = "DialogueTailLeft",
+            Name = speakerOnRight ? "DialogueTailRight" : "DialogueTailLeft",
             Texture = tailTexture,
+            FlipH = speakerOnRight,
             CustomMinimumSize = new Vector2(28f, 0f),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
@@ -2751,9 +2990,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         textContainer.AnchorTop = 0f;
         textContainer.AnchorRight = 1f;
         textContainer.AnchorBottom = 1f;
-        textContainer.AddThemeConstantOverride("margin_left", 30);
+        textContainer.AddThemeConstantOverride("margin_left", speakerOnRight ? 18 : 30);
         textContainer.AddThemeConstantOverride("margin_top", 10);
-        textContainer.AddThemeConstantOverride("margin_right", 18);
+        textContainer.AddThemeConstantOverride("margin_right", speakerOnRight ? 30 : 18);
         textContainer.AddThemeConstantOverride("margin_bottom", 12);
         dialogueContainer.AddChild(textContainer);
 
@@ -2821,6 +3060,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         lineText.AddThemeFontSizeOverride("bold_font_size", 24);
         lineText.AddThemeFontSizeOverride("italics_font_size", 24);
         lineIndent.AddChild(lineText);
+
+        if (speakerOnRight)
+        {
+            line.MoveChild(iconRoot, line.GetChildCount() - 1);
+            tailRow.MoveChild(tail, tailRow.GetChildCount() - 1);
+        }
 
         return root;
     }
@@ -3369,13 +3614,58 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void LayoutReaction(SlotRefs refs)
     {
         /*
-         * Places the reaction bubble above the preview list and records its final transform for reveal animation.
+         * Places both Fair Fight dialogue bubbles above the reaction ancient's preview list. Both lines share the same
+         * bottom edge before stacking.
          */
-        if (refs.ReactionBubble == null)
+        float reactionHeight = 0f;
+        float suppressedHeight = 0f;
+
+        if (refs.ReactionBubble != null)
         {
-            return;
+            LayoutDialogueBubble(
+                refs,
+                refs.ReactionBubble,
+                out Vector2 basePosition,
+                out Vector2 baseScale,
+                out reactionHeight);
+
+            refs.ReactionBubbleBasePosition = basePosition;
+            refs.ReactionBubbleBaseScale = baseScale;
         }
 
+        if (refs.SuppressedBubble != null)
+        {
+            LayoutDialogueBubble(
+                refs,
+                refs.SuppressedBubble,
+                out Vector2 basePosition,
+                out Vector2 baseScale,
+                out suppressedHeight);
+
+            refs.SuppressedBubbleBasePosition = basePosition;
+            refs.SuppressedBubbleBaseScale = baseScale;
+        }
+
+        if (refs.ReactionBubble != null)
+        {
+            float dialogueGap = ScaleFrom1080(ReactionBubbleGap);
+
+            refs.ReactionBubbleStackedPosition = refs.SuppressedBubble != null
+                ? new Vector2(
+                    refs.ReactionBubbleBasePosition.X,
+                    refs.SuppressedBubbleBasePosition.Y - dialogueGap - reactionHeight)
+                : refs.ReactionBubbleBasePosition
+                    + new Vector2(0f, -(reactionHeight + dialogueGap));
+        }
+    }
+
+    private void LayoutDialogueBubble(
+        SlotRefs refs,
+        Control bubble,
+        out Vector2 basePosition,
+        out Vector2 baseScale,
+        out float bubbleHeight)
+    {
         Vector2 anchorSize = refs.PreviewAnchor.Size;
         if (anchorSize.X <= 1f || anchorSize.Y <= 1f)
         {
@@ -3383,33 +3673,92 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         PreviewLayoutMetrics metrics = GetPreviewLayoutMetrics(refs, anchorSize);
-        float bubbleHeight = GetReactionBubbleHeight();
         float dialogueOptionGap = ScaleFrom1080(_roundType == VoteRoundType.FinalRevealVote
             ? FinalRevealDialogueOptionGapAt1080
             : ReactionBubbleGap);
-        float bubbleY = metrics.StartY - bubbleHeight - dialogueOptionGap;
+
+        bubble.LayoutMode = 1;
+        bubble.AnchorLeft = 0f;
+        bubble.AnchorTop = 0f;
+        bubble.AnchorRight = 1f;
+        bubble.AnchorBottom = 0f;
+
+        float bubbleLeft = _slots.Count <= 2 ? 0f : metrics.StartX;
+        float bubbleRightInset = _slots.Count <= 2
+            ? 0f
+            : MathF.Max(0f, anchorSize.X - (metrics.StartX + metrics.DisplayWidth));
+        float bubbleWidth = MathF.Max(1f, anchorSize.X - bubbleLeft - bubbleRightInset);
+
+        bubbleHeight = MeasureDialogueBubbleHeight(bubble, bubbleWidth);
+
+        /*
+         * Anchor every line by its bottom edge to prevent overlap or gaps.
+         */
+        float bubbleBottomY = metrics.StartY - dialogueOptionGap;
+        float bubbleY = bubbleBottomY - bubbleHeight;
         if (_roundType != VoteRoundType.FinalRevealVote)
         {
             bubbleY = MathF.Max(0f, bubbleY);
         }
 
-        refs.ReactionBubble.LayoutMode = 1;
-        refs.ReactionBubble.AnchorLeft = 0f;
-        refs.ReactionBubble.AnchorTop = 0f;
-        refs.ReactionBubble.AnchorRight = 1f;
-        refs.ReactionBubble.AnchorBottom = 0f;
+        bubble.OffsetLeft = bubbleLeft;
+        bubble.OffsetTop = bubbleY;
+        bubble.OffsetRight = -bubbleRightInset;
+        bubble.OffsetBottom = bubbleY + bubbleHeight;
 
-        float bubbleLeft = _slots.Count <= 2 ? 0f : metrics.StartX;
-        float bubbleRightInset = _slots.Count <= 2 ? 0f : MathF.Max(0f, anchorSize.X - (metrics.StartX + metrics.DisplayWidth));
-
-        refs.ReactionBubble.OffsetLeft = bubbleLeft;
-        refs.ReactionBubble.OffsetTop = bubbleY;
-        refs.ReactionBubble.OffsetRight = -bubbleRightInset;
-        refs.ReactionBubble.OffsetBottom = bubbleY + bubbleHeight;
-        refs.ReactionBubbleBasePosition = new Vector2(bubbleLeft, bubbleY);
-        refs.ReactionBubbleBaseScale = IsValidScale(refs.ReactionBubble.Scale)
-            ? refs.ReactionBubble.Scale
+        basePosition = new Vector2(bubbleLeft, bubbleY);
+        baseScale = IsValidScale(bubble.Scale)
+            ? bubble.Scale
             : Vector2.One;
+    }
+
+    private static float MeasureDialogueBubbleHeight(Control bubble, float bubbleWidth)
+    {
+        /*
+         * RichTextLabel can report its wrapped content height once given the width it will receive from the dialogue row.
+         */
+        RichTextLabel? lineText = bubble.GetNodeOrNull<RichTextLabel>(
+            "LineRoot/DialogueContainer/TextContainer/TextBox/LineIndent/LineText");
+        Control? lineRoot = bubble.GetNodeOrNull<Control>("LineRoot");
+        MarginContainer? dialogueContainer = bubble.GetNodeOrNull<MarginContainer>(
+            "LineRoot/DialogueContainer");
+
+        float textHeight = DialogueTextMinimumHeight;
+        if (lineText != null)
+        {
+            float textWidth = MathF.Max(1f, bubbleWidth - DialogueHorizontalChrome);
+            lineText.Size = new Vector2(
+                textWidth,
+                MathF.Max(DialogueTextMinimumHeight, lineText.Size.Y));
+
+            float contentHeight = lineText.GetContentHeight();
+            if (float.IsFinite(contentHeight) && contentHeight > 0f)
+            {
+                textHeight = MathF.Max(DialogueTextMinimumHeight, contentHeight);
+            }
+
+            lineText.CustomMinimumSize = new Vector2(0f, textHeight);
+        }
+
+        float resolvedHeight = MathF.Ceiling(
+            MathF.Max(
+                DialogueLineMinimumHeight,
+                DialogueVerticalChrome + textHeight));
+
+        bubble.CustomMinimumSize = new Vector2(0f, resolvedHeight);
+
+        if (lineRoot != null)
+        {
+            lineRoot.CustomMinimumSize = new Vector2(0f, resolvedHeight);
+            lineRoot.OffsetBottom = resolvedHeight;
+        }
+
+        if (dialogueContainer != null)
+        {
+            dialogueContainer.CustomMinimumSize = new Vector2(0f, resolvedHeight);
+        }
+
+        return resolvedHeight;
     }
 
     private static PortalShape[] BuildThreePortalShapes(Vector2 area, float cardWidth, float cardHeight)

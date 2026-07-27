@@ -5,9 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workshop/Aligning_Custom_Ancients_Embedded_Tutorial.md" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/Aligning_Custom_Ancients_Embedded_Tutorial.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -273,79 +276,12 @@
       <workItem from="1784986757989" duration="1836000" />
       <workItem from="1784998310327" duration="19328000" />
       <workItem from="1785085985067" duration="4189000" />
-      <workItem from="1785161027678" duration="4016000" />
-    </task>
-    <task id="LOCAL-00025" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
-      <option name="closed" value="true" />
-      <created>1783002205677</created>
-      <option name="number" value="00025" />
-      <option name="presentableId" value="LOCAL-00025" />
-      <option name="project" value="LOCAL" />
-      <updated>1783002205677</updated>
-    </task>
-    <task id="LOCAL-00026" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
-      <option name="closed" value="true" />
-      <created>1783002765289</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
-      <option name="project" value="LOCAL" />
-      <updated>1783002765289</updated>
-    </task>
-    <task id="LOCAL-00027" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
-      <option name="closed" value="true" />
-      <created>1783002818421</created>
-      <option name="number" value="00027" />
-      <option name="presentableId" value="LOCAL-00027" />
-      <option name="project" value="LOCAL" />
-      <updated>1783002818421</updated>
-    </task>
-    <task id="LOCAL-00028" summary="This mod has it's own ChooseTheAncientSettingStore instead of just using ModConfig.&#10;- Replaced RefreshFromModConfig calls with RefreshFromNativeSettings, as we can't have ModConfig be our base to work with BaseLib.&#10;&#10;Ritsulib json moved to a settings folder in ChooseTheAncient folder.&#10;&#10;BaseLib is detected at runtime and used only as an optional menu host. The mod&#10;does not reference BaseLib at compile time, and failures in the interop path are&#10;logged without preventing Choose The Ancient from loading. The BaseLib page mirrors the native settings store, applies changes immediately,&#10;and saves settings as they are changed. It includes grouped general, advanced,&#10;and redundant settings, with toggles for hiding advanced and redundant options.">
-      <option name="closed" value="true" />
-      <created>1783002825918</created>
-      <option name="number" value="00028" />
-      <option name="presentableId" value="LOCAL-00028" />
-      <option name="project" value="LOCAL" />
-      <updated>1783002825918</updated>
-    </task>
-    <task id="LOCAL-00029" summary="Update for sts2 v0.108.0">
-      <option name="closed" value="true" />
-      <created>1783098347686</created>
-      <option name="number" value="00029" />
-      <option name="presentableId" value="LOCAL-00029" />
-      <option name="project" value="LOCAL" />
-      <updated>1783098347686</updated>
-    </task>
-    <task id="LOCAL-00030" summary="Update for sts2 v0.108.0">
-      <option name="closed" value="true" />
-      <created>1783098728024</created>
-      <option name="number" value="00030" />
-      <option name="presentableId" value="LOCAL-00030" />
-      <option name="project" value="LOCAL" />
-      <updated>1783098728024</updated>
-    </task>
-    <task id="LOCAL-00031" summary="adding back the gif">
-      <option name="closed" value="true" />
-      <created>1783098805198</created>
-      <option name="number" value="00031" />
-      <option name="presentableId" value="LOCAL-00031" />
-      <option name="project" value="LOCAL" />
-      <updated>1783098805198</updated>
-    </task>
-    <task id="LOCAL-00032" summary="ChooseTheAncientPlayerWarnings Registers from main and looks out for the event onModDetected from ModManager.&#10;&#10;EventSynchronizer patching is no longer using NeowOptionIdentitySyncPatch as a whole Harmony Patch but rather patching individual contstructor and methods in a try statement in the same place so it can fail safely by itself.&#10;&#10;Forgot to commit settitngs_ui.json before. Also added a mod warning to this table in case NeowOptionIdentitySyncPatch cannot build.">
-      <option name="closed" value="true" />
-      <created>1783111652999</created>
-      <option name="number" value="00032" />
-      <option name="presentableId" value="LOCAL-00032" />
-      <option name="project" value="LOCAL" />
-      <updated>1783111652999</updated>
-    </task>
-    <task id="LOCAL-00033" summary="changed json mod version number">
-      <option name="closed" value="true" />
-      <created>1783115065213</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
-      <option name="project" value="LOCAL" />
-      <updated>1783115065213</updated>
+      <workItem from="1785161027678" duration="7456000" />
+      <workItem from="1785172214800" duration="771000" />
+      <workItem from="1785173140446" duration="1907000" />
+      <workItem from="1785175091717" duration="48000" />
+      <workItem from="1785175163861" duration="875000" />
+      <workItem from="1785176663431" duration="910000" />
     </task>
     <task id="LOCAL-00034" summary="- Left Hand Side relic reveals in selection screen now have their tooltip show to the right of the reveal option so it's no longer offscreen.&#10;- Selection screen relics reveal animaiton more in line with vanilla's animaiton.">
       <option name="closed" value="true" />
@@ -667,7 +603,79 @@
       <option name="project" value="LOCAL" />
       <updated>1785167921013</updated>
     </task>
-    <option name="localTasksCounter" value="74" />
+    <task id="LOCAL-00074" summary="Coordinator now handles selection ballet through the host only through the GetEffectciveBallotAsync method">
+      <option name="closed" value="true" />
+      <created>1785169264855</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1785169264855</updated>
+    </task>
+    <task id="LOCAL-00075" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within its own slot, support instant presentation, and keep Monty Hall behavior unchanged.">
+      <option name="closed" value="true" />
+      <created>1785171615763</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1785171615763</updated>
+    </task>
+    <task id="LOCAL-00076" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
+      <option name="closed" value="true" />
+      <created>1785174524016</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1785174524016</updated>
+    </task>
+    <task id="LOCAL-00077" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
+      <option name="closed" value="true" />
+      <created>1785174839217</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1785174839217</updated>
+    </task>
+    <task id="LOCAL-00078" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
+      <option name="closed" value="true" />
+      <created>1785174881813</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1785174881813</updated>
+    </task>
+    <task id="LOCAL-00079" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
+      <option name="closed" value="true" />
+      <created>1785174889939</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1785174889939</updated>
+    </task>
+    <task id="LOCAL-00080" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
+      <option name="closed" value="true" />
+      <created>1785175980746</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1785175980747</updated>
+    </task>
+    <task id="LOCAL-00081" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
+      <option name="closed" value="true" />
+      <created>1785175986130</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1785175986130</updated>
+    </task>
+    <task id="LOCAL-00082" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
+      <option name="closed" value="true" />
+      <created>1785177293263</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1785177293263</updated>
+    </task>
+    <option name="localTasksCounter" value="83" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -703,10 +711,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Update for sts2 v0.108.0" />
-    <MESSAGE value="adding back the gif" />
-    <MESSAGE value="ChooseTheAncientPlayerWarnings Registers from main and looks out for the event onModDetected from ModManager.&#10;&#10;EventSynchronizer patching is no longer using NeowOptionIdentitySyncPatch as a whole Harmony Patch but rather patching individual contstructor and methods in a try statement in the same place so it can fail safely by itself.&#10;&#10;Forgot to commit settitngs_ui.json before. Also added a mod warning to this table in case NeowOptionIdentitySyncPatch cannot build." />
-    <MESSAGE value="changed json mod version number" />
     <MESSAGE value="- Left Hand Side relic reveals in selection screen now have their tooltip show to the right of the reveal option so it's no longer offscreen.&#10;- Selection screen relics reveal animaiton more in line with vanilla's animaiton." />
     <MESSAGE value="Reveal options slide in closer to vanilla's style now." />
     <MESSAGE value="Dialouge drifts slightly then repositions to emphasise the ancients dialuoge." />
@@ -728,7 +732,11 @@
     <MESSAGE value="Adjusted all the vanilla ancients position in their ancient config" />
     <MESSAGE value="Update the act 1 node with a post fix patch to have a new ancient node random icon. The icon is saved under scenes -&gt; map" />
     <MESSAGE value="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too." />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too." />
+    <MESSAGE value="Coordinator now handles selection ballet through the host only through the GetEffectciveBallotAsync method" />
+    <MESSAGE value="feat: add suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the&#10;reaction dialogue completes. Raise the reaction bubble within its own&#10;slot, support instant presentation, and keep Monty Hall behavior&#10;unchanged." />
+    <MESSAGE value="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within its own slot, support instant presentation, and keep Monty Hall behavior unchanged." />
+    <MESSAGE value="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged." />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
