@@ -3,6 +3,12 @@
 ## Known Bugs to fix
 
 - None
+
+## [v1.2.5] - 
+
+### Fixes
+
+- Stopped redundant Neow and Darv overrides from filtering them out from act 4+.
  
 ## [v1.2.4] - Added compatability to the game's update v0.109.0 # Custom Ancient API improvements
 

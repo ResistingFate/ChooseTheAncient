@@ -539,6 +539,14 @@ public static class ChooseTheAncientHelpers
             .OrderBy(ancient => ancient.Id.Entry)
             .ToList();
 
+        if (targetActIndex >= 3)
+        {
+            ModLog.Debug(
+                $"Skipping legacy Neow/Darv special overrides for extended act position {targetActIndex + 1}. " +
+                "The candidate pool will be left unchanged.");
+            return adjustedPool;
+        }
+
         LogPool($"Act {targetActIndex + 1} pool entering special overrides", adjustedPool);
         ModLog.Debug(
             $"Act {targetActIndex + 1} special override states before application: " +

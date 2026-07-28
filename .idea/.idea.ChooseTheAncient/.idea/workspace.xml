@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -275,15 +279,7 @@
       <workItem from="1785175091717" duration="48000" />
       <workItem from="1785175163861" duration="875000" />
       <workItem from="1785176663431" duration="3801000" />
-      <workItem from="1785184420179" duration="23697000" />
-    </task>
-    <task id="LOCAL-00048" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize.">
-      <option name="closed" value="true" />
-      <created>1784303739633</created>
-      <option name="number" value="00048" />
-      <option name="presentableId" value="LOCAL-00048" />
-      <option name="project" value="LOCAL" />
-      <updated>1784303739633</updated>
+      <workItem from="1785184420179" duration="25205000" />
     </task>
     <task id="LOCAL-00049" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize.">
       <option name="closed" value="true" />
@@ -669,7 +665,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785218038404</updated>
     </task>
-    <option name="localTasksCounter" value="97" />
+    <task id="LOCAL-00097" summary="Updated Readme to link to custom ancient modder CTA tutorial.">
+      <option name="closed" value="true" />
+      <created>1785218224312</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1785218224312</updated>
+    </task>
+    <option name="localTasksCounter" value="98" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -705,7 +709,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Added tutorial Scripts for the aligning custom ancients videos in the workshop folder" />
     <MESSAGE value="Changing up how acts past act 3 are handleed so skip ancient selection when no next act exists. Also the EnterNextAct has been updated in 0.109.0 to include Victor Room guards, se we've updated the patch too." />
     <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged." />
     <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients." />
@@ -730,7 +733,8 @@
     <MESSAGE value="Add the slot templates to the github in preparation of the push, so a weblink of them can be developed for the guide." />
     <MESSAGE value="Added the selection screen template download links." />
     <MESSAGE value="Reorganised tutorials" />
-    <option name="LAST_COMMIT_MESSAGE" value="Reorganised tutorials" />
+    <MESSAGE value="Updated Readme to link to custom ancient modder CTA tutorial." />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated Readme to link to custom ancient modder CTA tutorial." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -747,19 +751,6 @@
           <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
           <option name="timeStamp" value="3" />
         </breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs</url>
-          <line>1296</line>
-          <properties documentPath="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient\ChooseTheAncientCode\ChooseTheAncientHelpers.cs" containingFunctionPresentation="Method 'CreateSecondRoundPresentationRng'">
-            <startOffsets>
-              <option value="48786" />
-            </startOffsets>
-            <endOffsets>
-              <option value="48920" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="4" />
-        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
