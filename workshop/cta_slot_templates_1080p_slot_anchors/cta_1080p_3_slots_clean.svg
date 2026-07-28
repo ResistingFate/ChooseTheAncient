@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc">
+  <title id="title">Choose The Ancient 1080p 3-slot anchor template</title>
+  <desc id="desc">Transparent 1080p vector alignment template. Slot anchor dots use the average of each slot polygon&apos;s four corners: ((TL+TR+BL+BR)/4), including both X and Y.</desc>
+  <!-- No AI generation: deterministic SVG geometry only. Background is intentionally transparent. -->
+  <style>
+    .screen-perimeter { fill: none; stroke: #ffffff; stroke-width: 5.5; opacity: 0.96; vector-effect: non-scaling-stroke; }
+    .slot-perimeter { fill: none; stroke: #ffffff; stroke-width: 2.5; opacity: 0.82; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+    .card-fill { fill: #000000; fill-opacity: 0.52; stroke: none; }
+    .card-perimeter { fill: none; stroke: #ffffff; stroke-width: 3.5; opacity: 0.94; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+    .anchor-ring { fill: none; stroke: #ffffff; stroke-width: 3; opacity: 1; vector-effect: non-scaling-stroke; }
+    .anchor-dot { fill: #ffffff; opacity: 1; }
+  </style>
+  <rect class="screen-perimeter" x="2.75" y="2.75" width="1914.5" height="1074.5" rx="0" ry="0"/>
+  <g id="slot-outlines">
+    <polygon class="slot-perimeter" points="0,28 728.84,28 613.76,1084 0,1084"/>
+    <polygon class="slot-perimeter" points="728.84,28 1380.96,28 1265.88,1084 613.76,1084"/>
+    <polygon class="slot-perimeter" points="1380.96,28 1918,28 1918,1084 1265.88,1084"/>
+  </g>
+  <g id="cards">
+    <rect class="card-fill" x="89.5" y="842" width="520" height="224" rx="20" ry="20"/>
+    <rect class="card-perimeter" x="89.5" y="842" width="520" height="224" rx="20" ry="20"/>
+    <rect class="card-fill" x="699" y="842" width="520" height="224" rx="20" ry="20"/>
+    <rect class="card-perimeter" x="699" y="842" width="520" height="224" rx="20" ry="20"/>
+    <rect class="card-fill" x="1308.5" y="842" width="520" height="224" rx="20" ry="20"/>
+    <rect class="card-perimeter" x="1308.5" y="842" width="520" height="224" rx="20" ry="20"/>
+  </g>
+  <g id="slot-anchor-points">
+    <circle class="anchor-ring" cx="335.65" cy="556" r="10"/>
+    <circle class="anchor-dot" cx="335.65" cy="556" r="3.2"/>
+    <circle class="anchor-ring" cx="997.36" cy="556" r="10"/>
+    <circle class="anchor-dot" cx="997.36" cy="556" r="3.2"/>
+    <circle class="anchor-ring" cx="1620.71" cy="556" r="10"/>
+    <circle class="anchor-dot" cx="1620.71" cy="556" r="3.2"/>
+  </g>
+</svg>

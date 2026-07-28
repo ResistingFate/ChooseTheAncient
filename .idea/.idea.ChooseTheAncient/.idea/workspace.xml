@@ -5,12 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Scripts/ModConfigBridge.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/ModConfigBridge.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/workshop/cta_slot_templates_1080p_slot_anchors/cta_1080p_2_slots_clean.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/workshop/cta_slot_templates_1080p_slot_anchors/cta_1080p_2_slots_clean.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/workshop/cta_slot_templates_1080p_slot_anchors/cta_1080p_3_slots_clean.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/workshop/cta_slot_templates_1080p_slot_anchors/cta_1080p_3_slots_clean.svg.import" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -282,15 +280,7 @@
       <workItem from="1785175091717" duration="48000" />
       <workItem from="1785175163861" duration="875000" />
       <workItem from="1785176663431" duration="3801000" />
-      <workItem from="1785184420179" duration="20244000" />
-    </task>
-    <task id="LOCAL-00044" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.&#10;1. If PortalSourceNodePath is set, use that node.&#10;2. If it is a TextureRect, account for TextureRect size/stretch/offset.&#10;3. If it is a Control, use the Control rect.&#10;4. If it is a Node2D, use the node origin.&#10;5. If anything fails, fall back to root scene BaseSize math..">
-      <option name="closed" value="true" />
-      <created>1783809817930</created>
-      <option name="number" value="00044" />
-      <option name="presentableId" value="LOCAL-00044" />
-      <option name="project" value="LOCAL" />
-      <updated>1783809817930</updated>
+      <workItem from="1785184420179" duration="20996000" />
     </task>
     <task id="LOCAL-00045" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.&#10;1. If PortalSourceNodePath is set, use that node.&#10;2. If it is a TextureRect, account for TextureRect size/stretch/offset.&#10;3. If it is a Control, use the Control rect.&#10;4. If it is a Node2D, use the node origin.&#10;5. If anything fails, fall back to root scene BaseSize math..">
       <option name="closed" value="true" />
@@ -676,7 +666,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785213470425</updated>
     </task>
-    <option name="localTasksCounter" value="93" />
+    <task id="LOCAL-00093" summary="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.&#10;&#10;Trace looks like VeryDebug in the menus now.">
+      <option name="closed" value="true" />
+      <created>1785215235652</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1785215235652</updated>
+    </task>
+    <option name="localTasksCounter" value="94" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -712,7 +710,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Converts CTA event-seed calculations to ulong.&#10;Mirrors the 0.109.0 EventModel.BeginEvent seed formula.&#10;Preserves signed act offsets modulo 2⁶⁴.&#10;Replaces removed Rng.Seed log accesses with the seed used to construct the RNG.&#10;Adds the 0.109.0 EventSynchronizer(..., ulong seed) signature.&#10;Retains the 0.108 and 0.107 constructor fallbacks." />
     <MESSAGE value="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize." />
     <MESSAGE value="MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
     <MESSAGE value="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
@@ -737,7 +734,8 @@
     <MESSAGE value="Made a gudie for custom ancients working with this mod." />
     <MESSAGE value="- Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen." />
     <MESSAGE value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder." />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder." />
+    <MESSAGE value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.&#10;&#10;Trace looks like VeryDebug in the menus now." />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.&#10;&#10;Trace looks like VeryDebug in the menus now." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
