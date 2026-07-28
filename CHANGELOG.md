@@ -9,6 +9,7 @@
 ### Fixes
 
 - Stopped redundant Neow and Darv overrides from filtering them out from act 4+.
+- Baselib ancients now don't have allocated seats on the ballot above other ancients.
  
 ## [v1.2.4] - Added compatability to the game's update v0.109.0 # Custom Ancient API improvements
 

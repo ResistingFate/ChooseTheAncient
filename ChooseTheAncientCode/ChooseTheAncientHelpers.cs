@@ -896,7 +896,8 @@ public static class ChooseTheAncientHelpers
         string candidatePoolSignature)
     /*
      * Chooses which ancients make the ballot when more candidates exist than display slots.
-     * Forced custom ancients and then other custom ancients reserve slots, but final display order is shuffled separately.
+     * Only ancients whose BaseLib ShouldForceSpawn hook returns true reserve slots.
+     * All other vanilla and custom ancients compete through the same randomized inclusion order.
      */
     {
         List<AncientEventModel> inclusionOrder = ShuffleBallotAncients(
@@ -930,24 +931,11 @@ public static class ChooseTheAncientHelpers
                 .DistinctBy(ancient => ancient.Id)
                 .ToList();
 
-        List<AncientEventModel> customAncients = inclusionOrder
-            .Where(IsBaseLibCustomAncient)
-            .Where(ancient => !forceSpawnAncients.Any(forced => forced.Id.Equals(ancient.Id)))
-            .DistinctBy(ancient => ancient.Id)
-            .ToList();
-
         if (forceSpawnAncients.Count > 0)
         {
             LogPool(
                 $"Act {nextActIndex + 1} BaseLib custom ancients requesting forced spawn",
                 forceSpawnAncients);
-        }
-
-        if (customAncients.Count > 0)
-        {
-            LogPool(
-                $"Act {nextActIndex + 1} BaseLib custom ancients available for CTA ballot",
-                customAncients);
         }
 
         HashSet<string> selectedIds = new(StringComparer.Ordinal);
@@ -960,19 +948,11 @@ public static class ChooseTheAncientHelpers
             selectedIds.Add(forced.Id.Entry);
         }
 
-        foreach (AncientEventModel customAncient in customAncients)
-        {
-            if (selectedIds.Count >= ancientCount)
-                break;
-
-            selectedIds.Add(customAncient.Id.Entry);
-        }
-
         if (selectedIds.Count > 0)
         {
             ModLog.Info(
                 $"Reserved {selectedIds.Count} of {ancientCount} Act {nextActIndex + 1} CTA ballot slot(s) " +
-                $"for compatible custom ancient(s): {string.Join(",", selectedIds)}.");
+                $"for ancient(s) requesting forced spawn: {string.Join(",", selectedIds)}.");
         }
 
         foreach (AncientEventModel ancient in inclusionOrder)
