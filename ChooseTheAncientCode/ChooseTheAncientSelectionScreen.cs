@@ -44,6 +44,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const string CardScenePath =
         "res://scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn";
 
+    private const string FallbackAncientIconPath =
+        "res://scenes/mod/choose_the_ancient/map/ancient_node_random.png";
+
     private const float HoverSceneScaleMultiplier = 1.028f;
     private const float CardBottomInset = 18f;
     private const float CardHeightRatio = 0.275f;
@@ -491,6 +494,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private static AudioStreamWav? _generatedHoverStream;
     private static AudioStreamWav? _generatedClickStream;
     private static Shader? _dialogueWaveShader;
+    private static Texture2D? _fallbackAncientIcon;
+    private static bool _fallbackAncientIconLoadAttempted;
 
     private readonly List<SlotRefs> _slots = new();
     private readonly List<Player> _orderedPlayers = new();
@@ -2165,7 +2170,19 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         previewAnchor.ZIndex = 3;
         reactionAnchor.ZIndex = 4;
         topAccent.Color = new Color(accentColor.R, accentColor.G, accentColor.B, 0.82f);
-        icon.Texture = ancient.MapIcon;
+
+        try
+        {
+            icon.Texture = ancient.MapIcon;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Could not apply MapIcon for {ancient.Id.Entry} ({ancient.GetType().FullName}): " +
+                $"{ex.GetType().Name}: {ex.Message}. Using the CTA fallback icon.");
+            icon.Texture = GetFallbackAncientIcon();
+        }
+
         nameLabel.Text = ancient.Title.GetFormattedText();
 
         try
@@ -2230,6 +2247,38 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         ApplyVoteClickTargetMode(refs);
         return refs;
+    }
+
+    private static Texture2D? GetFallbackAncientIcon()
+    {
+        if (_fallbackAncientIconLoadAttempted)
+            return _fallbackAncientIcon;
+
+        _fallbackAncientIconLoadAttempted = true;
+
+        try
+        {
+            _fallbackAncientIcon = ResourceLoader.Load<Texture2D>(
+                FallbackAncientIconPath,
+                null,
+                ResourceLoader.CacheMode.Reuse);
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Could not load the CTA fallback ancient icon at {FallbackAncientIconPath}: " +
+                $"{ex.GetType().Name}: {ex.Message}. Affected slots will be shown without an icon.");
+            return null;
+        }
+
+        if (_fallbackAncientIcon == null)
+        {
+            ModLog.Warn(
+                $"Could not load the CTA fallback ancient icon at {FallbackAncientIconPath}. " +
+                "Affected slots will be shown without an icon.");
+        }
+
+        return _fallbackAncientIcon;
     }
 
     private Control CreateVoteClickTarget(string name, int poolIndex, bool isSlotTarget)
