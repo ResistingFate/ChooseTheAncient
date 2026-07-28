@@ -1,6 +1,14 @@
 # Changelog
 
 ## Known Bugs to fix
+- EventSynchronizer patch is unnecessary and should be removed soon.
+  - Also likely the custom messages too.
+- Redundant settings are unnecessary and should be removed soon.
+- Discord 2 factar authentication, Steam 2 factor authentication
+- Localizations string search through whole project
+- workshop page
+- TESTING within a CI Pipeline
+- csproj auto make release, auto make nexus release, auto make steam release
 
 - None
 
@@ -10,6 +18,11 @@
 
 - Stopped redundant Neow and Darv overrides from filtering them out from act 4+.
 - Baselib ancients now don't have allocated seats on the ballot above other ancients.
+- Change the ReadFromDisk button in the settings to a Reset Settings button as that caused more problems.
+- Changed the defaults for the redundant settings so they should match vanilla.
+
+### For Now
+- AncientHpBaselineTranspilerPatch.cs removed as it was causing compatability issues with other mods. Hopefully Baselib will implement it more genually for other ancients.
  
 ## [v1.2.4] - Added compatability to the game's update v0.109.0 # Custom Ancient API improvements
 

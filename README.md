@@ -48,7 +48,6 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 
 ### Patch Table
 * **Act1StartMapIcon**: Low Priority Postfix. Replaces the unresolved Act 1 starting map point with the Random Ancient icon.
-* **AncientHpBaselineTranspiler**: Transpiler. Makes the selected Act 1 ancient use the starting HP baseline and prevents Neow from resetting HP when selected in later acts.
 * **AncientRewardRng**: Prefix. Applies act-offset reward RNG when an ancient appears earlier or later than its normal minimum act.
 * **CreateRoom**: False returning Prefix. Replaces Neow’s room with the custom selection room in Act 1. Still needed when using the Subscriber method.
 * **EnterNextAct**: False returning Prefix. Shows the selection screen between acts.
@@ -58,6 +57,12 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 * **NeowOptionIdentitySync**: Optional `EventSynchronizer` compatibility patches. False returning Prefixes. Syncs Neow choices by option identity instead of raw list index when other mods reorder the options. It safely disables itself if the required multiplayer APIs are unavailable.
   * ( Was needed for extreme edge cases in multiplayer syncing pre patch 1.05. `Event Synchronizer` has updated since then so it might not be needed anymore.)
 * **SetCurrentRoom:** Postfix. Launches the Act 1 selection screen after entering the custom room. Not needed when the Subscriber method handles this instead.
+
+### Things to watch out for when implementing an Act 1 Ancient
+- Custom Ancients in Act 1 accidently heal the player to full health in higher ascensions as it's Neow's job to set the players health at run start. Hopefully, Baselib has implemented this fix. If not, the answer lies in AncientHpBaseline. Look at Hades II mod by JonnyBazooka89.
+- Any Ancient that has made a fix for this will always apply the health calculation, even if another mod makes them spawn in act 2 or 3. Neow has the same problem. So this change has to be guarded to only occur during act 1.
+
+This mod no longer applies these fixes. This allows the mod to maintain compatability with other mods. Your health will behave slightly incorrectly when using the redundant settings that allow Neow to spawn in act 2 or 3, or vanilla ancients to spawn in act 1.
 
 ## Credit & Appreciation
 - Thanks to the Slay The Spire Discord for mod resources and community 

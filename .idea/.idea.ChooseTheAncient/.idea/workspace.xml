@@ -8,9 +8,9 @@
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSettingsStore.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSettingsStore.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/AncientHpBaselineTranspilerPatch.cs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/AncientHpBaselineTranspilerPatch.cs.uid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -283,23 +283,7 @@
       <workItem from="1785175163861" duration="875000" />
       <workItem from="1785176663431" duration="3801000" />
       <workItem from="1785184420179" duration="28669000" />
-      <workItem from="1785249454011" duration="6071000" />
-    </task>
-    <task id="LOCAL-00052" summary="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
-      <option name="closed" value="true" />
-      <created>1784315106993</created>
-      <option name="number" value="00052" />
-      <option name="presentableId" value="LOCAL-00052" />
-      <option name="project" value="LOCAL" />
-      <updated>1784315106993</updated>
-    </task>
-    <task id="LOCAL-00053" summary="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
-      <option name="closed" value="true" />
-      <created>1784315166976</created>
-      <option name="number" value="00053" />
-      <option name="presentableId" value="LOCAL-00053" />
-      <option name="project" value="LOCAL" />
-      <updated>1784315166976</updated>
+      <workItem from="1785249454011" duration="12836000" />
     </task>
     <task id="LOCAL-00054" summary="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
       <option name="closed" value="true" />
@@ -677,7 +661,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785223497291</updated>
     </task>
-    <option name="localTasksCounter" value="101" />
+    <task id="LOCAL-00101" summary="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code.">
+      <option name="closed" value="true" />
+      <created>1785264090327</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1785264090328</updated>
+    </task>
+    <task id="LOCAL-00102" summary="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code.">
+      <option name="closed" value="true" />
+      <created>1785264095440</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1785264095440</updated>
+    </task>
+    <option name="localTasksCounter" value="103" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -713,7 +713,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients." />
     <MESSAGE value="Edited the aligning custom ancient scipts. Added the alligning Neow script. Added the simplified scripts." />
     <MESSAGE value="Edited the Focus Ancient 2 Script. Added the simplified script for Focus Ancient 2. Added the Neow script." />
     <MESSAGE value="Edited the Neow Script." />
@@ -738,7 +737,8 @@
     <MESSAGE value="Updated Readme to link to custom ancient modder CTA tutorial." />
     <MESSAGE value="Stopped the redundant Neow and Darv override from filtering them out from act 4+ on endless modes." />
     <MESSAGE value="Change up SelectAncientsFromLimitedBallot. I was forcing custom ancients to appear in the ballot. I prefred it before ancient config plus came along. Now, hopefully this is getting to clean enough state so that only ancient config type mods will be needed for controlling the ancients that appear on the ballot." />
-    <option name="LAST_COMMIT_MESSAGE" value="Change up SelectAncientsFromLimitedBallot. I was forcing custom ancients to appear in the ballot. I prefred it before ancient config plus came along. Now, hopefully this is getting to clean enough state so that only ancient config type mods will be needed for controlling the ancients that appear on the ballot." />
+    <MESSAGE value="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code." />
+    <option name="LAST_COMMIT_MESSAGE" value="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

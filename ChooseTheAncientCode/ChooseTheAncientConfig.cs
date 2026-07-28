@@ -238,8 +238,8 @@ internal static class ChooseTheAncientConfig
 
     public const int DefaultAncientCount = 3;
     public const bool DefaultShowControllerHotkeys = false;
-    public const bool DefaultShowOnlyButtonOutline = false;
-    public const VoteClickTargetMode DefaultVoteClickTarget = VoteClickTargetMode.ButtonOnly;
+    public const bool DefaultShowOnlyButtonOutline = true;
+    public const VoteClickTargetMode DefaultVoteClickTarget = VoteClickTargetMode.WholeCard;
     public const SelectionGameMode DefaultSelectionGameMode = SelectionGameMode.MontyHall;
     public const LogLevel DefaultLogLevel = LogLevel.Info;
     public const LogBackend DefaultLogBackend = LogBackend.BaseGame;
