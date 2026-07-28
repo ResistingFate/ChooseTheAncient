@@ -18,7 +18,7 @@ mod_image.png::CompressedTexture2D::1919318290695053380::1783029794::1785165996:
 ::res://ChooseTheAncient/bin/::1782153745
 ::res://ChooseTheAncient/bin/ExportRelease/::1782153745
 ::res://ChooseTheAncient/bin/ExportRelease/net9.0/::1782153745
-::res://ChooseTheAncient/bin/ExportRelease/net9.0/publish/::1785214373
+::res://ChooseTheAncient/bin/ExportRelease/net9.0/publish/::1785216948
 ChooseTheAncient.deps.json::JSON::-1::1785213842::0::1::::<><><>0<>0<><>::
 ChooseTheAncient.runtimeconfig.json::JSON::-1::1785213842::0::1::::<><><>0<>0<><>::
 sts2.xml::TextFile::-1::1785195462::0::1::::<><><>0<>0<><>::
@@ -42,9 +42,9 @@ settings_ui.json::JSON::-1::1785165996::0::1::::<><><>0<>0<><>::
 ::res://ChooseTheAncient/settings/::1785214288
 BASELIB_NOTES.txt::TextFile::-1::1785209884::0::1::::<><><>0<>0<><>::
 ritsulib_settings_schema.json::JSON::-1::1785214288::0::1::::<><><>0<>0<><>::
-::res://ChooseTheAncientCode/::1785213820
+::res://ChooseTheAncientCode/::1785214495
 ChooseTheAncientBaseAncientText.cs::CSharpScript::2452066060654417075::1785170391::0::1::::<><><>0<>0<><>::
-ChooseTheAncientConfig.cs::CSharpScript::2564393916526341802::1785209884::0::1::::<><><>0<>0<><>::
+ChooseTheAncientConfig.cs::CSharpScript::2564393916526341802::1785214495::0::1::::<><><>0<>0<><>::
 ChooseTheAncientCoordinator.cs::CSharpScript::6326317095097407068::1785170582::0::1::::<><><>0<>0<><>::
 ChooseTheAncientDialogueLocalizationRules.cs::CSharpScript::3466468391609298144::1785165996::0::1::::<><><>0<>0<><>::
 ChooseTheAncientFlowState.cs::CSharpScript::1082555364368103115::1785165996::0::1::::<><><>0<>0<><>::
@@ -1749,12 +1749,12 @@ PublishOutputs.cd06cfd4cb.txt::TextFile::-1::1783029796::0::1::::<><><>0<>0<><>:
 ::res://tests/ChooseTheAncient.Tests/obj/ExportRelease/net9.0/refint/::1783034000
 ::res://videos/::1785006494
 How_to_Regenerate_The_Videos_Tutorial_Videos_with_uv.txt::TextFile::-1::1785006529::0::1::::<><><>0<>0<><>::
-::res://workshop/::1785207695
+::res://workshop/::1785216885
 ChooseTheAncientPropertiesExcerpt.md::TextFile::-1::1784772873::0::1::::<><><>0<>0<><>::
 choose_the_ancient_api_design_notes.md::TextFile::-1::1783729601::0::1::::<><><>0<>0<><>::
 Focus_Ancient_2_Script.txt::TextFile::-1::1784731959::0::1::::<><><>0<>0<><>::
 Focus_Ancient_2_Simple_Script.txt::TextFile::-1::1784755130::0::1::::<><><>0<>0<><>::
-Gude_To_Perfectly_Fitting_Your_Ancient_In_ChooseTheAncients.md::TextFile::-1::1785206984::0::1::::<><><>0<>0<><>::
+Gude_To_Perfectly_Fitting_Your_Ancient_In_ChooseTheAncients.md::TextFile::-1::1785216885::0::1::::<><><>0<>0<><>::
 NeowRewardsAlways (1).png::CompressedTexture2D::1457493620005583134::1782418546::1782443391::1::::<><><>0<>0<>6e4ecd37409267924551ee955c12c063<>res://.godot/imported/NeowRewardsAlways (1).png-cd35fa6c969ee67b39771f519b1dda38.ctex::
 NeowRewardsAlways (2).png::CompressedTexture2D::9211519525121884985::1782418561::1782443391::1::::<><><>0<>0<>f3c5d98b6dc71f5ff70838b2aaaad5bd<>res://.godot/imported/NeowRewardsAlways (2).png-7499ca3d0ca3a94a09122eae3396b61a.ctex::
 NeowRewardsAlways (3).png::CompressedTexture2D::379542392701228711::1782418569::1782443391::1::::<><><>0<>0<>20c33d1e953b328297418d06dfc994e7<>res://.godot/imported/NeowRewardsAlways (3).png-1f97b82742bf6055408eec56c84c2014.ctex::

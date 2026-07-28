@@ -1,4 +1,4 @@
-﻿# Video Tutorials
+﻿# Guide To Perfectly Fitting Your Ancient In ChooseTheAncient
 
 The default settings for the `Choose The Ancient` mod are pretty good. Just in case, here's how to adjust them for your Custom Ancient.
 ```
@@ -302,10 +302,9 @@ A dialogue branch lets another mod select higher-priority dialogue with new keys
 
 This is best explain with an example. Here is my rudimentary take on Ancient Affections. We will track 4  states:
 ```Text
+affection.devoted
 affection.friendly
 affection.hostile
-reputation.trusted
-quest.completed
 ```
 
 
