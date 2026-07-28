@@ -9,6 +9,8 @@ accidentally made a mistake. I find the fastest way to restart, is just to start
 ## Getting Your Ancient to the right Position (click the image to load the video.)
 
 [![Aligning Focus Ancient 2 Simple Tutorial](https://img.youtube.com/vi/YgH6Ayu-Ttw/maxresdefault.jpg)](https://www.youtube.com/watch?v=YgH6Ayu-Ttw)
+[The Short guide](https://www.youtube.com/watch?v=YgH6Ayu-Ttw)
+
 [A more verbose version of the video is here](https://www.youtube.com/watch?v=rH6-15n0qmo)
 ### Step by Step guide
 
@@ -86,6 +88,8 @@ Right: (1620.71, 556)
 ### (A more Complex Scene and uses ExtraOffset)
 
 [![Aligning Neow Simple Tutorial](https://img.youtube.com/vi/MmiknDN1rWM/maxresdefault.jpg)](https://www.youtube.com/watch?v=MmiknDN1rWM)
+[The Short guide](https://www.youtube.com/watch?v=MmiknDN1rWM)
+
 [A more verbose version of the video is here](https://www.youtube.com/watch?v=soAe4h3K-D8)
 ### Step by Step guide
 
@@ -160,7 +164,8 @@ Right: (1620.71, 556)
 
 ## The SelectionScreen Templates
 
-[TODO] Add the github link to the selection screen templates
+These files are stored on the github and are useful for aligning your Custom Ancietns.
+* [Download Selection Screen Templates](https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/master/workshop/cta_slot_templates_1080p_slot_anchors.zip)
 
 ## The ChooseTheAncient API
 
@@ -212,23 +217,18 @@ public sealed class CustomAncient : ModAncientEventTemplate
     ///////////////////////////////////// COLOURS /////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////
 
-    // Accent colour used for ChooseTheAncient presentation elements.
-    //
-    // Use either ChooseTheAncientAccentColor or ChooseTheAncientAccentHex,
-    // not both.
+    // Accent color used for ChooseTheAncient presentation elements.
+    // Use either ChooseTheAncientAccentColor or ChooseTheAncientAccentHex, not both.
 
     public string ChooseTheAncientAccentHex => "#78DBFA";
+    // public Color ChooseTheAncientDialogueColor => new Color(0.47f, 0.86f, 0.98f, 0.9f);;
 
 
-    // Dialogue bubble colour.
-    //
-    // ChooseTheAncient already falls back to the Ancient model's DialogueColor,
-    // but this explicitly supplies the same colour through the convention API.
-    //
-    // Use either ChooseTheAncientDialogueColor or
-    // ChooseTheAncientDialogueColorHex, not both.
+    // Dialogue bubble color.
+    // Use either ChooseTheAncientDialogueColor or ChooseTheAncientDialogueColorHex, not both.
 
     public string ChooseTheAncientDialogueColorHex => "#27213F";
+    // public Color ChooseTheAncientDialogueColor => new Color(0.15f, 0.13f, 0.25f, 0.9f);
 ```
 
 </details>
