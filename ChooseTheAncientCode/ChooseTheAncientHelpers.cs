@@ -25,6 +25,9 @@ namespace ChooseTheAncient.ChooseTheAncientCode;
 
 public static class ChooseTheAncientHelpers
 {
+    private const string RitsuAncientActValidityInterfaceName =
+        "STS2RitsuLib.Scaffolding.Content.IModAncientActValidity";
+
     private static readonly MethodInfo GenerateInitialOptionsWrapperMethod =
         AccessTools.Method(typeof(AncientEventModel), "GenerateInitialOptionsWrapper")
         ?? throw new InvalidOperationException("Could not locate AncientEventModel.GenerateInitialOptionsWrapper.");
@@ -88,16 +91,80 @@ public static class ChooseTheAncientHelpers
 
     private static bool IsAncientValidForAct(AncientEventModel ancient, ActModel act)
     /*
-     * Calls a vanilla or BaseLib custom ancient's IsValidForAct method by reflection and treats missing methods as valid.
-     * This keeps CTA independent from BaseLib while still respecting custom ancient act restrictions.
+     * Respects RitsuLib's interface-based act validity and BaseLib's optional IsValidForAct hook
+     * without taking a compile-time dependency on either library.
      */
     {
+        bool? ritsuValidity = InvokeRitsuAncientActValidityIfPresent(ancient, act);
+        if (ritsuValidity == false)
+            return false;
+
+        if (ritsuValidity.HasValue && !IsBaseLibCustomAncient(ancient))
+            return true;
+
         return InvokeAncientBoolHookOrDefault(
             ancient,
             "IsValidForAct",
             [typeof(ActModel)],
             [act],
             fallback: true);
+    }
+
+    private static bool? InvokeRitsuAncientActValidityIfPresent(
+        AncientEventModel ancient,
+        ActModel act)
+    /*
+     * Invokes RitsuLib's IModAncientActValidity through its interface MethodInfo.
+     * Calling through the interface also supports explicit interface implementations whose runtime
+     * method name is not the plain "IsValidForAct" searched by the generic hook helper.
+     */
+    {
+        Type? validityInterface = ancient
+            .GetType()
+            .GetInterfaces()
+            .FirstOrDefault(type => string.Equals(
+                type.FullName,
+                RitsuAncientActValidityInterfaceName,
+                StringComparison.Ordinal));
+
+        if (validityInterface == null)
+            return null;
+
+        MethodInfo? method = validityInterface.GetMethod(
+            "IsValidForAct",
+            BindingFlags.Instance | BindingFlags.Public,
+            binder: null,
+            types: [typeof(ActModel)],
+            modifiers: null);
+
+        if (method == null || method.ReturnType != typeof(bool))
+        {
+            ModLog.Warn(
+                $"Ignoring malformed RitsuLib ancient act-validity interface on {ancient.GetType().FullName}; " +
+                "expected bool IsValidForAct(ActModel).");
+            return true;
+        }
+
+        try
+        {
+            return (bool)method.Invoke(ancient, [act])!;
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
+        {
+            Exception inner = ex.InnerException;
+
+            ModLog.Warn(
+                $"RitsuLib IsValidForAct failed for {ancient.Id.Entry} ({ancient.GetType().FullName}) " +
+                $"in {act.Id.Entry}: {inner.GetType().Name}: {inner.Message}. Treating the ancient as valid.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ModLog.Warn(
+                $"Could not invoke RitsuLib IsValidForAct for {ancient.Id.Entry} ({ancient.GetType().FullName}) " +
+                $"in {act.Id.Entry}: {ex.GetType().Name}: {ex.Message}. Treating the ancient as valid.");
+            return true;
+        }
     }
 
     private static bool InvokeAncientBoolHookOrDefault(
@@ -175,6 +242,32 @@ public static class ChooseTheAncientHelpers
             fallback: false);
     }
 
+    private static List<AncientEventModel> GetBaseLibForcedAncientsForTargetAct(ActModel targetAct)
+    /*
+     * Collects BaseLib force-spawn candidates independently of IsValidForAct.
+     */
+    {
+        AncientEventModel? rngChosenAncient = TryGetChosenAncient(targetAct);
+        if (rngChosenAncient == null)
+            return new List<AncientEventModel>();
+
+        List<AncientEventModel> forcedAncients = ModelDb.AllSharedAncients
+            .Where(IsBaseLibCustomAncient)
+            .Where(ancient => ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient))
+            .DistinctBy(ancient => ancient.Id)
+            .OrderBy(ancient => ancient.Id.Entry)
+            .ToList();
+
+        if (forcedAncients.Count > 0)
+        {
+            LogPool(
+                $"BaseLib custom ancients requesting forced spawn for existing ancient room in {targetAct.Id.Entry}",
+                forcedAncients);
+        }
+
+        return forcedAncients;
+    }
+
 
 
     public static Rng CreateRunScopedRng(RunState runState, params object?[] streamParts)
@@ -234,10 +327,13 @@ public static class ChooseTheAncientHelpers
             $"localSourceActs={ChooseTheAncientConfig.DescribeAncientPoolSourceActs(ChooseTheAncientConfig.GetEnabledAncientPoolSourceActs(targetActIndex))}, " +
             $"effectiveSpecialAncientOverrides={ChooseTheAncientConfig.DescribeSpecialAncientOverrides(effectiveSpecialAncientOverrides)}");
 
+        List<AncientEventModel> forcedAncients = GetBaseLibForcedAncientsForTargetAct(act);
+
         List<AncientEventModel> defaultPool = BuildDefaultCandidatePool(
             act,
             runState,
             targetActIndex,
+            forcedAncients,
             effectiveSpecialAncientOverrides);
 
         if (!ChooseTheAncientConfig.HasAncientPoolSourceActConfig(targetActIndex))
@@ -268,6 +364,7 @@ public static class ChooseTheAncientHelpers
             runState,
             targetActIndex,
             enabledSourceActs,
+            forcedAncients,
             effectiveSpecialAncientOverrides);
 
         if (filteredPool.Count == 0)
@@ -290,6 +387,7 @@ public static class ChooseTheAncientHelpers
         ActModel targetAct,
         RunState runState,
         int targetActIndex,
+        IReadOnlyList<AncientEventModel> forcedAncients,
         IReadOnlyDictionary<string, bool> specialAncientOverrides)
     /*
      * Builds the vanilla-like candidate pool for the target act, then applies CTA's special ancient overrides.
@@ -307,6 +405,7 @@ public static class ChooseTheAncientHelpers
 
         List<AncientEventModel> defaultPool = targetActUnlockedAncients
             .Concat(sharedSubset)
+            .Concat(forcedAncients)
             .DistinctBy(a => a.Id)
             .OrderBy(a => a.Id.Entry)
             .ToList();
@@ -329,6 +428,7 @@ public static class ChooseTheAncientHelpers
         RunState runState,
         int targetActIndex,
         IReadOnlyList<int> enabledSourceActs,
+        IReadOnlyList<AncientEventModel> forcedAncients,
         IReadOnlyDictionary<string, bool> specialAncientOverrides)
     /*
      * Builds a candidate pool from the user-selected source acts and shared ancients that are valid for the target act.
@@ -369,6 +469,7 @@ public static class ChooseTheAncientHelpers
         }
 
         configuredPool.AddRange(GetSharedAncientsValidForTargetAct(targetAct, runState));
+        configuredPool.AddRange(forcedAncients);
 
         List<AncientEventModel> distinctPool = configuredPool
             .DistinctBy(a => a.Id)
@@ -770,7 +871,9 @@ public static class ChooseTheAncientHelpers
                 ancient,
                 ancient.Id.Entry,
                 ancient.GetType().Name,
-                targetAct != null && ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient)));
+                targetAct != null &&
+                rngChosenAncient != null &&
+                ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient)));
         }
 
         return candidates;
@@ -812,10 +915,12 @@ public static class ChooseTheAncientHelpers
 
         AncientEventModel? rngChosenAncient = TryGetChosenAncient(targetAct);
 
-        List<AncientEventModel> forceSpawnAncients = inclusionOrder
-            .Where(ancient => ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient))
-            .DistinctBy(ancient => ancient.Id)
-            .ToList();
+        List<AncientEventModel> forceSpawnAncients = rngChosenAncient == null
+            ? new List<AncientEventModel>()
+            : inclusionOrder
+                .Where(ancient => ShouldForceSpawnForAct(ancient, targetAct, rngChosenAncient))
+                .DistinctBy(ancient => ancient.Id)
+                .ToList();
 
         List<AncientEventModel> customAncients = inclusionOrder
             .Where(IsBaseLibCustomAncient)
@@ -889,7 +994,10 @@ public static class ChooseTheAncientHelpers
                 .Field("_rooms")
                 .GetValue<RoomSet>();
 
-            return rooms?.Ancient;
+            if (rooms == null || !rooms.HasAncient)
+                return null;
+
+            return rooms.Ancient;
         }
         catch (Exception ex)
         {
@@ -925,7 +1033,7 @@ public static class ChooseTheAncientHelpers
             .Field("_rooms")
             .GetValue<RoomSet>();
 
-        if (rooms?.Ancient == null)
+        if (rooms == null || !rooms.HasAncient)
         {
             throw new InvalidOperationException("Could not get the act's current ancient.");
         }
@@ -1281,10 +1389,12 @@ public static class ChooseTheAncientHelpers
         return targetActIndex - normalActIndex;
     }
 
-    private static int GetNormalMinimumActIndexForAncient(RunState runState, EventModel eventModel)
+    private static int GetNormalMinimumActIndexForAncient(
+        RunState runState,
+        EventModel eventModel)
     /*
-     * Finds the earliest act where an ancient belongs under vanilla room-generation rules, ignoring CTA source-act settings.
-     * Act-specific ancients can start in their owning act; shared ancients are never considered normal before Act 2.
+     * Finds the earliest act where an ancient belongs under normal act-specific/shared validity rules.
+     * CTA source-act settings do not affect this calculation.
      */
     {
         int? minimumActIndex = null;
@@ -1308,14 +1418,16 @@ public static class ChooseTheAncientHelpers
         AncientEventModel? sharedAncient = sharedAncients
             .FirstOrDefault(ancient => AncientIdsMatch(ancient, eventModel));
 
-        if (sharedAncient == null && eventModel is AncientEventModel ancientEventModel && IsBaseLibCustomAncient(ancientEventModel))
+        if (sharedAncient == null &&
+            eventModel is AncientEventModel ancientEventModel &&
+            IsBaseLibCustomAncient(ancientEventModel))
         {
             sharedAncient = ancientEventModel;
         }
 
         if (sharedAncient != null)
         {
-            for (int actIndex = 1; actIndex < runState.Acts.Count; actIndex++)
+            for (int actIndex = 0; actIndex < runState.Acts.Count; actIndex++)
             {
                 if (IsAncientValidForAct(sharedAncient, runState.Acts[actIndex]))
                 {
