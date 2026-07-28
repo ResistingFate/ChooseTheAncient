@@ -34,6 +34,9 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - BaseLib and CustomAncients if you want more ancients
 - Ancient Config Plus to weight or disable which Ancients show
 
+# For Custom Ancient Modders
+- [Guide Here!](https://github.com/ResistingFate/ChooseTheAncient/blob/master/workshop/Gude_To_Perfectly_Fitting_Your_Ancient_In_ChooseTheAncient.md)
+
 ## Mods Compatability list
 - BaseLib Custom Acients
 - Ancient Config Plus

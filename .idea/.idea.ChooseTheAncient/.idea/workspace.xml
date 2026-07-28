@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -278,15 +275,7 @@
       <workItem from="1785175091717" duration="48000" />
       <workItem from="1785175163861" duration="875000" />
       <workItem from="1785176663431" duration="3801000" />
-      <workItem from="1785184420179" duration="23389000" />
-    </task>
-    <task id="LOCAL-00047" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize.">
-      <option name="closed" value="true" />
-      <created>1783810702048</created>
-      <option name="number" value="00047" />
-      <option name="presentableId" value="LOCAL-00047" />
-      <option name="project" value="LOCAL" />
-      <updated>1783810702048</updated>
+      <workItem from="1785184420179" duration="23697000" />
     </task>
     <task id="LOCAL-00048" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Ancientconfig is now made of those properties, if they are giveno for Custom Ancients.&#10;&#10;The position is based around a root detected in your custom ancient scene, or if auto detect mode is on finds a texture rect if there is only 1, otherwise uses given or default BaseSize.">
       <option name="closed" value="true" />
@@ -672,7 +661,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785216909709</updated>
     </task>
-    <option name="localTasksCounter" value="96" />
+    <task id="LOCAL-00096" summary="Reorganised tutorials">
+      <option name="closed" value="true" />
+      <created>1785218038404</created>
+      <option name="number" value="00096" />
+      <option name="presentableId" value="LOCAL-00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1785218038404</updated>
+    </task>
+    <option name="localTasksCounter" value="97" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -708,7 +705,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14" />
     <MESSAGE value="Added tutorial Scripts for the aligning custom ancients videos in the workshop folder" />
     <MESSAGE value="Changing up how acts past act 3 are handleed so skip ancient selection when no next act exists. Also the EnterNextAct has been updated in 0.109.0 to include Victor Room guards, se we've updated the patch too." />
     <MESSAGE value="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged." />
@@ -733,7 +729,8 @@
     <MESSAGE value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.&#10;&#10;Trace looks like VeryDebug in the menus now." />
     <MESSAGE value="Add the slot templates to the github in preparation of the push, so a weblink of them can be developed for the guide." />
     <MESSAGE value="Added the selection screen template download links." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added the selection screen template download links." />
+    <MESSAGE value="Reorganised tutorials" />
+    <option name="LAST_COMMIT_MESSAGE" value="Reorganised tutorials" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
