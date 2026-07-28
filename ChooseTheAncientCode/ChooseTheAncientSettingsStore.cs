@@ -20,6 +20,9 @@ internal sealed class ChooseTheAncientSettings
     public string VoteClickTarget { get; set; } =
         ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.DefaultVoteClickTarget);
 
+    public string LogBackend { get; set; } =
+        ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.DefaultLogBackend);
+
     public string LogLevel { get; set; } =
         ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.DefaultLogLevel);
 
@@ -101,6 +104,7 @@ internal static class ChooseTheAncientSettingsStore
             ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys,
             ShowOnlyButtonOutline = ChooseTheAncientConfig.ShowOnlyButtonOutline,
             VoteClickTarget = ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.VoteClickTarget),
+            LogBackend = ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend),
             LogLevel = ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel),
             AncientPoolSourceActs = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase),
             SpecialAncientOverrides = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)

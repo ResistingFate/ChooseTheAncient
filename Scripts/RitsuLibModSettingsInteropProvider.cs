@@ -31,6 +31,7 @@ internal static class RitsuLibModSettingsInteropProvider
             "showControllerHotkeys" => ChooseTheAncientConfig.ShowControllerHotkeys,
             "showOnlyButtonOutline" => ChooseTheAncientConfig.ShowOnlyButtonOutline,
             "voteClickTarget" => ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.VoteClickTarget),
+            "logBackend" => ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend),
             "logLevel" => ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel),
             _ => null,
         };
@@ -94,11 +95,24 @@ internal static class RitsuLibModSettingsInteropProvider
                 ChooseTheAncientConfig.ApplyVoteClickTarget(option);
                 return;
             }
+            case "logBackend":
+            {
+                var option = value?.ToString() ?? ChooseTheAncientConfig.LogBackendToOption(
+                    ChooseTheAncientConfig.CurrentLogBackend);
+                ChooseTheAncientConfig.ApplyLogBackend(option);
+                ModConfigBridge.SetValue(
+                    "logBackend",
+                    ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend));
+                return;
+            }
             case "logLevel":
             {
                 var option = value?.ToString() ?? ChooseTheAncientConfig.LogLevelToOption(
                     ChooseTheAncientConfig.CurrentLogLevel);
                 ChooseTheAncientConfig.ApplyLogLevel(option);
+                ModConfigBridge.SetValue(
+                    "logLevel",
+                    ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel));
                 return;
             }
         }

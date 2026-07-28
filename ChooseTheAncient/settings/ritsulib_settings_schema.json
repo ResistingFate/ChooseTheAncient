@@ -1,0 +1,336 @@
+{
+  "modId": "ChooseTheAncient",
+  "modDisplayName": "Choose The Ancient",
+  "pages": [
+    {
+      "pageId": "01_general",
+      "title": "General settings",
+      "sections": [
+        {
+          "id": "general",
+          "title": "General settings",
+          "entries": [
+            {
+              "id": "ancient_count",
+              "type": "int-slider",
+              "key": "ancientCount",
+              "label": "Ancients in vote",
+              "description": "How many ancients appear in the initial vote.",
+              "min": 2,
+              "max": 8,
+              "step": 1,
+              "defaultValue": 3,
+              "scope": "global"
+            },
+            {
+              "id": "game_mode",
+              "type": "choice",
+              "key": "gameMode",
+              "label": "Game mode",
+              "description": "Controls the selection flow used by the ancient vote.",
+              "presentation": "dropdown",
+              "defaultValue": "Monty Hall",
+              "scope": "global",
+              "options": [
+                {
+                  "value": "Monty Hall",
+                  "label": "Monty hall"
+                },
+                {
+                  "value": "Fair Fight",
+                  "label": "Fair fight"
+                },
+                {
+                  "value": "I Want To Know Everything",
+                  "label": "I want to know everything"
+                },
+                {
+                  "value": "Simple Picker",
+                  "label": "Simple picker"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageId": "02_advanced",
+      "title": "Advanced settings",
+      "sections": [
+        {
+          "id": "advanced",
+          "title": "Advanced settings",
+          "entries": [
+            {
+              "id": "log_backend",
+              "type": "choice",
+              "key": "logBackend",
+              "label": "Logging mode",
+              "description": "Base game logger means this mods logging is handled by the base game's logging system. Modlog lets this mod handle it's logging on it's own log level system.",
+              "presentation": "dropdown",
+              "defaultValue": "Game logging",
+              "scope": "global",
+              "options": [
+                {
+                  "value": "Game logging",
+                  "label": "Game logging"
+                },
+                {
+                  "value": "ModLog",
+                  "label": "ModLog"
+                }
+              ]
+            },
+            {
+              "id": "log_level",
+              "type": "choice",
+              "key": "logLevel",
+              "label": "ModLog level",
+              "description": "Only used when Logging mode is ModLog.",
+              "presentation": "stepper",
+              "defaultValue": "Info",
+              "scope": "global",
+              "options": [
+                {
+                  "value": "Error",
+                  "label": "Error"
+                },
+                {
+                  "value": "Warn",
+                  "label": "Warn"
+                },
+                {
+                  "value": "Info",
+                  "label": "Info"
+                },
+                {
+                  "value": "Debug",
+                  "label": "Debug"
+                },
+                {
+                  "value": "VeryDebug",
+                  "label": "VeryDebug"
+                }
+              ]
+            },
+            {
+              "id": "vote_click_target",
+              "type": "choice",
+              "key": "voteClickTarget",
+              "label": "Vote selection",
+              "description": "Choose whether only the button, the whole card, or the whole ancient slot can be clicked.",
+              "presentation": "dropdown",
+              "defaultValue": "Button only",
+              "scope": "global",
+              "options": [
+                {
+                  "value": "Button only",
+                  "label": "Button only"
+                },
+                {
+                  "value": "Whole card",
+                  "label": "Whole card"
+                },
+                {
+                  "value": "Whole ancient slot",
+                  "label": "Whole ancient slot"
+                }
+              ]
+            },
+            {
+              "id": "show_only_button_outline",
+              "type": "toggle",
+              "key": "showOnlyButtonOutline",
+              "label": "Button outline",
+              "description": "Only shows white outline and text for vote buttons.",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "show_controller_hotkeys",
+              "type": "toggle",
+              "key": "showControllerHotkeys",
+              "label": "Controller hotkeys",
+              "description": "Show controller/keyboard prompt hints on the ancient selection screen.",
+              "defaultValue": true,
+              "scope": "global"
+            },
+            {
+              "id": "reload_saved_settings",
+              "type": "button",
+              "key": "reloadConfig",
+              "label": "Reload saved settings",
+              "buttonText": "Reload",
+              "tone": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageId": "03_redundant",
+      "title": "Redundant settings",
+      "sections": [
+        {
+          "id": "redundant_notice",
+          "title": "About these options",
+          "entries": [
+            {
+              "id": "redundant_notice_text",
+              "type": "header",
+              "label": "Use AncientConfigsPlus for ancient filtering. These legacy options only affect Choose The Ancient's built-in vanilla-style act pools and special ancient overrides before AncientConfigsPlus filtering is applied."
+            }
+          ]
+        },
+        {
+          "id": "special_ancient_overrides",
+          "title": "Special ancient overrides",
+          "entries": [
+            {
+              "id": "include_neow_act1",
+              "type": "toggle",
+              "key": "includeNeowInAct1Selection",
+              "label": "Neow — include in Act 1 selection",
+              "defaultValue": true,
+              "scope": "global"
+            },
+            {
+              "id": "include_neow_act2",
+              "type": "toggle",
+              "key": "includeNeowInAct2Selection",
+              "label": "Neow — include in Act 2 selection",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "include_neow_act3",
+              "type": "toggle",
+              "key": "includeNeowInAct3Selection",
+              "label": "Neow — include in Act 3 selection",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "include_darv_act1",
+              "type": "toggle",
+              "key": "includeDarvInAct1Selection",
+              "label": "Darv — include in Act 1 selection",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "include_darv_act2",
+              "type": "toggle",
+              "key": "includeDarvInAct2Selection",
+              "label": "Darv — include in Act 2 selection",
+              "defaultValue": true,
+              "scope": "global"
+            },
+            {
+              "id": "include_darv_act3",
+              "type": "toggle",
+              "key": "includeDarvInAct3Selection",
+              "label": "Darv — include in Act 3 selection",
+              "defaultValue": false,
+              "scope": "global"
+            }
+          ]
+        },
+        {
+          "id": "ancient_pool_sources",
+          "title": "Ancient pool source acts",
+          "entries": [
+            {
+              "id": "header_act1",
+              "type": "header",
+              "label": "Act 1 selection"
+            },
+            {
+              "id": "act1_from_act1",
+              "type": "toggle",
+              "key": "act1AncientsFromAct1",
+              "label": "Allow From Act 1 ancients",
+              "defaultValue": true,
+              "scope": "global"
+            },
+            {
+              "id": "act1_from_act2",
+              "type": "toggle",
+              "key": "act1AncientsFromAct2",
+              "label": "Allow From Act 2 ancients",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "act1_from_act3",
+              "type": "toggle",
+              "key": "act1AncientsFromAct3",
+              "label": "Allow From Act 3 ancients",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "header_act2",
+              "type": "header",
+              "label": "Act 2 selection"
+            },
+            {
+              "id": "act2_from_act1",
+              "type": "toggle",
+              "key": "act2AncientsFromAct1",
+              "label": "Allow From Act 1 ancients",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "act2_from_act2",
+              "type": "toggle",
+              "key": "act2AncientsFromAct2",
+              "label": "Allow From Act 2 ancients",
+              "defaultValue": true,
+              "scope": "global"
+            },
+            {
+              "id": "act2_from_act3",
+              "type": "toggle",
+              "key": "act2AncientsFromAct3",
+              "label": "Allow From Act 3 ancients",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "header_act3",
+              "type": "header",
+              "label": "Act 3 selection"
+            },
+            {
+              "id": "act3_from_act1",
+              "type": "toggle",
+              "key": "act3AncientsFromAct1",
+              "label": "Allow From Act 1 ancients",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "act3_from_act2",
+              "type": "toggle",
+              "key": "act3AncientsFromAct2",
+              "label": "Allow From Act 2 ancients",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
+              "id": "act3_from_act3",
+              "type": "toggle",
+              "key": "act3AncientsFromAct3",
+              "label": "Allow From Act 3 ancients",
+              "defaultValue": true,
+              "scope": "global"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

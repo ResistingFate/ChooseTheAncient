@@ -2,18 +2,8 @@
 
 ## Known Bugs to fix
 
-- Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen.
-- Modconfig implementation needs ta change as mod update, write now it just fails safely.
-- Check if this is just an update issue for the modified ancient:
-  - The Phoenix custom ancient cannot determine its normal act on either version. CTA falls back to vanilla RNG. This could affect act-offset reward behaviour when Phoenix is moved between acts, including on 0.109.0, but it did not cause Neow’s missing rewards.
-
-TODO
-- Check if the game still works on the Main Branch
-- Test if Act 4 ancients work when Act 4 Heart mod by making an ancient for act 4
-- Change the title font with custom font so striking thick letter perimetr for the white text
-
-## Unrelesaed
-
+- None
+ 
 ## [v1.2.4] - Added compatability to the game's update v0.109.0 # Custom Ancient API improvements
 
 ### Features
@@ -32,6 +22,10 @@ TODO
 - Updated EnterNextAct patch so doesn't show selection screen again in the Victor Room
 - Changed EnterNextAct to fix small bugs in Endless Modes Mods but they still don't work on every level 
 - Cards and button on selection screen are more cosistent when ancient count is high, or ancient names are way too long.
+- Include BaseLib force-spawn ancients even when IsValidForAct returns false.
+- Read RitsuLib act validity through IModAncientActValidity. This also supports ancients that implement the interface explicitly instead of exposing a public IsValidForAct method. 
+- Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen.
+- Modlog system updated to use normal in-game logging as default. The advanced setting will allow ChooseTheAncient to use it's own logging system and log level.
 
 ### Techincal
 - Compatability branch so main branch v0.107.1 with seed length of uint is supported for now

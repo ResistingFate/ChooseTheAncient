@@ -248,6 +248,8 @@ internal static class ModConfigBridge
 
         SetValue("ancientCount", (float)ChooseTheAncientConfig.AncientCount);
         SetValue("gameMode", ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode));
+        SetValue("logBackend", ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend));
+        SetValue("logLevel", ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel));
     }
 
 
@@ -302,6 +304,47 @@ internal static class ModConfigBridge
             {
                 ChooseTheAncientConfig.ApplySelectionGameMode(v);
                 ModLog.Info($"gameMode changed to {ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode)}");
+            }));
+        }));
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Label", "Logging");
+            Set(cfg, "Type", EnumVal("Header"));
+        }));
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Key", "logBackend");
+            Set(cfg, "Label", "Logging mode");
+            Set(cfg, "Type", EnumVal("Dropdown"));
+            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.LogBackendToOption(
+                ChooseTheAncientConfig.CurrentLogBackend));
+            Set(cfg, "Options", ChooseTheAncientConfig.LogBackendOptions);
+            Set(cfg, "Description",
+                "Base game logger means this mods logging is handled by the base game's logging system. " +
+                "Modlog lets this mod handle it's logging on it's own log level system.");
+
+            Set(cfg, "OnChanged", new Action<object>(v =>
+            {
+                ChooseTheAncientConfig.ApplyLogBackend(v);
+            }));
+        }));
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Key", "logLevel");
+            Set(cfg, "Label", "ModLog level");
+            Set(cfg, "Type", EnumVal("Dropdown"));
+            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.LogLevelToOption(
+                ChooseTheAncientConfig.CurrentLogLevel));
+            Set(cfg, "Options", ChooseTheAncientConfig.LogLevelOptions);
+            Set(cfg, "Description",
+                "Only used when Logging mode is ModLog.");
+
+            Set(cfg, "OnChanged", new Action<object>(v =>
+            {
+                ChooseTheAncientConfig.ApplyLogLevel(v);
             }));
         }));
 

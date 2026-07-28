@@ -137,6 +137,10 @@ internal static class BaseLibSettingsInterop
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibVoteClickTarget",
             ChooseTheAncientConfig.VoteClickTargetOptions.Select(ToSentenceCaseOption).ToArray());
+        Type logBackendEnumType = BuildGeneratedEnumType(
+            moduleBuilder,
+            "ChooseTheAncient.GeneratedBaseLibLogBackend",
+            ChooseTheAncientConfig.LogBackendOptions.Select(ToSentenceCaseOption).ToArray());
         Type logLevelEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibLogLevel",
@@ -152,6 +156,7 @@ internal static class BaseLibSettingsInterop
             settingChangedMethodField,
             gameModeEnumType,
             voteClickTargetEnumType,
+            logBackendEnumType,
             logLevelEnumType);
 
         FieldBuilder pageBuilderMethodField = typeBuilder.DefineField(
@@ -257,11 +262,13 @@ internal static class BaseLibSettingsInterop
         FieldBuilder settingChangedMethodField,
         Type gameModeEnumType,
         Type voteClickTargetEnumType,
+        Type logBackendEnumType,
         Type logLevelEnumType)
     {
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "AncientCount", typeof(int), sliderMin: 2, sliderMax: 8, sliderStep: 1);
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "GameMode", gameModeEnumType);
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "VoteClickTarget", voteClickTargetEnumType);
+        BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "LogBackend", logBackendEnumType);
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "LogLevel", logLevelEnumType);
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "ShowAdvancedSettings", typeof(bool));
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "ShowRedundantSettings", typeof(bool));
@@ -584,7 +591,18 @@ public static class BaseLibSettingsPage
 
             AddChoice(
                 advancedContainer,
-                "Log level",
+                "Logging mode",
+                ChooseTheAncientConfig.LogBackendOptions,
+                ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend),
+                value =>
+                {
+                    ChooseTheAncientConfig.ApplyLogBackend(value);
+                    ModConfigBridge.PushImportantSettingsToModConfig();
+                });
+
+            AddChoice(
+                advancedContainer,
+                "ModLog level",
                 ChooseTheAncientConfig.LogLevelOptions,
                 ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel),
                 value =>
@@ -748,6 +766,9 @@ public static class BaseLibSettingsPage
                 case "VoteClickTarget":
                     ChooseTheAncientConfig.ApplyVoteClickTarget(ToCanonicalOption(value?.ToString() ?? string.Empty, ChooseTheAncientConfig.VoteClickTargetOptions));
                     break;
+                case "LogBackend":
+                    ChooseTheAncientConfig.ApplyLogBackend(ToCanonicalOption(value?.ToString() ?? string.Empty, ChooseTheAncientConfig.LogBackendOptions));
+                    break;
                 case "LogLevel":
                     ChooseTheAncientConfig.ApplyLogLevel(ToCanonicalOption(value?.ToString() ?? string.Empty, ChooseTheAncientConfig.LogLevelOptions));
                     break;
@@ -846,6 +867,11 @@ public static class BaseLibSettingsPage
                 "VoteClickTarget",
                 ChooseTheAncientConfig.VoteClickTargetOptions,
                 ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.VoteClickTarget));
+            SetGeneratedEnumOptionProperty(
+                type,
+                "LogBackend",
+                ChooseTheAncientConfig.LogBackendOptions,
+                ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend));
             SetGeneratedEnumOptionProperty(
                 type,
                 "LogLevel",
@@ -1103,6 +1129,7 @@ public static class BaseLibSettingsPage
             "Game mode" => "GameMode",
             "Vote selection" => "VoteClickTarget",
             "Vote click area" => "VoteClickTarget",
+            "Log output" => "LogBackend",
             "Log level" => "LogLevel",
             _ => null
         };

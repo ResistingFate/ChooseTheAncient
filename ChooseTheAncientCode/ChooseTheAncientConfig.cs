@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using ChooseTheAncient.Scripts;
 using Godot;
+using GameLogLevel = MegaCrit.Sts2.Core.Logging.LogLevel;
 using SysEnv = System.Environment;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
@@ -15,7 +16,13 @@ public enum LogLevel
     Warn = 1,
     Info = 2,
     Debug = 3,
-    Trace = 4
+    VeryDebug = 4
+}
+
+public enum LogBackend
+{
+    BaseGame = 0,
+    ModLog = 1
 }
 
 internal static class ModLog
@@ -25,6 +32,7 @@ internal static class ModLog
     private const string EnvVarName = "CHOOSETHEANCIENT_LOG_LEVEL";
 
     public static LogLevel CurrentLevel { get; private set; } = LogLevel.Info;
+    public static LogBackend CurrentBackend { get; private set; } = LogBackend.BaseGame;
     public static string CurrentLevelSource { get; private set; } = "default";
 
     private sealed class LogConfigFile
@@ -48,50 +56,107 @@ internal static class ModLog
             CurrentLevelSource = "env";
         }
 
-        AnnounceActiveLevel();
+        AnnounceActiveConfiguration();
     }
 
-    public static void SetLevel(LogLevel level, string source = "runtime")
+    public static void Configure(
+        LogLevel level,
+        LogBackend backend,
+        string source = "runtime")
     {
-        if (CurrentLevel == level && string.Equals(CurrentLevelSource, source, StringComparison.Ordinal))
+        if (CurrentLevel == level &&
+            CurrentBackend == backend &&
+            string.Equals(CurrentLevelSource, source, StringComparison.Ordinal))
+        {
             return;
+        }
 
         LogLevel previousLevel = CurrentLevel;
+        LogBackend previousBackend = CurrentBackend;
         string previousSource = CurrentLevelSource;
 
         CurrentLevel = level;
+        CurrentBackend = backend;
         CurrentLevelSource = source;
-        AnnounceActiveLevel(previousLevel, previousSource);
+
+        AnnounceActiveConfiguration(previousLevel, previousBackend, previousSource);
     }
 
-    public static bool IsDebugEnabled => CurrentLevel >= LogLevel.Debug;
-    public static bool IsTraceEnabled => CurrentLevel >= LogLevel.Trace;
+    public static bool IsDebugEnabled =>
+        CurrentBackend == LogBackend.BaseGame || CurrentLevel >= LogLevel.Debug;
+
+    public static bool IsTraceEnabled =>
+        CurrentBackend == LogBackend.BaseGame || CurrentLevel >= LogLevel.VeryDebug;
+
+    public static bool IsVeryDebugEnabled => IsTraceEnabled;
 
     public static void Error(string message) => Write(LogLevel.Error, message, isError: true);
     public static void Warn(string message) => Write(LogLevel.Warn, message);
     public static void Info(string message) => Write(LogLevel.Info, message);
     public static void Debug(string message) => Write(LogLevel.Debug, message);
-    public static void Trace(string message) => Write(LogLevel.Trace, message);
+    // The base-game logger this level is named VeryDebug.
+    public static void Trace(string message) => Write(LogLevel.VeryDebug, message);
 
     private static void Write(LogLevel level, string message, bool isError = false)
     {
-        if (level > CurrentLevel)
+        // Game logging forwards every message and lets the game's logger decide.
+        if (CurrentBackend == LogBackend.ModLog && level > CurrentLevel)
             return;
 
         WriteAlways(level, message, isError);
     }
 
-    private static void AnnounceActiveLevel(LogLevel? previousLevel = null, string? previousSource = null)
+    private static void AnnounceActiveConfiguration(
+        LogLevel? previousLevel = null,
+        LogBackend? previousBackend = null,
+        string? previousSource = null)
     {
-        string message = previousLevel is null || previousSource is null
-            ? $"[Startup] Active log level: {CurrentLevel} (source={CurrentLevelSource})."
-            : $"[Startup] Active log level: {CurrentLevel} (source={CurrentLevelSource}, previous={previousLevel}/{previousSource}).";
+        string current = DescribeConfiguration(
+            CurrentBackend,
+            CurrentLevel,
+            CurrentLevelSource);
 
-        WriteAlways(CurrentLevel, message, isError: CurrentLevel == LogLevel.Error);
+        string message = previousLevel is null ||
+                         previousBackend is null ||
+                         previousSource is null
+            ? $"[Startup] Logging configured: {current}."
+            : $"[Startup] Logging configured: {current}; previous=" +
+              $"{DescribeConfiguration(previousBackend.Value, previousLevel.Value, previousSource)}.";
+
+        WriteAlways(LogLevel.Info, message);
     }
 
-    private static void WriteAlways(LogLevel level, string message, bool isError = false)
+    private static string DescribeConfiguration(
+        LogBackend backend,
+        LogLevel level,
+        string levelSource)
     {
+        return backend == LogBackend.BaseGame
+            ? "mode=GameLogging, level=game setting"
+            : $"mode=ModLog, level={level} (source={levelSource})";
+    }
+
+    private static void WriteAlways(
+        LogLevel level,
+        string message,
+        bool isError = false)
+    {
+        if (CurrentBackend == LogBackend.BaseGame)
+        {
+            GameLogLevel gameLevel = level switch
+            {
+                LogLevel.Error => GameLogLevel.Error,
+                LogLevel.Warn => GameLogLevel.Warn,
+                LogLevel.Info => GameLogLevel.Info,
+                LogLevel.Debug => GameLogLevel.Debug,
+                LogLevel.VeryDebug => GameLogLevel.VeryDebug,
+                _ => GameLogLevel.Info
+            };
+
+            MainFile.Logger.LogMessage(gameLevel, message, skipFrames: 3);
+            return;
+        }
+
         string line = $"{Prefix} [{level}] {message}";
         if (isError)
             GD.PrintErr(line);
@@ -135,7 +200,15 @@ internal static class ModLog
 
     private static bool TryParseLogLevel(string? rawLevel, out LogLevel level)
     {
-        if (!string.IsNullOrWhiteSpace(rawLevel) && Enum.TryParse(rawLevel, true, out LogLevel parsed))
+        // Preserve compatibility with existing config files and environment values.
+        if (string.Equals(rawLevel, "Trace", StringComparison.OrdinalIgnoreCase))
+        {
+            level = LogLevel.VeryDebug;
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(rawLevel) &&
+            Enum.TryParse(rawLevel, true, out LogLevel parsed))
         {
             level = parsed;
             return true;
@@ -169,6 +242,7 @@ internal static class ChooseTheAncientConfig
     public const VoteClickTargetMode DefaultVoteClickTarget = VoteClickTargetMode.ButtonOnly;
     public const SelectionGameMode DefaultSelectionGameMode = SelectionGameMode.MontyHall;
     public const LogLevel DefaultLogLevel = LogLevel.Info;
+    public const LogBackend DefaultLogBackend = LogBackend.BaseGame;
 
     public static readonly string[] VoteClickTargetOptions =
     {
@@ -177,13 +251,19 @@ internal static class ChooseTheAncientConfig
         "Whole ancient slot"
     };
 
+    public static readonly string[] LogBackendOptions =
+    {
+        "Game logging",
+        "ModLog"
+    };
+
     public static readonly string[] LogLevelOptions =
     {
         nameof(LogLevel.Error),
         nameof(LogLevel.Warn),
         nameof(LogLevel.Info),
         nameof(LogLevel.Debug),
-        nameof(LogLevel.Trace)
+        nameof(LogLevel.VeryDebug)
     };
 
     public static readonly string[] SelectionGameModeOptions =
@@ -200,6 +280,7 @@ internal static class ChooseTheAncientConfig
     public static VoteClickTargetMode VoteClickTarget { get; private set; } = DefaultVoteClickTarget;
     public static SelectionGameMode GameMode { get; private set; } = DefaultSelectionGameMode;
     public static LogLevel CurrentLogLevel { get; private set; } = ModLog.CurrentLevel;
+    public static LogBackend CurrentLogBackend { get; private set; } = ModLog.CurrentBackend;
 
     private const int AncientPoolSourceActCount = 3;
     private const string NeowAncientId = "NEOW";
@@ -452,7 +533,8 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         }
 
         CurrentLogLevel = NormalizeLogLevel(settings.LogLevel);
-        ModLog.SetLevel(CurrentLogLevel, source);
+        CurrentLogBackend = NormalizeLogBackend(settings.LogBackend);
+        ModLog.Configure(CurrentLogLevel, CurrentLogBackend, source);
         ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
         LogRefreshSummary();
     }
@@ -499,6 +581,19 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (ModConfigBridge.IsAvailable)
         {
+            object logBackendValue = ModConfigBridge.GetValue<object>(
+                "logBackend",
+                LogBackendToOption(ModLog.CurrentBackend));
+            CurrentLogBackend = NormalizeLogBackend(logBackendValue);
+
+            if (!string.Equals(
+                    Convert.ToString(logBackendValue),
+                    LogBackendToOption(CurrentLogBackend),
+                    StringComparison.Ordinal))
+            {
+                ModConfigBridge.SetValue("logBackend", LogBackendToOption(CurrentLogBackend));
+            }
+
             object logLevelValue = ModConfigBridge.GetValue<object>(
                 "logLevel",
                 LogLevelToOption(ModLog.CurrentLevel));
@@ -512,11 +607,12 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
                 ModConfigBridge.SetValue("logLevel", LogLevelToOption(CurrentLogLevel));
             }
 
-            ModLog.SetLevel(CurrentLogLevel, "modconfig");
+            ModLog.Configure(CurrentLogLevel, CurrentLogBackend, "modconfig");
         }
         else
         {
             CurrentLogLevel = ModLog.CurrentLevel;
+            CurrentLogBackend = ModLog.CurrentBackend;
         }
 
         ChooseTheAncientSettingsStore.SaveCurrent();
@@ -536,7 +632,8 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             $"Act2Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(1))}, " +
             $"Act3Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(2))}, " +
             $"NeowOverrides={DescribeSpecialAncientOverrides(NeowAncientId)}, " +
-            $"DarvOverrides={DescribeSpecialAncientOverrides(DarvAncientId)}.";
+            $"DarvOverrides={DescribeSpecialAncientOverrides(DarvAncientId)}, " +
+            $"LogLevel={CurrentLogLevel}, LogBackend={CurrentLogBackend}.";
 
         if (!string.Equals(_lastRefreshSummary, refreshSummary, StringComparison.Ordinal))
         {
@@ -700,10 +797,17 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         return decodedFlags;
     }
 
+    public static void ApplyLogBackend(object value)
+    {
+        CurrentLogBackend = NormalizeLogBackend(value);
+        ModLog.Configure(CurrentLogLevel, CurrentLogBackend, "settings");
+        PersistCurrentSettings();
+    }
+
     public static void ApplyLogLevel(object value)
     {
         CurrentLogLevel = NormalizeLogLevel(value);
-        ModLog.SetLevel(CurrentLogLevel, "settings");
+        ModLog.Configure(CurrentLogLevel, CurrentLogBackend, "settings");
         PersistCurrentSettings();
     }
 
@@ -718,6 +822,16 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         };
     }
 
+    public static string LogBackendToOption(LogBackend backend)
+    {
+        return backend switch
+        {
+            LogBackend.BaseGame => LogBackendOptions[0],
+            LogBackend.ModLog => LogBackendOptions[1],
+            _ => LogBackendOptions[0]
+        };
+    }
+
     public static string LogLevelToOption(LogLevel level)
     {
         return level switch
@@ -726,7 +840,7 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             LogLevel.Warn => LogLevelOptions[1],
             LogLevel.Info => LogLevelOptions[2],
             LogLevel.Debug => LogLevelOptions[3],
-            LogLevel.Trace => LogLevelOptions[4],
+            LogLevel.VeryDebug => LogLevelOptions[4],
             _ => LogLevelOptions[2]
         };
     }
@@ -896,6 +1010,46 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         return (VoteClickTargetMode)rawValue;
     }
 
+    private static LogBackend NormalizeLogBackend(object value)
+    {
+        if (value is LogBackend backend)
+            return backend;
+
+        if (value is string rawString)
+        {
+            if (string.Equals(rawString, LogBackendOptions[0], StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(rawString, nameof(LogBackend.BaseGame), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(rawString, "Base game logger", StringComparison.OrdinalIgnoreCase))
+            {
+                return LogBackend.BaseGame;
+            }
+
+            if (string.Equals(rawString, LogBackendOptions[1], StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(rawString, nameof(LogBackend.ModLog), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(rawString, "Godot direct (legacy)", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(rawString, "Godot direct", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(rawString, "GodotDirect", StringComparison.OrdinalIgnoreCase))
+            {
+                return LogBackend.ModLog;
+            }
+
+            if (int.TryParse(rawString, out int parsedInt))
+                return NormalizeLogBackend(parsedInt);
+        }
+
+        int rawValue = value switch
+        {
+            int i => i,
+            long l => (int)l,
+            float f => Mathf.RoundToInt(f),
+            double d => (int)Math.Round(d),
+            _ => (int)DefaultLogBackend
+        };
+
+        rawValue = Math.Clamp(rawValue, (int)LogBackend.BaseGame, (int)LogBackend.ModLog);
+        return (LogBackend)rawValue;
+    }
+
     private static LogLevel NormalizeLogLevel(object value)
     {
         if (value is LogLevel level)
@@ -903,6 +1057,10 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
+            // "Trace" was the previous display/saved value for VeryDebug.
+            if (string.Equals(rawString, "Trace", StringComparison.OrdinalIgnoreCase))
+                return LogLevel.VeryDebug;
+
             if (Enum.TryParse(rawString, true, out LogLevel parsed))
                 return parsed;
 
@@ -919,7 +1077,7 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             _ => (int)DefaultLogLevel
         };
 
-        rawValue = Math.Clamp(rawValue, (int)LogLevel.Error, (int)LogLevel.Trace);
+        rawValue = Math.Clamp(rawValue, (int)LogLevel.Error, (int)LogLevel.VeryDebug);
         return (LogLevel)rawValue;
     }
 }

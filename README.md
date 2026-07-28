@@ -40,8 +40,21 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Some Endless modes
 
 ## Technical
-- I patch the EnterNextAct method in RunManager.cs so that this mod loads before the next act starts
-- I loop through all ancients and check if they have a ValidForAct method (this is what baselib uses for Custom Ancients). The mod calls this itself to check if your ancient should be added to pool for Choose The Ancient in this act. 
+- I patch the `EnterNextAct` method in `RunManager.cs` so that this mod loads before the next act starts
+- I loop through all ancients and check if they have a `ValidForAct` method (this is what Baselib uses for Custom Ancients). If the ancient uses`ShouldForceSpawn` this mod  should pick it up even if `ValidForAct` returns false. Ritsulib also works as those ancients also define `ValidForAct`.
+
+### Patch Table
+* **Act1StartMapIcon**: Low Priority Postfix. Replaces the unresolved Act 1 starting map point with the Random Ancient icon.
+* **AncientHpBaselineTranspiler**: Transpiler. Makes the selected Act 1 ancient use the starting HP baseline and prevents Neow from resetting HP when selected in later acts.
+* **AncientRewardRng**: Prefix. Applies act-offset reward RNG when an ancient appears earlier or later than its normal minimum act.
+* **CreateRoom**: False returning Prefix. Replaces Neow’s room with the custom selection room in Act 1. Still needed when using the Subscriber method.
+* **EnterNextAct**: False returning Prefix. Shows the selection screen between acts.
+  * For the Simplest version of this mod, it's the only patch needed. _(selection screen for act 2 and 3 only, no fixes)_
+* **GenerateMap:** Low Priority Postfix. Changes the Act 1 starting map point for the original room-based trigger. Not needed with the Subscriber method.
+* **NeowBlessingMode**: Prefixes and finalizers. Temporarily hides run modifiers while Neow builds its description and options so a later-act Neow still offers blessings, then restores them.
+* **NeowOptionIdentitySync**: Optional `EventSynchronizer` compatibility patches. False returning Prefixes. Syncs Neow choices by option identity instead of raw list index when other mods reorder the options. It safely disables itself if the required multiplayer APIs are unavailable.
+  * ( Was needed for extreme edge cases in multiplayer syncing pre patch 1.05. `Event Synchronizer` has updated since then so it might not be needed anymore.)
+* **SetCurrentRoom:** Postfix. Launches the Act 1 selection screen after entering the custom room. Not needed when the Subscriber method handles this instead.
 
 ## Credit & Appreciation
 - Thanks to the Slay The Spire Discord for mod resources and community 
@@ -62,21 +75,16 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 ## New features Roadmap
 - Slay the Stremer Relic addition patches? (maybe as separate mod)
 - Ancient Affection patches? (maybe as separate mod)
-- ModLog more in line with common modding logging practice. Check Ritsulib
-- NeowOptionIdentitySyncPatch extend to all Ancients if relevent bugs are found?
 - Nicer transition between moments in the flow like changing rooms in the base game. Right now if the loading takes a bit longer we get an empty black screen with the game's toolbar still in view.
-- Fix {suppressedAnicent} formating defaulting when it shouldn't
 - Ask help for good zhs translation
 - Language localizing for mod config option texts
-- Update mod description for zhs too in ChooseTheAncient.json or wherever translations for that go.
+- Update mod description for zhs too in ChooseTheAncient.json or wherever translations go.
 - Add shadow to Ancient Icon on card
-- Implement Log switcher when game in VeryDebug state
 - Touch up Ancient Dialouge in English
 - Compatability with Slay the Player
 - Compatability with local multiplayer
 - Ancient menu themes
 - Look up split path mod in multiplayer, might need new mod for new path and more ancient nodes in the map
-- Add support for custom ancient dialouges
 - Custom portal effect
 - Load improvements
 - Bugfixes and testing when needed
