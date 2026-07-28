@@ -153,16 +153,17 @@
               "key": "showControllerHotkeys",
               "label": "Controller hotkeys",
               "description": "Show controller/keyboard prompt hints on the ancient selection screen.",
-              "defaultValue": true,
+              "defaultValue": false,
               "scope": "global"
             },
             {
-              "id": "reload_saved_settings",
+              "id": "reset_settings",
               "type": "button",
-              "key": "reloadConfig",
-              "label": "Reload saved settings",
-              "buttonText": "Reload",
-              "tone": "normal"
+              "key": "resetConfig",
+              "label": "Reset all settings",
+              "buttonText": "Reset",
+              "tone": "danger",
+              "description": "Restore every Choose The Ancient setting to its built-in default."
             }
           ]
         }
@@ -232,7 +233,7 @@
               "type": "toggle",
               "key": "includeDarvInAct3Selection",
               "label": "Darv — include in Act 3 selection",
-              "defaultValue": false,
+              "defaultValue": true,
               "scope": "global"
             }
           ]

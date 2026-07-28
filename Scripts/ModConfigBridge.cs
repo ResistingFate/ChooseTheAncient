@@ -73,17 +73,10 @@ internal static class ModConfigBridge
         {
             Register();
 
-            if (ChooseTheAncientSettingsStore.LoadedFromDisk)
-            {
-                PushImportantSettingsToModConfig();
-            }
-            else
-            {
-                // One-time migration path for existing users who had ModConfig before the
-                // dependency-free native settings file existed.
-                ChooseTheAncientConfig.ImportLegacySettingsFromModConfig();
-                PushImportantSettingsToModConfig();
-            }
+            if (!ChooseTheAncientSettingsStore.LoadedFromDisk)
+                ChooseTheAncientConfig.ResetAllSettingsToDefaults();
+
+            PushImportantSettingsToModConfig();
         }
         else
         {
@@ -345,6 +338,21 @@ internal static class ModConfigBridge
             Set(cfg, "OnChanged", new Action<object>(v =>
             {
                 ChooseTheAncientConfig.ApplyLogLevel(v);
+            }));
+        }));
+
+        list.Add(Entry(cfg =>
+        {
+            Set(cfg, "Key", "resetConfig");
+            Set(cfg, "Label", "Reset all settings");
+            Set(cfg, "Type", EnumVal("Button"));
+            Set(cfg, "ButtonText", "Reset");
+            Set(cfg, "Description", "Restore every Choose The Ancient setting to its built-in default.");
+
+            Set(cfg, "OnChanged", new Action<object>(_ =>
+            {
+                ChooseTheAncientConfig.ResetAllSettingsToDefaults();
+                PushImportantSettingsToModConfig();
             }));
         }));
 

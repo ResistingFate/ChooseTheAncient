@@ -156,10 +156,10 @@ internal static class RitsuLibModSettingsInteropProvider
 
     public static void InvokeRitsuLibSettingAction(string key)
     {
-        if (!string.Equals(key, "reloadConfig", StringComparison.Ordinal))
+        if (!string.Equals(key, "resetConfig", StringComparison.Ordinal))
             return;
 
-        ChooseTheAncientConfig.ReloadNativeSettingsFromDisk();
+        ChooseTheAncientConfig.ResetAllSettingsToDefaults();
         ModConfigBridge.PushImportantSettingsToModConfig();
     }
 

@@ -293,14 +293,9 @@ internal static class ChooseTheAncientConfig
 
     private static readonly Dictionary<int, bool[]> AncientPoolSourceActsByTargetAct = new()
     {
-        // Act 1 ancients.
-        { 0, new[] { false, true, true } },
-
-        // Act 2 ancients.
-        { 1, new[] { true, true, true } },
-
-        // Act 3 ancients.
-        { 2, new[] { true, true, true } },
+        { 0, new[] { true, false, false } },
+        { 1, new[] { false, true, false } },
+        { 2, new[] { false, false, true } },
     };
 
     private static readonly Dictionary<string, bool[]> SpecialAncientOverridesByTargetAct =
@@ -312,20 +307,19 @@ internal static class ChooseTheAncientConfig
 
     private static bool[] GetDefaultAncientPoolSourceActsForTargetAct(int targetActIndex)
     {
-        return targetActIndex switch
-        {
-            0 => new[] { false, true, true },
-            1 => new[] { true, true, true },
-            2 => new[] { true, true, true },
-            _ => new[] { true, true, true }
-        };
+        bool[] defaults = new bool[AncientPoolSourceActCount];
+
+        if (targetActIndex >= 0 && targetActIndex < AncientPoolSourceActCount)
+            defaults[targetActIndex] = true;
+
+        return defaults;
     }
 
     public static bool GetDefaultAncientPoolSourceActEnabled(int targetActIndex, int sourceActIndex)
     {
         bool[] defaults = GetDefaultAncientPoolSourceActsForTargetAct(targetActIndex);
         if (sourceActIndex < 0 || sourceActIndex >= defaults.Length)
-            return true;
+            return false;
 
         return defaults[sourceActIndex];
     }
@@ -335,8 +329,7 @@ internal static class ChooseTheAncientConfig
         return ancientId.ToUpperInvariant() switch
         {
             NeowAncientId => new[] { true, false, false },
-            DarvAncientId => new[] { false, true, true },
-            _ => new[] { false, false, false }
+            DarvAncientId => new[] { false, true, true }
         };
     }
 
@@ -491,9 +484,10 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         ApplySettingsSnapshot(ChooseTheAncientSettingsStore.Load(), "native");
     }
 
-    public static void ReloadNativeSettingsFromDisk()
+    public static void ResetAllSettingsToDefaults()
     {
-        ApplySettingsSnapshot(ChooseTheAncientSettingsStore.ReloadFromDisk(), "native");
+        ApplySettingsSnapshot(ChooseTheAncientSettingsStore.ResetToDefaults(), "reset-defaults");
+        ModLog.Info("Reset all Choose The Ancient settings to built-in defaults.");
     }
 
     internal static void ApplySettingsSnapshot(ChooseTheAncientSettings settings, string source)
@@ -536,86 +530,6 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         CurrentLogBackend = NormalizeLogBackend(settings.LogBackend);
         ModLog.Configure(CurrentLogLevel, CurrentLogBackend, source);
         ChooseTheAncientSelectionScreen.RefreshModConfigHotkeys();
-        LogRefreshSummary();
-    }
-
-    public static void ImportLegacySettingsFromModConfig()
-    {
-        AncientCount = NormalizeAncientCount(
-            ModConfigBridge.GetValue("ancientCount", (float)DefaultAncientCount));
-
-        ShowControllerHotkeys =
-            ModConfigBridge.GetValue("showControllerHotkeys", DefaultShowControllerHotkeys);
-
-        ShowOnlyButtonOutline =
-            ModConfigBridge.GetValue("showOnlyButtonOutline", DefaultShowOnlyButtonOutline);
-
-        object voteClickTargetValue = ModConfigBridge.GetValue<object>(
-            "voteClickTarget",
-            VoteClickTargetToOption(DefaultVoteClickTarget));
-        VoteClickTarget = NormalizeVoteClickTarget(voteClickTargetValue);
-
-        if (ModConfigBridge.IsAvailable && !string.Equals(
-                Convert.ToString(voteClickTargetValue),
-                VoteClickTargetToOption(VoteClickTarget),
-                StringComparison.Ordinal))
-        {
-            ModConfigBridge.SetValue("voteClickTarget", VoteClickTargetToOption(VoteClickTarget));
-        }
-
-        object gameModeValue = ModConfigBridge.GetValue<object>(
-            "gameMode",
-            SelectionGameModeToOption(DefaultSelectionGameMode));
-        GameMode = NormalizeSelectionGameMode(gameModeValue);
-
-        if (ModConfigBridge.IsAvailable && !string.Equals(
-                Convert.ToString(gameModeValue),
-                SelectionGameModeToOption(GameMode),
-                StringComparison.Ordinal))
-        {
-            ModConfigBridge.SetValue("gameMode", SelectionGameModeToOption(GameMode));
-        }
-
-        RefreshAncientPoolSourceActsFromModConfig();
-        RefreshSpecialAncientOverridesFromModConfig();
-
-        if (ModConfigBridge.IsAvailable)
-        {
-            object logBackendValue = ModConfigBridge.GetValue<object>(
-                "logBackend",
-                LogBackendToOption(ModLog.CurrentBackend));
-            CurrentLogBackend = NormalizeLogBackend(logBackendValue);
-
-            if (!string.Equals(
-                    Convert.ToString(logBackendValue),
-                    LogBackendToOption(CurrentLogBackend),
-                    StringComparison.Ordinal))
-            {
-                ModConfigBridge.SetValue("logBackend", LogBackendToOption(CurrentLogBackend));
-            }
-
-            object logLevelValue = ModConfigBridge.GetValue<object>(
-                "logLevel",
-                LogLevelToOption(ModLog.CurrentLevel));
-            CurrentLogLevel = NormalizeLogLevel(logLevelValue);
-
-            if (!string.Equals(
-                    Convert.ToString(logLevelValue),
-                    LogLevelToOption(CurrentLogLevel),
-                    StringComparison.Ordinal))
-            {
-                ModConfigBridge.SetValue("logLevel", LogLevelToOption(CurrentLogLevel));
-            }
-
-            ModLog.Configure(CurrentLogLevel, CurrentLogBackend, "modconfig");
-        }
-        else
-        {
-            CurrentLogLevel = ModLog.CurrentLevel;
-            CurrentLogBackend = ModLog.CurrentBackend;
-        }
-
-        ChooseTheAncientSettingsStore.SaveCurrent();
         LogRefreshSummary();
     }
 
@@ -736,6 +650,7 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         ModLog.Info(
             $"Applied ancient pool toggle: targetAct={targetActIndex + 1}, sourceAct={sourceActIndex + 1}, enabled={sourceActFlags[sourceActIndex]}. " +
             $"Now enabled: {DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(targetActIndex))}");
+        PersistCurrentSettings();
     }
 
     public static string GetAncientPoolSourceActConfigKey(int targetActIndex, int sourceActIndex)
@@ -855,49 +770,6 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             SelectionGameMode.SimplePicker => SelectionGameModeOptions[3],
             _ => SelectionGameModeOptions[0]
         };
-    }
-
-    private static void RefreshAncientPoolSourceActsFromModConfig()
-    {
-        foreach ((int targetActIndex, bool[] sourceActFlags) in AncientPoolSourceActsByTargetAct)
-        {
-            bool[] defaults = GetDefaultAncientPoolSourceActsForTargetAct(targetActIndex);
-
-            for (int sourceActIndex = 0; sourceActIndex < sourceActFlags.Length; sourceActIndex++)
-            {
-                string key = GetAncientPoolSourceActConfigKey(targetActIndex, sourceActIndex);
-                bool fallback = sourceActIndex < defaults.Length ? defaults[sourceActIndex] : true;
-                bool loaded = ModConfigBridge.GetValue(key, fallback);
-                sourceActFlags[sourceActIndex] = loaded;
-
-            }
-
-            LogConfigSectionIfChanged(
-                $"pool_{targetActIndex}",
-                $"{GetAncientPoolTargetActLabel(targetActIndex)} sources after refresh: " +
-                $"{DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(targetActIndex))}");
-        }
-    }
-
-    private static void RefreshSpecialAncientOverridesFromModConfig()
-    {
-        foreach ((string ancientId, bool[] actFlags) in SpecialAncientOverridesByTargetAct)
-        {
-            bool[] defaults = GetDefaultSpecialAncientOverridesForAncient(ancientId);
-
-            for (int targetActIndex = 0; targetActIndex < actFlags.Length; targetActIndex++)
-            {
-                string key = GetSpecialAncientOverrideConfigKey(ancientId, targetActIndex);
-                bool fallback = targetActIndex < defaults.Length && defaults[targetActIndex];
-                bool loaded = ModConfigBridge.GetValue(key, fallback);
-                actFlags[targetActIndex] = loaded;
-
-            }
-
-            LogConfigSectionIfChanged(
-                $"special_{ancientId}",
-                $"{GetSpecialAncientOverrideHeaderLabel(ancientId)} after refresh: {DescribeSpecialAncientOverrides(ancientId)}");
-        }
     }
 
     internal static SelectionGameMode NormalizeSelectionGameMode(object value)

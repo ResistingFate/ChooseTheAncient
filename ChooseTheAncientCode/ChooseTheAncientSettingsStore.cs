@@ -64,12 +64,11 @@ internal static class ChooseTheAncientSettingsStore
         return _loaded!;
     }
 
-    internal static ChooseTheAncientSettings ReloadFromDisk()
+    internal static ChooseTheAncientSettings ResetToDefaults()
     {
-        _loaded = null;
-        _loadedFromDisk = false;
-        EnsureLoaded();
-        return _loaded!;
+        ChooseTheAncientSettings defaults = CreateDefaultSettings();
+        Save(defaults);
+        return defaults;
     }
 
     internal static void SaveCurrent()

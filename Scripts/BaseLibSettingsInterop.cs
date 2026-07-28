@@ -644,11 +644,11 @@ public static class BaseLibSettingsPage
 
             AddButton(
                 advancedContainer,
-                "Reload saved settings",
-                "Reload",
+                "Reset all settings",
+                "Reset",
                 () =>
                 {
-                    ChooseTheAncientConfig.ReloadNativeSettingsFromDisk();
+                    ChooseTheAncientConfig.ResetAllSettingsToDefaults();
                     ModConfigBridge.PushImportantSettingsToModConfig();
                     SyncGeneratedBaseLibProperties(baseLibConfigInstance);
                     UpdateAdvancedSettingsVisibility();
