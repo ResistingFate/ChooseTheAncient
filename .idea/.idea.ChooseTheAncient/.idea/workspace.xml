@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/workshop/Aligning_Custom_Ancients_Embedded_Tutorial.md" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/Aligning_Custom_Ancients_Embedded_Tutorial.md" afterDir="false" />
     </list>
@@ -282,23 +279,7 @@
       <workItem from="1785175091717" duration="48000" />
       <workItem from="1785175163861" duration="875000" />
       <workItem from="1785176663431" duration="3801000" />
-      <workItem from="1785184420179" duration="13491000" />
-    </task>
-    <task id="LOCAL-00037" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient.">
-      <option name="closed" value="true" />
-      <created>1783724884526</created>
-      <option name="number" value="00037" />
-      <option name="presentableId" value="LOCAL-00037" />
-      <option name="project" value="LOCAL" />
-      <updated>1783724884526</updated>
-    </task>
-    <task id="LOCAL-00038" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient.">
-      <option name="closed" value="true" />
-      <created>1783789882750</created>
-      <option name="number" value="00038" />
-      <option name="presentableId" value="LOCAL-00038" />
-      <option name="project" value="LOCAL" />
-      <updated>1783789882750</updated>
+      <workItem from="1785184420179" duration="14109000" />
     </task>
     <task id="LOCAL-00039" summary="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.&#10;1. If PortalSourceNodePath is set, use that node.&#10;2. If it is a TextureRect, account for TextureRect size/stretch/offset.&#10;3. If it is a Control, use the Control rect.&#10;4. If it is a Node2D, use the node origin.&#10;5. If anything fails, fall back to root scene BaseSize math..">
       <option name="closed" value="true" />
@@ -676,7 +657,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785180048832</updated>
     </task>
-    <option name="localTasksCounter" value="86" />
+    <task id="LOCAL-00086" summary="Include BaseLib force-spawn ancients even when IsValidForAct returns false. BaseLib intentionally separates normal pool eligibility from ShouldForceSpawn, so filtering only by act validity could hide Act 1 ancients such as Phoenix.&#10;Check ancient validity starting from Act 1 when calculating reward offsets. The previous search began at Act 2, causing valid Act 1 ancients to report an unknown minimum act and fall back unnecessarily.&#10;Read RitsuLib act validity through IModAncientActValidity. This also supports ancients that implement the interface explicitly instead of exposing a public IsValidForAct method.">
+      <option name="closed" value="true" />
+      <created>1785207425964</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1785207425965</updated>
+    </task>
+    <task id="LOCAL-00087" summary="Include BaseLib force-spawn ancients even when IsValidForAct returns false. BaseLib intentionally separates normal pool eligibility from ShouldForceSpawn, so filtering only by act validity could hide Act 1 ancients such as Phoenix.&#10;Check ancient validity starting from Act 1 when calculating reward offsets. The previous search began at Act 2, causing valid Act 1 ancients to report an unknown minimum act and fall back unnecessarily.&#10;Read RitsuLib act validity through IModAncientActValidity. This also supports ancients that implement the interface explicitly instead of exposing a public IsValidForAct method.">
+      <option name="closed" value="true" />
+      <created>1785207433426</created>
+      <option name="number" value="00087" />
+      <option name="presentableId" value="LOCAL-00087" />
+      <option name="project" value="LOCAL" />
+      <updated>1785207433426</updated>
+    </task>
+    <option name="localTasksCounter" value="88" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -712,7 +709,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Reveal options slide in closer to vanilla's style now." />
     <MESSAGE value="Dialouge drifts slightly then repositions to emphasise the ancients dialuoge." />
     <MESSAGE value="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient." />
     <MESSAGE value="Added More structure to API for Custom ancients just looking for properties in the Custom Ancient&#10;&#10;Change ancientconfig so that position is based around a root detected in your custom ancient scene, or specified. Otherwise scene top left should start at origin.&#10;1. If PortalSourceNodePath is set, use that node.&#10;2. If it is a TextureRect, account for TextureRect size/stretch/offset.&#10;3. If it is a Control, use the Control rect.&#10;4. If it is a Node2D, use the node origin.&#10;5. If anything fails, fall back to root scene BaseSize math.." />
@@ -737,7 +733,8 @@
     <MESSAGE value="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within its own slot, support instant presentation, and keep Monty Hall behavior unchanged." />
     <MESSAGE value="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged." />
     <MESSAGE value="Added code to mke sure selection screen with large number of anciets scales cards and buttons to all fit on the screen, previnting a previous bug where when ancient name was long they'd take up the whole screen." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added code to mke sure selection screen with large number of anciets scales cards and buttons to all fit on the screen, previnting a previous bug where when ancient name was long they'd take up the whole screen." />
+    <MESSAGE value="Include BaseLib force-spawn ancients even when IsValidForAct returns false. BaseLib intentionally separates normal pool eligibility from ShouldForceSpawn, so filtering only by act validity could hide Act 1 ancients such as Phoenix.&#10;Check ancient validity starting from Act 1 when calculating reward offsets. The previous search began at Act 2, causing valid Act 1 ancients to report an unknown minimum act and fall back unnecessarily.&#10;Read RitsuLib act validity through IModAncientActValidity. This also supports ancients that implement the interface explicitly instead of exposing a public IsValidForAct method." />
+    <option name="LAST_COMMIT_MESSAGE" value="Include BaseLib force-spawn ancients even when IsValidForAct returns false. BaseLib intentionally separates normal pool eligibility from ShouldForceSpawn, so filtering only by act validity could hide Act 1 ancients such as Phoenix.&#10;Check ancient validity starting from Act 1 when calculating reward offsets. The previous search began at Act 2, causing valid Act 1 ancients to report an unknown minimum act and fall back unnecessarily.&#10;Read RitsuLib act validity through IModAncientActValidity. This also supports ancients that implement the interface explicitly instead of exposing a public IsValidForAct method." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -754,6 +751,19 @@
           <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
           <option name="timeStamp" value="3" />
         </breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs</url>
+          <line>1296</line>
+          <properties documentPath="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient\ChooseTheAncientCode\ChooseTheAncientHelpers.cs" containingFunctionPresentation="Method 'CreateSecondRoundPresentationRng'">
+            <startOffsets>
+              <option value="48786" />
+            </startOffsets>
+            <endOffsets>
+              <option value="48920" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
