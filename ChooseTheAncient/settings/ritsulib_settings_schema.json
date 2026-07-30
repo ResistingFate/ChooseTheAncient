@@ -1,21 +1,46 @@
 {
   "modId": "ChooseTheAncient",
-  "modDisplayName": "Choose The Ancient",
+  "modDisplayName": {
+    "locString": {
+      "table": "settings_ui",
+      "key": "CHOOSETHEANCIENT.mod_title"
+    }
+  },
   "pages": [
     {
       "pageId": "01_general",
-      "title": "General settings",
+      "title": {
+        "locString": {
+          "table": "settings_ui",
+          "key": "CHOOSETHEANCIENT.settings.page.general.title"
+        }
+      },
       "sections": [
         {
           "id": "general",
-          "title": "General settings",
+          "title": {
+            "locString": {
+              "table": "settings_ui",
+              "key": "CHOOSETHEANCIENT.settings.page.general.title"
+            }
+          },
           "entries": [
             {
               "id": "ancient_count",
               "type": "int-slider",
               "key": "ancientCount",
-              "label": "Ancients in vote",
-              "description": "How many ancients appear in the initial vote.",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.ancient_count"
+                }
+              },
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.ancient_count"
+                }
+              },
               "min": 2,
               "max": 8,
               "step": 1,
@@ -26,27 +51,57 @@
               "id": "game_mode",
               "type": "choice",
               "key": "gameMode",
-              "label": "Game mode",
-              "description": "Controls the selection flow used by the ancient vote.",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.game_mode"
+                }
+              },
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.game_mode"
+                }
+              },
               "presentation": "dropdown",
               "defaultValue": "Monty Hall",
               "scope": "global",
               "options": [
                 {
                   "value": "Monty Hall",
-                  "label": "Monty hall"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.game_mode.monty_hall"
+                    }
+                  }
                 },
                 {
                   "value": "Fair Fight",
-                  "label": "Fair fight"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.game_mode.fair_fight"
+                    }
+                  }
                 },
                 {
                   "value": "I Want To Know Everything",
-                  "label": "I want to know everything"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.game_mode.want_everything"
+                    }
+                  }
                 },
                 {
                   "value": "Simple Picker",
-                  "label": "Simple picker"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.game_mode.simple_picker"
+                    }
+                  }
                 }
               ]
             }
@@ -56,29 +111,59 @@
     },
     {
       "pageId": "02_advanced",
-      "title": "Advanced settings",
+      "title": {
+        "locString": {
+          "table": "settings_ui",
+          "key": "CHOOSETHEANCIENT.settings.page.advanced.title"
+        }
+      },
       "sections": [
         {
           "id": "advanced",
-          "title": "Advanced settings",
+          "title": {
+            "locString": {
+              "table": "settings_ui",
+              "key": "CHOOSETHEANCIENT.settings.page.advanced.title"
+            }
+          },
           "entries": [
             {
               "id": "log_backend",
               "type": "choice",
               "key": "logBackend",
-              "label": "Logging mode",
-              "description": "Base game logger means this mods logging is handled by the base game's logging system. Modlog lets this mod handle it's logging on it's own log level system.",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.logging_mode"
+                }
+              },
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.logging_mode"
+                }
+              },
               "presentation": "dropdown",
               "defaultValue": "Game logging",
               "scope": "global",
               "options": [
                 {
                   "value": "Game logging",
-                  "label": "Game logging"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.log_backend.game"
+                    }
+                  }
                 },
                 {
                   "value": "ModLog",
-                  "label": "ModLog"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.log_backend.modlog"
+                    }
+                  }
                 }
               ]
             },
@@ -86,31 +171,66 @@
               "id": "log_level",
               "type": "choice",
               "key": "logLevel",
-              "label": "ModLog level",
-              "description": "Only used when Logging mode is ModLog.",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.log_level"
+                }
+              },
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.log_level"
+                }
+              },
               "presentation": "stepper",
               "defaultValue": "Info",
               "scope": "global",
               "options": [
                 {
                   "value": "Error",
-                  "label": "Error"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.log_level.error"
+                    }
+                  }
                 },
                 {
                   "value": "Warn",
-                  "label": "Warn"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.log_level.warn"
+                    }
+                  }
                 },
                 {
                   "value": "Info",
-                  "label": "Info"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.log_level.info"
+                    }
+                  }
                 },
                 {
                   "value": "Debug",
-                  "label": "Debug"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.log_level.debug"
+                    }
+                  }
                 },
                 {
                   "value": "VeryDebug",
-                  "label": "VeryDebug"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.log_level.very_debug"
+                    }
+                  }
                 }
               ]
             },
@@ -118,23 +238,48 @@
               "id": "vote_click_target",
               "type": "choice",
               "key": "voteClickTarget",
-              "label": "Vote selection",
-              "description": "Choose whether only the button, the whole card, or the whole ancient slot can be clicked.",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.vote_selection"
+                }
+              },
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.vote_selection"
+                }
+              },
               "presentation": "dropdown",
               "defaultValue": "Button only",
               "scope": "global",
               "options": [
                 {
                   "value": "Button only",
-                  "label": "Button only"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.vote_target.button_only"
+                    }
+                  }
                 },
                 {
                   "value": "Whole card",
-                  "label": "Whole card"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.vote_target.whole_card"
+                    }
+                  }
                 },
                 {
                   "value": "Whole ancient slot",
-                  "label": "Whole ancient slot"
+                  "label": {
+                    "locString": {
+                      "table": "settings_ui",
+                      "key": "CHOOSETHEANCIENT.settings.option.vote_target.whole_slot"
+                    }
+                  }
                 }
               ]
             },
@@ -142,8 +287,18 @@
               "id": "show_only_button_outline",
               "type": "toggle",
               "key": "showOnlyButtonOutline",
-              "label": "Button outline",
-              "description": "Only shows white outline and text for vote buttons.",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.button_outline"
+                }
+              },
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.button_outline"
+                }
+              },
               "defaultValue": false,
               "scope": "global"
             },
@@ -151,8 +306,18 @@
               "id": "show_controller_hotkeys",
               "type": "toggle",
               "key": "showControllerHotkeys",
-              "label": "Controller hotkeys",
-              "description": "Show controller/keyboard prompt hints on the ancient selection screen.",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.controller_hotkeys"
+                }
+              },
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.controller_hotkeys"
+                }
+              },
               "defaultValue": false,
               "scope": "global"
             },
@@ -160,10 +325,25 @@
               "id": "reset_settings",
               "type": "button",
               "key": "resetConfig",
-              "label": "Reset all settings",
-              "buttonText": "Reset",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.reset_all"
+                }
+              },
+              "buttonText": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.button.reset"
+                }
+              },
               "tone": "danger",
-              "description": "Restore every Choose The Ancient setting to its built-in default."
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.reset_all"
+                }
+              }
             }
           ]
         }
@@ -171,37 +351,72 @@
     },
     {
       "pageId": "03_redundant",
-      "title": "Redundant settings",
+      "title": {
+        "locString": {
+          "table": "settings_ui",
+          "key": "CHOOSETHEANCIENT.settings.page.redundant.title"
+        }
+      },
       "sections": [
         {
           "id": "redundant_notice",
-          "title": "About these options",
+          "title": {
+            "locString": {
+              "table": "settings_ui",
+              "key": "CHOOSETHEANCIENT.settings.section.redundant_notice.title"
+            }
+          },
           "entries": [
             {
               "id": "show_and_enable_redundant_settings",
               "type": "toggle",
               "key": "enableRedundantSettings",
-              "label": "Show and enable",
-              "description": "Show these redundant settings and enable their gameplay checks. Saved choices are preserved while disabled.",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.label.enable_redundant"
+                }
+              },
+              "description": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.enable_redundant"
+                }
+              },
               "defaultValue": false,
               "scope": "global"
             },
             {
               "id": "redundant_notice_text",
               "type": "header",
-              "label": "This is old. Use AncientConfigsPlus for ancient filtering."
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.description.redundant_notice"
+                }
+              }
             }
           ]
         },
         {
           "id": "special_ancient_overrides",
-          "title": "Special ancient overrides",
+          "title": {
+            "locString": {
+              "table": "settings_ui",
+              "key": "CHOOSETHEANCIENT.settings.section.special_ancient_overrides.title"
+            }
+          },
           "entries": [
             {
               "id": "include_neow_act1",
               "type": "toggle",
               "key": "includeNeowInAct1Selection",
-              "label": "Neow — include in Act 1 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.neow_act1"
+                }
+              },
               "defaultValue": true,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -210,7 +425,12 @@
               "id": "include_neow_act2",
               "type": "toggle",
               "key": "includeNeowInAct2Selection",
-              "label": "Neow — include in Act 2 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.neow_act2"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -219,7 +439,12 @@
               "id": "include_neow_act3",
               "type": "toggle",
               "key": "includeNeowInAct3Selection",
-              "label": "Neow — include in Act 3 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.neow_act3"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -228,7 +453,12 @@
               "id": "include_darv_act1",
               "type": "toggle",
               "key": "includeDarvInAct1Selection",
-              "label": "Darv — include in Act 1 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.darv_act1"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -237,7 +467,12 @@
               "id": "include_darv_act2",
               "type": "toggle",
               "key": "includeDarvInAct2Selection",
-              "label": "Darv — include in Act 2 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.darv_act2"
+                }
+              },
               "defaultValue": true,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -246,7 +481,12 @@
               "id": "include_darv_act3",
               "type": "toggle",
               "key": "includeDarvInAct3Selection",
-              "label": "Darv — include in Act 3 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.darv_act3"
+                }
+              },
               "defaultValue": true,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -255,19 +495,34 @@
         },
         {
           "id": "ancient_pool_sources",
-          "title": "Ancient pool source acts",
+          "title": {
+            "locString": {
+              "table": "settings_ui",
+              "key": "CHOOSETHEANCIENT.settings.section.ancient_pool_sources.title"
+            }
+          },
           "entries": [
             {
               "id": "header_act1",
               "type": "header",
-              "label": "Act 1 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.act1_selection"
+                }
+              },
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act1_from_act1",
               "type": "toggle",
               "key": "act1AncientsFromAct1",
-              "label": "Allow From Act 1 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act1"
+                }
+              },
               "defaultValue": true,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -276,7 +531,12 @@
               "id": "act1_from_act2",
               "type": "toggle",
               "key": "act1AncientsFromAct2",
-              "label": "Allow From Act 2 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act2"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -285,7 +545,12 @@
               "id": "act1_from_act3",
               "type": "toggle",
               "key": "act1AncientsFromAct3",
-              "label": "Allow From Act 3 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act3"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -293,14 +558,24 @@
             {
               "id": "header_act2",
               "type": "header",
-              "label": "Act 2 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.act2_selection"
+                }
+              },
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act2_from_act1",
               "type": "toggle",
               "key": "act2AncientsFromAct1",
-              "label": "Allow From Act 1 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act1"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -309,7 +584,12 @@
               "id": "act2_from_act2",
               "type": "toggle",
               "key": "act2AncientsFromAct2",
-              "label": "Allow From Act 2 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act2"
+                }
+              },
               "defaultValue": true,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -318,7 +598,12 @@
               "id": "act2_from_act3",
               "type": "toggle",
               "key": "act2AncientsFromAct3",
-              "label": "Allow From Act 3 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act3"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -326,14 +611,24 @@
             {
               "id": "header_act3",
               "type": "header",
-              "label": "Act 3 selection",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.act3_selection"
+                }
+              },
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act3_from_act1",
               "type": "toggle",
               "key": "act3AncientsFromAct1",
-              "label": "Allow From Act 1 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act1"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -342,7 +637,12 @@
               "id": "act3_from_act2",
               "type": "toggle",
               "key": "act3AncientsFromAct2",
-              "label": "Allow From Act 2 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act2"
+                }
+              },
               "defaultValue": false,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
@@ -351,7 +651,12 @@
               "id": "act3_from_act3",
               "type": "toggle",
               "key": "act3AncientsFromAct3",
-              "label": "Allow From Act 3 ancients",
+              "label": {
+                "locString": {
+                  "table": "settings_ui",
+                  "key": "CHOOSETHEANCIENT.settings.schema.allow_act3"
+                }
+              },
               "defaultValue": true,
               "scope": "global",
               "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"

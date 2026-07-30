@@ -133,11 +133,9 @@ internal static class ModConfigBridge
             ModLog.Debug($"Registering ChooseTheAncient ModConfig entries. Count={entries.Length}");
 
             // Localized display name (shows in ModConfig's mod list)
-            var displayNames = new Dictionary<string, string>
-            {
-                ["en"] = "ChooseTheAncient",
-                ["zhs"] = "你的模组名字", // TODO translate mod name
-            };
+            Dictionary<string, string> displayNames =
+                ChooseTheAncientSettingsText.GetModConfigLanguageMap(
+                    "CHOOSETHEANCIENT.mod_title");
 
             // ModConfig has 2 overloads: 3-param (no i18n) and 4-param (with i18n).
             // We prefer 4-param when available.
@@ -240,9 +238,9 @@ internal static class ModConfigBridge
             return;
 
         SetValue("ancientCount", (float)ChooseTheAncientConfig.AncientCount);
-        SetValue("gameMode", ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode));
-        SetValue("logBackend", ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend));
-        SetValue("logLevel", ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel));
+        SetValue("gameMode", ChooseTheAncientSettingsText.GetSelectionGameModeOption(ChooseTheAncientConfig.GameMode));
+        SetValue("logBackend", ChooseTheAncientSettingsText.GetLogBackendOption(ChooseTheAncientConfig.CurrentLogBackend));
+        SetValue("logLevel", ChooseTheAncientSettingsText.GetLogLevelOption(ChooseTheAncientConfig.CurrentLogLevel));
     }
 
 
@@ -256,21 +254,25 @@ internal static class ModConfigBridge
 
         list.Add(Entry(cfg =>
         {
-            Set(cfg, "Label", "Choose The Ancient");
+            SetLocalized(cfg, "Label", "Labels", "CHOOSETHEANCIENT.settings.header.main");
             Set(cfg, "Type", EnumVal("Header"));
         }));
 
         list.Add(Entry(cfg =>
         {
             Set(cfg, "Key", "ancientCount");
-            Set(cfg, "Label", "Ancients in vote");
+            SetLocalized(cfg, "Label", "Labels", "CHOOSETHEANCIENT.settings.label.ancient_count");
             Set(cfg, "Type", EnumVal("Slider"));
             Set(cfg, "DefaultValue", (object)(float)ChooseTheAncientConfig.AncientCount);
             Set(cfg, "Min", 2.0f);
             Set(cfg, "Max", 8.0f);
             Set(cfg, "Step", 1.0f);
             Set(cfg, "Format", "F0");
-            Set(cfg, "Description", "How many ancients appear in the initial vote.");
+            SetLocalized(
+                cfg,
+                "Description",
+                "Descriptions",
+                "CHOOSETHEANCIENT.settings.description.ancient_count");
 
             Set(cfg, "OnChanged", new Action<object>(v =>
             {
@@ -282,41 +284,50 @@ internal static class ModConfigBridge
         list.Add(Entry(cfg =>
         {
             Set(cfg, "Key", "gameMode");
-            Set(cfg, "Label", "Game mode");
+            SetLocalized(cfg, "Label", "Labels", "CHOOSETHEANCIENT.settings.label.game_mode");
             Set(cfg, "Type", EnumVal("Dropdown"));
-            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode));
-            Set(cfg, "Options", ChooseTheAncientConfig.SelectionGameModeOptions);
-
-            Set(cfg, "Description", "" +
-                                    "\n     Monty Hall: 2 rounds, only the reaction ancient previews in round 2." +
-                                    "\n     Fair Fight: 2 rounds, both finalists preview in round 2." +
-                                    "\n     I Want To Know Everything: 1 round, previews for every ancient, no dialogue." +
-                                    "\n     Simple Picker: 1 round, no previews.");
+            Set(
+                cfg,
+                "DefaultValue",
+                (object)ChooseTheAncientSettingsText.GetSelectionGameModeOption(
+                    ChooseTheAncientConfig.GameMode));
+            Set(cfg, "Options", ChooseTheAncientSettingsText.GetSelectionGameModeOptions());
+            SetLocalized(
+                cfg,
+                "Description",
+                "Descriptions",
+                "CHOOSETHEANCIENT.settings.description.game_mode.details");
 
             Set(cfg, "OnChanged", new Action<object>(v =>
             {
                 ChooseTheAncientConfig.ApplySelectionGameMode(v);
-                ModLog.Info($"gameMode changed to {ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode)}");
+                ModLog.Info(
+                    $"gameMode changed to {ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode)}");
             }));
         }));
 
         list.Add(Entry(cfg =>
         {
-            Set(cfg, "Label", "Logging");
+            SetLocalized(cfg, "Label", "Labels", "CHOOSETHEANCIENT.settings.header.logging");
             Set(cfg, "Type", EnumVal("Header"));
         }));
 
         list.Add(Entry(cfg =>
         {
             Set(cfg, "Key", "logBackend");
-            Set(cfg, "Label", "Logging mode");
+            SetLocalized(cfg, "Label", "Labels", "CHOOSETHEANCIENT.settings.label.logging_mode");
             Set(cfg, "Type", EnumVal("Dropdown"));
-            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.LogBackendToOption(
-                ChooseTheAncientConfig.CurrentLogBackend));
-            Set(cfg, "Options", ChooseTheAncientConfig.LogBackendOptions);
-            Set(cfg, "Description",
-                "Base game logger means this mods logging is handled by the base game's logging system. " +
-                "Modlog lets this mod handle it's logging on it's own log level system.");
+            Set(
+                cfg,
+                "DefaultValue",
+                (object)ChooseTheAncientSettingsText.GetLogBackendOption(
+                    ChooseTheAncientConfig.CurrentLogBackend));
+            Set(cfg, "Options", ChooseTheAncientSettingsText.GetLogBackendOptions());
+            SetLocalized(
+                cfg,
+                "Description",
+                "Descriptions",
+                "CHOOSETHEANCIENT.settings.description.logging_mode");
 
             Set(cfg, "OnChanged", new Action<object>(v =>
             {
@@ -327,13 +338,19 @@ internal static class ModConfigBridge
         list.Add(Entry(cfg =>
         {
             Set(cfg, "Key", "logLevel");
-            Set(cfg, "Label", "ModLog level");
+            SetLocalized(cfg, "Label", "Labels", "CHOOSETHEANCIENT.settings.label.log_level");
             Set(cfg, "Type", EnumVal("Dropdown"));
-            Set(cfg, "DefaultValue", (object)ChooseTheAncientConfig.LogLevelToOption(
-                ChooseTheAncientConfig.CurrentLogLevel));
-            Set(cfg, "Options", ChooseTheAncientConfig.LogLevelOptions);
-            Set(cfg, "Description",
-                "Only used when Logging mode is ModLog.");
+            Set(
+                cfg,
+                "DefaultValue",
+                (object)ChooseTheAncientSettingsText.GetLogLevelOption(
+                    ChooseTheAncientConfig.CurrentLogLevel));
+            Set(cfg, "Options", ChooseTheAncientSettingsText.GetLogLevelOptions());
+            SetLocalized(
+                cfg,
+                "Description",
+                "Descriptions",
+                "CHOOSETHEANCIENT.settings.description.log_level");
 
             Set(cfg, "OnChanged", new Action<object>(v =>
             {
@@ -344,10 +361,14 @@ internal static class ModConfigBridge
         list.Add(Entry(cfg =>
         {
             Set(cfg, "Key", "resetConfig");
-            Set(cfg, "Label", "Reset all settings");
+            SetLocalized(cfg, "Label", "Labels", "CHOOSETHEANCIENT.settings.label.reset_all");
             Set(cfg, "Type", EnumVal("Button"));
-            Set(cfg, "ButtonText", "Reset");
-            Set(cfg, "Description", "Restore every Choose The Ancient setting to its built-in default.");
+            SetLocalized(cfg, "ButtonText", "ButtonTexts", "CHOOSETHEANCIENT.settings.button.reset");
+            SetLocalized(
+                cfg,
+                "Description",
+                "Descriptions",
+                "CHOOSETHEANCIENT.settings.description.reset_all");
 
             Set(cfg, "OnChanged", new Action<object>(_ =>
             {
@@ -379,8 +400,21 @@ internal static class ModConfigBridge
     private static void Set(object obj, string name, object value)
         => obj.GetType().GetProperty(name)?.SetValue(obj, value);
 
-    private static Dictionary<string, string> L(string en, string zhs)
-        => new() { ["en"] = en, ["zhs"] = zhs };
+    private static void SetLocalized(
+        object obj,
+        string fallbackPropertyName,
+        string localizedPropertyName,
+        string locKey)
+    {
+        Set(
+            obj,
+            fallbackPropertyName,
+            ChooseTheAncientSettingsText.GetForLanguage("eng", locKey));
+        Set(
+            obj,
+            localizedPropertyName,
+            ChooseTheAncientSettingsText.GetModConfigLanguageMap(locKey));
+    }
 
     private static object EnumVal(string name)
         => Enum.Parse(_configTypeEnum!, name);

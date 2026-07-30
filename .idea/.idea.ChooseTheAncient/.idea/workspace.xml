@@ -5,11 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/ModUploader/text_to_add_to_description.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/settings_ui.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/ancients.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/ancients.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/gameplay_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/gameplay_ui.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/ModConfigBridge.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/ModConfigBridge.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/ancient_dialogue_line.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/ancient_dialogue_line.tscn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_selection_screen.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_selection_screen.tscn" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -287,23 +302,7 @@
       <workItem from="1785184420179" duration="28669000" />
       <workItem from="1785249454011" duration="14420000" />
       <workItem from="1785334365678" duration="10489000" />
-      <workItem from="1785413522615" duration="3535000" />
-    </task>
-    <task id="LOCAL-00057" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged.">
-      <option name="closed" value="true" />
-      <created>1784743575998</created>
-      <option name="number" value="00057" />
-      <option name="presentableId" value="LOCAL-00057" />
-      <option name="project" value="LOCAL" />
-      <updated>1784743575998</updated>
-    </task>
-    <task id="LOCAL-00058" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged.">
-      <option name="closed" value="true" />
-      <created>1784743598743</created>
-      <option name="number" value="00058" />
-      <option name="presentableId" value="LOCAL-00058" />
-      <option name="project" value="LOCAL" />
-      <updated>1784743598743</updated>
+      <workItem from="1785413522615" duration="9308000" />
     </task>
     <task id="LOCAL-00059" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
       <option name="closed" value="true" />
@@ -681,7 +680,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785422747149</updated>
     </task>
-    <option name="localTasksCounter" value="106" />
+    <task id="LOCAL-00106" summary="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension.">
+      <option name="closed" value="true" />
+      <created>1785424616347</created>
+      <option name="number" value="00106" />
+      <option name="presentableId" value="LOCAL-00106" />
+      <option name="project" value="LOCAL" />
+      <updated>1785424616347</updated>
+    </task>
+    <task id="LOCAL-00107" summary="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension.">
+      <option name="closed" value="true" />
+      <created>1785424686381</created>
+      <option name="number" value="00107" />
+      <option name="presentableId" value="LOCAL-00107" />
+      <option name="project" value="LOCAL" />
+      <updated>1785424686381</updated>
+    </task>
+    <option name="localTasksCounter" value="108" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

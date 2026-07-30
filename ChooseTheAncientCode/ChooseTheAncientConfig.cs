@@ -395,21 +395,6 @@ internal static class ChooseTheAncientConfig
         return $"include{char.ToUpperInvariant(normalizedAncientId[0])}{normalizedAncientId.Substring(1)}InAct{targetActIndex + 1}Selection";
     }
 
-    public static string GetSpecialAncientOverrideHeaderLabel(string ancientId)
-    {
-        return ancientId.ToUpperInvariant() switch
-        {
-            NeowAncientId => "Neow Overrides",
-            DarvAncientId => "Darv Overrides",
-            _ => $"{ancientId} Overrides"
-        };
-    }
-
-    public static string GetSpecialAncientOverrideToggleLabel(int targetActIndex)
-    {
-        return $"Include in Act {targetActIndex + 1} selection";
-    }
-
     public static string DescribeSpecialAncientOverrides(string ancientId)
     {
         if (!SpecialAncientOverridesByTargetAct.TryGetValue(ancientId, out bool[]? actFlags))
@@ -650,7 +635,7 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         if (enabledSourceActList.Count == 0)
             return "(none)";
 
-        return string.Join(", ", enabledSourceActList.Select(sourceActIndex => GetAncientPoolSourceActLabel(sourceActIndex)));
+        return string.Join(", ", enabledSourceActList.Select(sourceActIndex => GetAncientPoolSourceActLogLabel(sourceActIndex)));
     }
 
     public static void ApplyAncientPoolSourceActToggle(int targetActIndex, int sourceActIndex, object value)
@@ -687,12 +672,7 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         return $"act{targetActIndex + 1}AncientsFromAct{sourceActIndex + 1}";
     }
 
-    public static string GetAncientPoolTargetActLabel(int targetActIndex)
-    {
-        return $"Act {targetActIndex + 1} Ancients";
-    }
-
-    public static string GetAncientPoolSourceActLabel(int sourceActIndex)
+    private static string GetAncientPoolSourceActLogLabel(int sourceActIndex)
     {
         return $"From Act {sourceActIndex + 1}";
     }
@@ -808,6 +788,15 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
+            if (ChooseTheAncientSettingsText.TryGetOptionIndex(
+                    rawString,
+                    SelectionGameModeOptions,
+                    ChooseTheAncientSettingsText.SelectionGameModeOptionKeys,
+                    out int localizedIndex))
+            {
+                return (SelectionGameMode)localizedIndex;
+            }
+
             if (string.Equals(rawString, SelectionGameModeOptions[0], StringComparison.OrdinalIgnoreCase)
                 || string.Equals(rawString, nameof(SelectionGameMode.MontyHall), StringComparison.OrdinalIgnoreCase))
             {
@@ -870,6 +859,15 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
+            if (ChooseTheAncientSettingsText.TryGetOptionIndex(
+                    rawString,
+                    VoteClickTargetOptions,
+                    ChooseTheAncientSettingsText.VoteClickTargetOptionKeys,
+                    out int localizedIndex))
+            {
+                return (VoteClickTargetMode)localizedIndex;
+            }
+
             if (string.Equals(rawString, VoteClickTargetOptions[0], StringComparison.OrdinalIgnoreCase)
                 || string.Equals(rawString, nameof(VoteClickTargetMode.ButtonOnly), StringComparison.OrdinalIgnoreCase))
             {
@@ -918,6 +916,15 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
+            if (ChooseTheAncientSettingsText.TryGetOptionIndex(
+                    rawString,
+                    LogBackendOptions,
+                    ChooseTheAncientSettingsText.LogBackendOptionKeys,
+                    out int localizedIndex))
+            {
+                return (LogBackend)localizedIndex;
+            }
+
             if (string.Equals(rawString, LogBackendOptions[0], StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(rawString, nameof(LogBackend.BaseGame), StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(rawString, "Base game logger", StringComparison.OrdinalIgnoreCase))
@@ -958,6 +965,15 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
+            if (ChooseTheAncientSettingsText.TryGetOptionIndex(
+                    rawString,
+                    LogLevelOptions,
+                    ChooseTheAncientSettingsText.LogLevelOptionKeys,
+                    out int localizedIndex))
+            {
+                return (LogLevel)localizedIndex;
+            }
+
             // "Trace" was the previous display/saved value for VeryDebug.
             if (string.Equals(rawString, "Trace", StringComparison.OrdinalIgnoreCase))
                 return LogLevel.VeryDebug;

@@ -132,19 +132,19 @@ internal static class BaseLibSettingsInterop
         Type gameModeEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibGameMode",
-            ChooseTheAncientConfig.SelectionGameModeOptions.Select(ToSentenceCaseOption).ToArray());
+            ChooseTheAncientSettingsText.GetSelectionGameModeOptions());
         Type voteClickTargetEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibVoteClickTarget",
-            ChooseTheAncientConfig.VoteClickTargetOptions.Select(ToSentenceCaseOption).ToArray());
+            ChooseTheAncientSettingsText.GetVoteClickTargetOptions());
         Type logBackendEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibLogBackend",
-            ChooseTheAncientConfig.LogBackendOptions.Select(ToSentenceCaseOption).ToArray());
+            ChooseTheAncientSettingsText.GetLogBackendOptions());
         Type logLevelEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibLogLevel",
-            ChooseTheAncientConfig.LogLevelOptions.Select(ToSentenceCaseOption).ToArray());
+            ChooseTheAncientSettingsText.GetLogLevelOptions());
 
         FieldBuilder settingChangedMethodField = typeBuilder.DefineField(
             SettingChangedMethodFieldName,
@@ -508,15 +508,6 @@ internal static class BaseLibSettingsInterop
         typeBuilder.DefineMethodOverride(overrideMethod, baseMethod);
     }
 
-private static string ToSentenceCaseOption(string value)
-{
-    if (string.IsNullOrWhiteSpace(value))
-        return value;
-
-    string lower = value.ToLowerInvariant();
-    return char.ToUpperInvariant(lower[0]) + lower.Substring(1);
-}
-
 private static Type? FindBaseLibType(string fullName)
 {
     return AppDomain.CurrentDomain.GetAssemblies()
@@ -531,7 +522,6 @@ public static class BaseLibSettingsPage
     private const string ModPrefix = "ChooseTheAncient-";
     private static object? _activeBaseLibConfigInstance;
     private static bool _suppressGeneratedSettingCallbacks;
-    private static int _currentAncientPoolTargetActIndex = -1;
     private static bool _showAdvancedSettings;
     private static Control? _advancedSettingsContainer;
     private static Control? _redundantSettingsContainer;
@@ -547,7 +537,7 @@ public static class BaseLibSettingsPage
         {
             AddSlider(
                 optionContainer,
-                "Ancients in vote",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.ancient_count"),
                 ChooseTheAncientConfig.AncientCount,
                 2,
                 8,
@@ -559,8 +549,10 @@ public static class BaseLibSettingsPage
 
             AddChoice(
                 optionContainer,
-                "Game mode",
+                "GameMode",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.game_mode"),
                 ChooseTheAncientConfig.SelectionGameModeOptions,
+                ChooseTheAncientSettingsText.GetSelectionGameModeOptions(),
                 ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode),
                 value =>
                 {
@@ -568,11 +560,14 @@ public static class BaseLibSettingsPage
                     ModConfigBridge.PushImportantSettingsToModConfig();
                 });
 
-            AddSectionBreak(optionContainer, "Advanced settings");
+            AddSectionBreak(
+                optionContainer,
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.section.advanced.title"));
 
             AddToggle(
                 optionContainer,
-                "Show advanced settings",
+                "ShowAdvancedSettings",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.show_advanced"),
                 _showAdvancedSettings,
                 value =>
                 {
@@ -590,8 +585,10 @@ public static class BaseLibSettingsPage
 
             AddChoice(
                 advancedContainer,
-                "Logging mode",
+                "LogBackend",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.logging_mode"),
                 ChooseTheAncientConfig.LogBackendOptions,
+                ChooseTheAncientSettingsText.GetLogBackendOptions(),
                 ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend),
                 value =>
                 {
@@ -601,8 +598,10 @@ public static class BaseLibSettingsPage
 
             AddChoice(
                 advancedContainer,
-                "ModLog level",
+                "LogLevel",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.log_level"),
                 ChooseTheAncientConfig.LogLevelOptions,
+                ChooseTheAncientSettingsText.GetLogLevelOptions(),
                 ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel),
                 value =>
                 {
@@ -612,8 +611,10 @@ public static class BaseLibSettingsPage
 
             AddChoice(
                 advancedContainer,
-                "Vote selection",
+                "VoteClickTarget",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.vote_selection"),
                 ChooseTheAncientConfig.VoteClickTargetOptions,
+                ChooseTheAncientSettingsText.GetVoteClickTargetOptions(),
                 ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.VoteClickTarget),
                 value =>
                 {
@@ -623,7 +624,8 @@ public static class BaseLibSettingsPage
 
             AddToggle(
                 advancedContainer,
-                "Button outline",
+                "ShowOnlyButtonOutline",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.button_outline"),
                 ChooseTheAncientConfig.ShowOnlyButtonOutline,
                 value =>
                 {
@@ -633,7 +635,8 @@ public static class BaseLibSettingsPage
 
             AddToggle(
                 advancedContainer,
-                "Controller hotkeys",
+                "ShowControllerHotkeys",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.controller_hotkeys"),
                 ChooseTheAncientConfig.ShowControllerHotkeys,
                 value =>
                 {
@@ -643,8 +646,8 @@ public static class BaseLibSettingsPage
 
             AddButton(
                 advancedContainer,
-                "Reset all settings",
-                "Reset",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.reset_all"),
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.button.reset"),
                 () =>
                 {
                     ChooseTheAncientConfig.ResetAllSettingsToDefaults();
@@ -656,11 +659,14 @@ public static class BaseLibSettingsPage
 
             optionContainer.AddChild(advancedContainer);
 
-            AddSectionBreak(optionContainer, "Redundant settings");
+            AddSectionBreak(
+                optionContainer,
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.page.redundant.title"));
 
             AddToggle(
                 optionContainer,
-                "Show and enable",
+                "EnableRedundantSettings",
+                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.enable_redundant"),
                 ChooseTheAncientConfig.EnableRedundantSettings,
                 value =>
                 {
@@ -670,7 +676,8 @@ public static class BaseLibSettingsPage
                 });
 
             optionContainer.AddChild(CreateDescription(
-                "Shows these legacy options and enables their source-act filters and Neow/Darv overrides."));
+                ChooseTheAncientSettingsText.Get(
+                    "CHOOSETHEANCIENT.settings.description.enable_redundant")));
 
             var redundantContainer = new VBoxContainer
             {
@@ -680,36 +687,61 @@ public static class BaseLibSettingsPage
             _redundantSettingsContainer = redundantContainer;
 
             redundantContainer.AddChild(CreateDescription(
-                "This is old. Use AncientConfigsPlus for ancient filtering."));
+                ChooseTheAncientSettingsText.Get(
+                    "CHOOSETHEANCIENT.settings.description.redundant_notice")));
 
-            redundantContainer.AddChild(CreateSubSectionHeader("Special ancient overrides"));
+            redundantContainer.AddChild(CreateSubSectionHeader(
+                ChooseTheAncientSettingsText.Get(
+                    "CHOOSETHEANCIENT.settings.section.special_ancient_overrides.title")));
 
             foreach (string ancientId in new[] { "NEOW", "DARV" })
             {
-                string ancientDisplayName = ToAncientDisplayName(ancientId);
-                redundantContainer.AddChild(CreateSubHeader($"{ancientDisplayName} overrides"));
+                string ancientDisplayName = ChooseTheAncientSettingsText.Get(
+                    ancientId == "NEOW"
+                        ? "CHOOSETHEANCIENT.settings.ancient.neow"
+                        : "CHOOSETHEANCIENT.settings.ancient.darv");
+
+                redundantContainer.AddChild(CreateSubHeader(
+                    ChooseTheAncientSettingsText.Get(
+                        "CHOOSETHEANCIENT.settings.header.ancient_overrides",
+                        ("AncientName", ancientDisplayName))));
+
                 for (int targetActIndex = 0; targetActIndex < 3; targetActIndex++)
                 {
                     int capturedTargetActIndex = targetActIndex;
+                    string propertyName =
+                        $"Include{(ancientId == "NEOW" ? "Neow" : "Darv")}InAct{targetActIndex + 1}Selection";
+
                     AddToggle(
                         redundantContainer,
-                        $"{ancientDisplayName} — {ToSentenceStart(ChooseTheAncientConfig.GetSpecialAncientOverrideToggleLabel(targetActIndex))}",
+                        propertyName,
+                        ChooseTheAncientSettingsText.Get(
+                            "CHOOSETHEANCIENT.settings.label.include_ancient_in_act",
+                            ("AncientName", ancientDisplayName),
+                            ("ActNumber", targetActIndex + 1)),
                         ChooseTheAncientConfig.IsSpecialAncientOverrideEnabled(ancientId, targetActIndex),
                         enabled =>
                         {
-                            ChooseTheAncientConfig.ApplySpecialAncientOverrideToggle(ancientId, capturedTargetActIndex, enabled);
+                            ChooseTheAncientConfig.ApplySpecialAncientOverrideToggle(
+                                ancientId,
+                                capturedTargetActIndex,
+                                enabled);
                             ModConfigBridge.PushImportantSettingsToModConfig();
                         });
                 }
             }
 
-            redundantContainer.AddChild(CreateSubSectionHeader("Ancient pool source acts"));
+            redundantContainer.AddChild(CreateSubSectionHeader(
+                ChooseTheAncientSettingsText.Get(
+                    "CHOOSETHEANCIENT.settings.section.ancient_pool_sources.title")));
 
             for (int targetActIndex = 0; targetActIndex < 3; targetActIndex++)
             {
                 int capturedTargetActIndex = targetActIndex;
-                redundantContainer.AddChild(CreateSubHeader(ChooseTheAncientConfig.GetAncientPoolTargetActLabel(targetActIndex)));
-                _currentAncientPoolTargetActIndex = targetActIndex;
+                redundantContainer.AddChild(CreateSubHeader(
+                    ChooseTheAncientSettingsText.Get(
+                        "CHOOSETHEANCIENT.settings.header.target_act_ancients",
+                        ("ActNumber", targetActIndex + 1))));
 
                 for (int sourceActIndex = 0; sourceActIndex < 3; sourceActIndex++)
                 {
@@ -717,10 +749,15 @@ public static class BaseLibSettingsPage
                     bool enabled = ChooseTheAncientConfig
                         .GetEnabledAncientPoolSourceActs(targetActIndex)
                         .Contains(sourceActIndex);
+                    string propertyName =
+                        $"Act{targetActIndex + 1}AncientsFromAct{sourceActIndex + 1}";
 
                     AddToggle(
                         redundantContainer,
-                        $"Allow {ChooseTheAncientConfig.GetAncientPoolSourceActLabel(sourceActIndex)} ancients",
+                        propertyName,
+                        ChooseTheAncientSettingsText.Get(
+                            "CHOOSETHEANCIENT.settings.label.allow_source_act",
+                            ("ActNumber", sourceActIndex + 1)),
                         enabled,
                         value =>
                         {
@@ -731,8 +768,6 @@ public static class BaseLibSettingsPage
                             ModConfigBridge.PushImportantSettingsToModConfig();
                         });
                 }
-
-                _currentAncientPoolTargetActIndex = -1;
             }
 
             optionContainer.AddChild(redundantContainer);
@@ -742,7 +777,9 @@ public static class BaseLibSettingsPage
         catch (Exception e)
         {
             ModLog.Warn($"Failed to build BaseLib settings page: {e}");
-            optionContainer.AddChild(CreateDescription("ChooseTheAncient failed to build its BaseLib settings page. Check the log for details."));
+            optionContainer.AddChild(CreateDescription(
+                ChooseTheAncientSettingsText.Get(
+                    "CHOOSETHEANCIENT.settings.error.baselib_page_build_failed")));
         }
         finally
         {
@@ -763,16 +800,16 @@ public static class BaseLibSettingsPage
                     ChooseTheAncientConfig.ApplyAncientCount(Convert.ToInt32(value));
                     break;
                 case "GameMode":
-                    ChooseTheAncientConfig.ApplySelectionGameMode(ToCanonicalOption(value?.ToString() ?? string.Empty, ChooseTheAncientConfig.SelectionGameModeOptions));
+                    ChooseTheAncientConfig.ApplySelectionGameMode(ToCanonicalOption(value, ChooseTheAncientConfig.SelectionGameModeOptions));
                     break;
                 case "VoteClickTarget":
-                    ChooseTheAncientConfig.ApplyVoteClickTarget(ToCanonicalOption(value?.ToString() ?? string.Empty, ChooseTheAncientConfig.VoteClickTargetOptions));
+                    ChooseTheAncientConfig.ApplyVoteClickTarget(ToCanonicalOption(value, ChooseTheAncientConfig.VoteClickTargetOptions));
                     break;
                 case "LogBackend":
-                    ChooseTheAncientConfig.ApplyLogBackend(ToCanonicalOption(value?.ToString() ?? string.Empty, ChooseTheAncientConfig.LogBackendOptions));
+                    ChooseTheAncientConfig.ApplyLogBackend(ToCanonicalOption(value, ChooseTheAncientConfig.LogBackendOptions));
                     break;
                 case "LogLevel":
-                    ChooseTheAncientConfig.ApplyLogLevel(ToCanonicalOption(value?.ToString() ?? string.Empty, ChooseTheAncientConfig.LogLevelOptions));
+                    ChooseTheAncientConfig.ApplyLogLevel(ToCanonicalOption(value, ChooseTheAncientConfig.LogLevelOptions));
                     break;
 
                 case "ShowAdvancedSettings":
@@ -968,16 +1005,18 @@ public static class BaseLibSettingsPage
         parent.AddChild(CreateRow(label, settingContainer));
     }
 
-    private static void AddToggle(Control parent, string label, bool value, Action<bool> onChanged)
+    private static void AddToggle(
+        Control parent,
+        string propertyName,
+        string label,
+        bool value,
+        Action<bool> onChanged)
     {
-        // Prefer BaseLib's real NConfigTickbox. It owns the game tickbox scene,
-        // connects the correct NSettingsTickbox input handlers in _Ready(), and
-        // writes back through the generated bool property. The previous direct
-        // settings_tickbox scene looked right but did not receive clicks reliably.
-        string? propertyName = TryGetGeneratedBoolPropertyName(label);
-        Control? tickbox = propertyName == null
-            ? null
-            : TryCreateBaseLibPropertyControl("CreateRawTickboxControl", propertyName);
+        // Prefer BaseLib's real NConfigTickbox. The stable property name is
+        // intentionally separate from the localized menu label.
+        Control? tickbox = TryCreateBaseLibPropertyControl(
+            "CreateRawTickboxControl",
+            propertyName);
 
         if (tickbox != null)
         {
@@ -1084,66 +1123,43 @@ public static class BaseLibSettingsPage
     }
 
 
-    private static string ToAncientDisplayName(string ancientId)
+    private static string ToCanonicalOption(object? value, string[] canonicalOptions)
     {
-        return ancientId.ToUpperInvariant() switch
+        if (value != null)
         {
-            "NEOW" => "Neow",
-            "DARV" => "Darv",
-            _ => ToSentenceCaseOption(ancientId)
-        };
-    }
-
-    private static string ToSentenceStart(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return value;
-
-        return char.ToLowerInvariant(value[0]) + value.Substring(1);
-    }
-
-    private static string ToSentenceCaseOption(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return value;
-
-        string lower = value.ToLowerInvariant();
-        return char.ToUpperInvariant(lower[0]) + lower.Substring(1);
-    }
-
-    private static string ToCanonicalOption(string displayValue, string[] canonicalOptions)
-    {
-        foreach (string option in canonicalOptions)
-        {
-            if (string.Equals(option, displayValue, StringComparison.Ordinal) ||
-                string.Equals(ToSentenceCaseOption(option), displayValue, StringComparison.Ordinal))
+            Type type = value.GetType();
+            if (type.IsEnum)
             {
-                return option;
+                int enumIndex = Convert.ToInt32(value);
+                if (enumIndex >= 0 && enumIndex < canonicalOptions.Length)
+                    return canonicalOptions[enumIndex];
             }
+
+            string displayValue = value.ToString() ?? string.Empty;
+            foreach (string option in canonicalOptions)
+            {
+                if (string.Equals(option, displayValue, StringComparison.OrdinalIgnoreCase))
+                    return option;
+            }
+
+            return displayValue;
         }
 
-        return displayValue;
+        return canonicalOptions.Length > 0 ? canonicalOptions[0] : string.Empty;
     }
 
-    private static string? TryGetGeneratedChoicePropertyName(string label)
+    private static void AddChoice(
+        Control parent,
+        string propertyName,
+        string label,
+        string[] canonicalOptions,
+        string[] displayOptions,
+        string currentValue,
+        Action<string> onChanged)
     {
-        return label switch
-        {
-            "Game mode" => "GameMode",
-            "Vote selection" => "VoteClickTarget",
-            "Vote click area" => "VoteClickTarget",
-            "Log output" => "LogBackend",
-            "Log level" => "LogLevel",
-            _ => null
-        };
-    }
-
-    private static void AddChoice(Control parent, string label, string[] options, string currentValue, Action<string> onChanged)
-    {
-        string? propertyName = TryGetGeneratedChoicePropertyName(label);
-        Control? baseLibDropdown = propertyName == null
-            ? null
-            : TryCreateBaseLibPropertyControl("CreateRawDropdownControl", propertyName);
+        Control? baseLibDropdown = TryCreateBaseLibPropertyControl(
+            "CreateRawDropdownControl",
+            propertyName);
 
         if (baseLibDropdown != null)
         {
@@ -1160,10 +1176,11 @@ public static class BaseLibSettingsPage
         };
 
         int selectedIndex = 0;
-        for (int i = 0; i < options.Length; i++)
+        int count = Math.Min(canonicalOptions.Length, displayOptions.Length);
+        for (int i = 0; i < count; i++)
         {
-            optionButton.AddItem(ToSentenceCaseOption(options[i]), i);
-            if (string.Equals(options[i], currentValue, StringComparison.Ordinal))
+            optionButton.AddItem(displayOptions[i], i);
+            if (string.Equals(canonicalOptions[i], currentValue, StringComparison.Ordinal))
                 selectedIndex = i;
         }
 
@@ -1172,8 +1189,8 @@ public static class BaseLibSettingsPage
         optionButton.ItemSelected += index =>
         {
             int i = (int)index;
-            if (i >= 0 && i < options.Length)
-                onChanged(options[i]);
+            if (i >= 0 && i < canonicalOptions.Length)
+                onChanged(canonicalOptions[i]);
         };
 
         parent.AddChild(CreateRow(label, optionButton));
@@ -1382,37 +1399,6 @@ public static class BaseLibSettingsPage
         margin.AddThemeConstantOverride("margin_bottom", 12);
         margin.AddChild(separator);
         return margin;
-    }
-
-    private static string? TryGetGeneratedBoolPropertyName(string label)
-    {
-        return label switch
-        {
-            "Show advanced settings" => "ShowAdvancedSettings",
-            "Show and enable" => "EnableRedundantSettings",
-            "Controller hotkeys" => "ShowControllerHotkeys",
-            "Show controller hotkeys" => "ShowControllerHotkeys",
-            "Button outline" => "ShowOnlyButtonOutline",
-            "Alternative vote button design" => "ShowOnlyButtonOutline",
-
-            "Allow From Act 1 ancients" when _currentAncientPoolTargetActIndex == 0 => "Act1AncientsFromAct1",
-            "Allow From Act 2 ancients" when _currentAncientPoolTargetActIndex == 0 => "Act1AncientsFromAct2",
-            "Allow From Act 3 ancients" when _currentAncientPoolTargetActIndex == 0 => "Act1AncientsFromAct3",
-            "Allow From Act 1 ancients" when _currentAncientPoolTargetActIndex == 1 => "Act2AncientsFromAct1",
-            "Allow From Act 2 ancients" when _currentAncientPoolTargetActIndex == 1 => "Act2AncientsFromAct2",
-            "Allow From Act 3 ancients" when _currentAncientPoolTargetActIndex == 1 => "Act2AncientsFromAct3",
-            "Allow From Act 1 ancients" when _currentAncientPoolTargetActIndex == 2 => "Act3AncientsFromAct1",
-            "Allow From Act 2 ancients" when _currentAncientPoolTargetActIndex == 2 => "Act3AncientsFromAct2",
-            "Allow From Act 3 ancients" when _currentAncientPoolTargetActIndex == 2 => "Act3AncientsFromAct3",
-
-            "Neow — include in Act 1 selection" => "IncludeNeowInAct1Selection",
-            "Neow — include in Act 2 selection" => "IncludeNeowInAct2Selection",
-            "Neow — include in Act 3 selection" => "IncludeNeowInAct3Selection",
-            "Darv — include in Act 1 selection" => "IncludeDarvInAct1Selection",
-            "Darv — include in Act 2 selection" => "IncludeDarvInAct2Selection",
-            "Darv — include in Act 3 selection" => "IncludeDarvInAct3Selection",
-            _ => null
-        };
     }
 
     private static Control? TryCreateBaseLibPropertyControl(string methodName, string propertyName)
