@@ -96,5 +96,19 @@
   "CHOOSETHEANCIENT-ACT3_ANCIENTS_FROM_ACT2.title": "From Act 2",
   "CHOOSETHEANCIENT-ACT3_ANCIENTS_FROM_ACT2.hover.desc": "Allow Act 2 ancients to appear in the Act 3 Choose The Ancient pool.",
   "CHOOSETHEANCIENT-ACT3_ANCIENTS_FROM_ACT3.title": "From Act 3",
-  "CHOOSETHEANCIENT-ACT3_ANCIENTS_FROM_ACT3.hover.desc": "Allow Act 3 ancients to appear in the Act 3 Choose The Ancient pool."
+  "CHOOSETHEANCIENT-ACT3_ANCIENTS_FROM_ACT3.hover.desc": "Allow Act 3 ancients to appear in the Act 3 Choose The Ancient pool.",
+  "CHOOSETHEANCIENT-GAME_MODE.MontyHall": "Monty Hall",
+  "CHOOSETHEANCIENT-GAME_MODE.FairFight": "Fair Fight",
+  "CHOOSETHEANCIENT-GAME_MODE.WantEverything": "I Want To Know Everything",
+  "CHOOSETHEANCIENT-GAME_MODE.SimplePicker": "Simple Picker",
+  "CHOOSETHEANCIENT-VOTE_CLICK_TARGET.ButtonOnly": "Button only",
+  "CHOOSETHEANCIENT-VOTE_CLICK_TARGET.WholeCard": "Whole card",
+  "CHOOSETHEANCIENT-VOTE_CLICK_TARGET.WholeAncientSlot": "Whole ancient slot",
+  "CHOOSETHEANCIENT-LOG_BACKEND.GameLogging": "Game logging",
+  "CHOOSETHEANCIENT-LOG_BACKEND.ModLog": "ModLog",
+  "CHOOSETHEANCIENT-LOG_LEVEL.Error": "Error",
+  "CHOOSETHEANCIENT-LOG_LEVEL.Warn": "Warning",
+  "CHOOSETHEANCIENT-LOG_LEVEL.Info": "Info",
+  "CHOOSETHEANCIENT-LOG_LEVEL.Debug": "Debug",
+  "CHOOSETHEANCIENT-LOG_LEVEL.VeryDebug": "Very Debug"
 }

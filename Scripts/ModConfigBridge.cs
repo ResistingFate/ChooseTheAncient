@@ -134,7 +134,7 @@ internal static class ModConfigBridge
 
             // Localized display name (shows in ModConfig's mod list)
             Dictionary<string, string> displayNames =
-                ChooseTheAncientSettingsText.GetModConfigLanguageMap(
+                ChooseTheAncientLocalization.GetSettingsModConfigLanguageMap(
                     "CHOOSETHEANCIENT.mod_title");
 
             // ModConfig has 2 overloads: 3-param (no i18n) and 4-param (with i18n).
@@ -238,9 +238,9 @@ internal static class ModConfigBridge
             return;
 
         SetValue("ancientCount", (float)ChooseTheAncientConfig.AncientCount);
-        SetValue("gameMode", ChooseTheAncientSettingsText.GetSelectionGameModeOption(ChooseTheAncientConfig.GameMode));
-        SetValue("logBackend", ChooseTheAncientSettingsText.GetLogBackendOption(ChooseTheAncientConfig.CurrentLogBackend));
-        SetValue("logLevel", ChooseTheAncientSettingsText.GetLogLevelOption(ChooseTheAncientConfig.CurrentLogLevel));
+        SetValue("gameMode", ChooseTheAncientConfig.GetLocalizedSelectionGameModeOption(ChooseTheAncientConfig.GameMode));
+        SetValue("logBackend", ChooseTheAncientConfig.GetLocalizedLogBackendOption(ChooseTheAncientConfig.CurrentLogBackend));
+        SetValue("logLevel", ChooseTheAncientConfig.GetLocalizedLogLevelOption(ChooseTheAncientConfig.CurrentLogLevel));
     }
 
 
@@ -289,9 +289,9 @@ internal static class ModConfigBridge
             Set(
                 cfg,
                 "DefaultValue",
-                (object)ChooseTheAncientSettingsText.GetSelectionGameModeOption(
+                (object)ChooseTheAncientConfig.GetLocalizedSelectionGameModeOption(
                     ChooseTheAncientConfig.GameMode));
-            Set(cfg, "Options", ChooseTheAncientSettingsText.GetSelectionGameModeOptions());
+            Set(cfg, "Options", ChooseTheAncientConfig.GetLocalizedSelectionGameModeOptions());
             SetLocalized(
                 cfg,
                 "Description",
@@ -320,9 +320,9 @@ internal static class ModConfigBridge
             Set(
                 cfg,
                 "DefaultValue",
-                (object)ChooseTheAncientSettingsText.GetLogBackendOption(
+                (object)ChooseTheAncientConfig.GetLocalizedLogBackendOption(
                     ChooseTheAncientConfig.CurrentLogBackend));
-            Set(cfg, "Options", ChooseTheAncientSettingsText.GetLogBackendOptions());
+            Set(cfg, "Options", ChooseTheAncientConfig.GetLocalizedLogBackendOptions());
             SetLocalized(
                 cfg,
                 "Description",
@@ -343,9 +343,9 @@ internal static class ModConfigBridge
             Set(
                 cfg,
                 "DefaultValue",
-                (object)ChooseTheAncientSettingsText.GetLogLevelOption(
+                (object)ChooseTheAncientConfig.GetLocalizedLogLevelOption(
                     ChooseTheAncientConfig.CurrentLogLevel));
-            Set(cfg, "Options", ChooseTheAncientSettingsText.GetLogLevelOptions());
+            Set(cfg, "Options", ChooseTheAncientConfig.GetLocalizedLogLevelOptions());
             SetLocalized(
                 cfg,
                 "Description",
@@ -409,11 +409,11 @@ internal static class ModConfigBridge
         Set(
             obj,
             fallbackPropertyName,
-            ChooseTheAncientSettingsText.GetForLanguage("eng", locKey));
+            ChooseTheAncientLocalization.GetSettingsTextForLanguage("eng", locKey));
         Set(
             obj,
             localizedPropertyName,
-            ChooseTheAncientSettingsText.GetModConfigLanguageMap(locKey));
+            ChooseTheAncientLocalization.GetSettingsModConfigLanguageMap(locKey));
     }
 
     private static object EnumVal(string name)

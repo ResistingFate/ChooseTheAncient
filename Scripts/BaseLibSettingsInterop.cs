@@ -132,19 +132,19 @@ internal static class BaseLibSettingsInterop
         Type gameModeEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibGameMode",
-            ChooseTheAncientSettingsText.GetSelectionGameModeOptions());
+            ["MontyHall", "FairFight", "WantEverything", "SimplePicker"]);
         Type voteClickTargetEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibVoteClickTarget",
-            ChooseTheAncientSettingsText.GetVoteClickTargetOptions());
+            ["ButtonOnly", "WholeCard", "WholeAncientSlot"]);
         Type logBackendEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibLogBackend",
-            ChooseTheAncientSettingsText.GetLogBackendOptions());
+            ["GameLogging", "ModLog"]);
         Type logLevelEnumType = BuildGeneratedEnumType(
             moduleBuilder,
             "ChooseTheAncient.GeneratedBaseLibLogLevel",
-            ChooseTheAncientSettingsText.GetLogLevelOptions());
+            ["Error", "Warn", "Info", "Debug", "VeryDebug"]);
 
         FieldBuilder settingChangedMethodField = typeBuilder.DefineField(
             SettingChangedMethodFieldName,
@@ -537,7 +537,7 @@ public static class BaseLibSettingsPage
         {
             AddSlider(
                 optionContainer,
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.ancient_count"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.ancient_count"),
                 ChooseTheAncientConfig.AncientCount,
                 2,
                 8,
@@ -550,9 +550,9 @@ public static class BaseLibSettingsPage
             AddChoice(
                 optionContainer,
                 "GameMode",
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.game_mode"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.game_mode"),
                 ChooseTheAncientConfig.SelectionGameModeOptions,
-                ChooseTheAncientSettingsText.GetSelectionGameModeOptions(),
+                ChooseTheAncientConfig.GetLocalizedSelectionGameModeOptions(),
                 ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode),
                 value =>
                 {
@@ -562,12 +562,12 @@ public static class BaseLibSettingsPage
 
             AddSectionBreak(
                 optionContainer,
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.section.advanced.title"));
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.section.advanced.title"));
 
             AddToggle(
                 optionContainer,
                 "ShowAdvancedSettings",
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.show_advanced"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.show_advanced"),
                 _showAdvancedSettings,
                 value =>
                 {
@@ -586,9 +586,9 @@ public static class BaseLibSettingsPage
             AddChoice(
                 advancedContainer,
                 "LogBackend",
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.logging_mode"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.logging_mode"),
                 ChooseTheAncientConfig.LogBackendOptions,
-                ChooseTheAncientSettingsText.GetLogBackendOptions(),
+                ChooseTheAncientConfig.GetLocalizedLogBackendOptions(),
                 ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend),
                 value =>
                 {
@@ -599,9 +599,9 @@ public static class BaseLibSettingsPage
             AddChoice(
                 advancedContainer,
                 "LogLevel",
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.log_level"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.log_level"),
                 ChooseTheAncientConfig.LogLevelOptions,
-                ChooseTheAncientSettingsText.GetLogLevelOptions(),
+                ChooseTheAncientConfig.GetLocalizedLogLevelOptions(),
                 ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel),
                 value =>
                 {
@@ -612,9 +612,9 @@ public static class BaseLibSettingsPage
             AddChoice(
                 advancedContainer,
                 "VoteClickTarget",
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.vote_selection"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.vote_selection"),
                 ChooseTheAncientConfig.VoteClickTargetOptions,
-                ChooseTheAncientSettingsText.GetVoteClickTargetOptions(),
+                ChooseTheAncientConfig.GetLocalizedVoteClickTargetOptions(),
                 ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.VoteClickTarget),
                 value =>
                 {
@@ -625,7 +625,7 @@ public static class BaseLibSettingsPage
             AddToggle(
                 advancedContainer,
                 "ShowOnlyButtonOutline",
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.button_outline"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.button_outline"),
                 ChooseTheAncientConfig.ShowOnlyButtonOutline,
                 value =>
                 {
@@ -636,7 +636,7 @@ public static class BaseLibSettingsPage
             AddToggle(
                 advancedContainer,
                 "ShowControllerHotkeys",
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.controller_hotkeys"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.controller_hotkeys"),
                 ChooseTheAncientConfig.ShowControllerHotkeys,
                 value =>
                 {
@@ -646,8 +646,8 @@ public static class BaseLibSettingsPage
 
             AddButton(
                 advancedContainer,
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.reset_all"),
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.button.reset"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.reset_all"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.button.reset"),
                 () =>
                 {
                     ChooseTheAncientConfig.ResetAllSettingsToDefaults();
@@ -661,12 +661,12 @@ public static class BaseLibSettingsPage
 
             AddSectionBreak(
                 optionContainer,
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.page.redundant.title"));
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.page.redundant.title"));
 
             AddToggle(
                 optionContainer,
                 "EnableRedundantSettings",
-                ChooseTheAncientSettingsText.Get("CHOOSETHEANCIENT.settings.label.enable_redundant"),
+                ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.label.enable_redundant"),
                 ChooseTheAncientConfig.EnableRedundantSettings,
                 value =>
                 {
@@ -676,7 +676,7 @@ public static class BaseLibSettingsPage
                 });
 
             optionContainer.AddChild(CreateDescription(
-                ChooseTheAncientSettingsText.Get(
+                ChooseTheAncientLocalization.GetSettingsText(
                     "CHOOSETHEANCIENT.settings.description.enable_redundant")));
 
             var redundantContainer = new VBoxContainer
@@ -687,22 +687,22 @@ public static class BaseLibSettingsPage
             _redundantSettingsContainer = redundantContainer;
 
             redundantContainer.AddChild(CreateDescription(
-                ChooseTheAncientSettingsText.Get(
+                ChooseTheAncientLocalization.GetSettingsText(
                     "CHOOSETHEANCIENT.settings.description.redundant_notice")));
 
             redundantContainer.AddChild(CreateSubSectionHeader(
-                ChooseTheAncientSettingsText.Get(
+                ChooseTheAncientLocalization.GetSettingsText(
                     "CHOOSETHEANCIENT.settings.section.special_ancient_overrides.title")));
 
             foreach (string ancientId in new[] { "NEOW", "DARV" })
             {
-                string ancientDisplayName = ChooseTheAncientSettingsText.Get(
+                string ancientDisplayName = ChooseTheAncientLocalization.GetSettingsText(
                     ancientId == "NEOW"
                         ? "CHOOSETHEANCIENT.settings.ancient.neow"
                         : "CHOOSETHEANCIENT.settings.ancient.darv");
 
                 redundantContainer.AddChild(CreateSubHeader(
-                    ChooseTheAncientSettingsText.Get(
+                    ChooseTheAncientLocalization.GetSettingsText(
                         "CHOOSETHEANCIENT.settings.header.ancient_overrides",
                         ("AncientName", ancientDisplayName))));
 
@@ -715,7 +715,7 @@ public static class BaseLibSettingsPage
                     AddToggle(
                         redundantContainer,
                         propertyName,
-                        ChooseTheAncientSettingsText.Get(
+                        ChooseTheAncientLocalization.GetSettingsText(
                             "CHOOSETHEANCIENT.settings.label.include_ancient_in_act",
                             ("AncientName", ancientDisplayName),
                             ("ActNumber", targetActIndex + 1)),
@@ -732,14 +732,14 @@ public static class BaseLibSettingsPage
             }
 
             redundantContainer.AddChild(CreateSubSectionHeader(
-                ChooseTheAncientSettingsText.Get(
+                ChooseTheAncientLocalization.GetSettingsText(
                     "CHOOSETHEANCIENT.settings.section.ancient_pool_sources.title")));
 
             for (int targetActIndex = 0; targetActIndex < 3; targetActIndex++)
             {
                 int capturedTargetActIndex = targetActIndex;
                 redundantContainer.AddChild(CreateSubHeader(
-                    ChooseTheAncientSettingsText.Get(
+                    ChooseTheAncientLocalization.GetSettingsText(
                         "CHOOSETHEANCIENT.settings.header.target_act_ancients",
                         ("ActNumber", targetActIndex + 1))));
 
@@ -755,7 +755,7 @@ public static class BaseLibSettingsPage
                     AddToggle(
                         redundantContainer,
                         propertyName,
-                        ChooseTheAncientSettingsText.Get(
+                        ChooseTheAncientLocalization.GetSettingsText(
                             "CHOOSETHEANCIENT.settings.label.allow_source_act",
                             ("ActNumber", sourceActIndex + 1)),
                         enabled,
@@ -778,7 +778,7 @@ public static class BaseLibSettingsPage
         {
             ModLog.Warn($"Failed to build BaseLib settings page: {e}");
             optionContainer.AddChild(CreateDescription(
-                ChooseTheAncientSettingsText.Get(
+                ChooseTheAncientLocalization.GetSettingsText(
                     "CHOOSETHEANCIENT.settings.error.baselib_page_build_failed")));
         }
         finally

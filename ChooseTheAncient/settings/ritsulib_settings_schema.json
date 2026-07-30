@@ -64,11 +64,11 @@
                 }
               },
               "presentation": "dropdown",
-              "defaultValue": "Monty Hall",
+              "defaultValue": "monty_hall",
               "scope": "global",
               "options": [
                 {
-                  "value": "Monty Hall",
+                  "value": "monty_hall",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -77,7 +77,7 @@
                   }
                 },
                 {
-                  "value": "Fair Fight",
+                  "value": "fair_fight",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -86,7 +86,7 @@
                   }
                 },
                 {
-                  "value": "I Want To Know Everything",
+                  "value": "want_everything",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -95,7 +95,7 @@
                   }
                 },
                 {
-                  "value": "Simple Picker",
+                  "value": "simple_picker",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -144,11 +144,11 @@
                 }
               },
               "presentation": "dropdown",
-              "defaultValue": "Game logging",
+              "defaultValue": "game_logging",
               "scope": "global",
               "options": [
                 {
-                  "value": "Game logging",
+                  "value": "game_logging",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -157,7 +157,7 @@
                   }
                 },
                 {
-                  "value": "ModLog",
+                  "value": "modlog",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -184,11 +184,11 @@
                 }
               },
               "presentation": "stepper",
-              "defaultValue": "Info",
+              "defaultValue": "info",
               "scope": "global",
               "options": [
                 {
-                  "value": "Error",
+                  "value": "error",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -197,7 +197,7 @@
                   }
                 },
                 {
-                  "value": "Warn",
+                  "value": "warn",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -206,7 +206,7 @@
                   }
                 },
                 {
-                  "value": "Info",
+                  "value": "info",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -215,7 +215,7 @@
                   }
                 },
                 {
-                  "value": "Debug",
+                  "value": "debug",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -224,7 +224,7 @@
                   }
                 },
                 {
-                  "value": "VeryDebug",
+                  "value": "very_debug",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -251,11 +251,11 @@
                 }
               },
               "presentation": "dropdown",
-              "defaultValue": "Button only",
+              "defaultValue": "button_only",
               "scope": "global",
               "options": [
                 {
-                  "value": "Button only",
+                  "value": "button_only",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -264,7 +264,7 @@
                   }
                 },
                 {
-                  "value": "Whole card",
+                  "value": "whole_card",
                   "label": {
                     "locString": {
                       "table": "settings_ui",
@@ -273,7 +273,7 @@
                   }
                 },
                 {
-                  "value": "Whole ancient slot",
+                  "value": "whole_ancient_slot",
                   "label": {
                     "locString": {
                       "table": "settings_ui",

@@ -4,27 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/settings_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" afterDir="false" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="I have moved all localization into loc tables.">
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/ancients.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/ancients.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/gameplay_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/gameplay_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Scripts/ModConfigBridge.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/ModConfigBridge.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/ancient_dialogue_line.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/ancient_dialogue_line.tscn" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_selection_screen.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_selection_screen.tscn" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -302,23 +287,9 @@
       <workItem from="1785184420179" duration="28669000" />
       <workItem from="1785249454011" duration="14420000" />
       <workItem from="1785334365678" duration="10489000" />
-      <workItem from="1785413522615" duration="9308000" />
-    </task>
-    <task id="LOCAL-00059" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
-      <option name="closed" value="true" />
-      <created>1784744074251</created>
-      <option name="number" value="00059" />
-      <option name="presentableId" value="LOCAL-00059" />
-      <option name="project" value="LOCAL" />
-      <updated>1784744074251</updated>
-    </task>
-    <task id="LOCAL-00060" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
-      <option name="closed" value="true" />
-      <created>1784744144700</created>
-      <option name="number" value="00060" />
-      <option name="presentableId" value="LOCAL-00060" />
-      <option name="project" value="LOCAL" />
-      <updated>1784744144700</updated>
+      <workItem from="1785413522615" duration="10501000" />
+      <workItem from="1785436383625" duration="11042000" />
+      <workItem from="1785455069439" duration="467000" />
     </task>
     <task id="LOCAL-00061" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
       <option name="closed" value="true" />
@@ -696,7 +667,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785424686381</updated>
     </task>
-    <option name="localTasksCounter" value="108" />
+    <task id="LOCAL-00108" summary="I have moved all localization into loc tables.">
+      <option name="closed" value="true" />
+      <created>1785435046490</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
+      <option name="project" value="LOCAL" />
+      <updated>1785435046490</updated>
+    </task>
+    <task id="LOCAL-00109" summary="I have moved all localization into loc tables.">
+      <option name="closed" value="true" />
+      <created>1785454031573</created>
+      <option name="number" value="00109" />
+      <option name="presentableId" value="LOCAL-00109" />
+      <option name="project" value="LOCAL" />
+      <updated>1785454031573</updated>
+    </task>
+    <option name="localTasksCounter" value="110" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -732,7 +719,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Edited the Neow Script." />
     <MESSAGE value="Removed ChooseTheAncientPortalSourceNodePath and ChooseTheAncientPortalAutoDetectSourceNode properties from the API. Also removed all the code they required in Selection Screen to change the positions and baseSize. The API is simpler without them now that we have a consistent tutorial to get the values manually from godot." />
     <MESSAGE value="Added tutorials for aligning the API to the workshop folder" />
     <MESSAGE value="Adjusted all the vanilla ancients position in their ancient config" />
@@ -757,7 +743,8 @@
     <MESSAGE value="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code." />
     <MESSAGE value="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons." />
     <MESSAGE value="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension." />
-    <option name="LAST_COMMIT_MESSAGE" value="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension." />
+    <MESSAGE value="I have moved all localization into loc tables." />
+    <option name="LAST_COMMIT_MESSAGE" value="I have moved all localization into loc tables." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

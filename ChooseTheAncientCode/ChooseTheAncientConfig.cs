@@ -275,6 +275,36 @@ internal static class ChooseTheAncientConfig
         "Simple Picker"
     };
 
+    private static readonly string[] VoteClickTargetOptionLocKeys =
+    {
+        "CHOOSETHEANCIENT.settings.option.vote_target.button_only",
+        "CHOOSETHEANCIENT.settings.option.vote_target.whole_card",
+        "CHOOSETHEANCIENT.settings.option.vote_target.whole_slot"
+    };
+
+    private static readonly string[] LogBackendOptionLocKeys =
+    {
+        "CHOOSETHEANCIENT.settings.option.log_backend.game",
+        "CHOOSETHEANCIENT.settings.option.log_backend.modlog"
+    };
+
+    private static readonly string[] LogLevelOptionLocKeys =
+    {
+        "CHOOSETHEANCIENT.settings.option.log_level.error",
+        "CHOOSETHEANCIENT.settings.option.log_level.warn",
+        "CHOOSETHEANCIENT.settings.option.log_level.info",
+        "CHOOSETHEANCIENT.settings.option.log_level.debug",
+        "CHOOSETHEANCIENT.settings.option.log_level.very_debug"
+    };
+
+    private static readonly string[] SelectionGameModeOptionLocKeys =
+    {
+        "CHOOSETHEANCIENT.settings.option.game_mode.monty_hall",
+        "CHOOSETHEANCIENT.settings.option.game_mode.fair_fight",
+        "CHOOSETHEANCIENT.settings.option.game_mode.want_everything",
+        "CHOOSETHEANCIENT.settings.option.game_mode.simple_picker"
+    };
+
     public static bool EnableRedundantSettings { get; private set; } = DefaultEnableRedundantSettings;
     public static int AncientCount { get; private set; } = DefaultAncientCount;
     public static bool ShowControllerHotkeys { get; private set; } = DefaultShowControllerHotkeys;
@@ -781,6 +811,71 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         };
     }
 
+    internal static string[] GetLocalizedSelectionGameModeOptions() =>
+        ResolveLocalizedOptions(SelectionGameModeOptionLocKeys);
+
+    internal static string[] GetLocalizedVoteClickTargetOptions() =>
+        ResolveLocalizedOptions(VoteClickTargetOptionLocKeys);
+
+    internal static string[] GetLocalizedLogBackendOptions() =>
+        ResolveLocalizedOptions(LogBackendOptionLocKeys);
+
+    internal static string[] GetLocalizedLogLevelOptions() =>
+        ResolveLocalizedOptions(LogLevelOptionLocKeys);
+
+    internal static string GetLocalizedSelectionGameModeOption(SelectionGameMode mode) =>
+        GetLocalizedOption(SelectionGameModeOptionLocKeys, (int)mode);
+
+    internal static string GetLocalizedVoteClickTargetOption(VoteClickTargetMode mode) =>
+        GetLocalizedOption(VoteClickTargetOptionLocKeys, (int)mode);
+
+    internal static string GetLocalizedLogBackendOption(LogBackend backend) =>
+        GetLocalizedOption(LogBackendOptionLocKeys, (int)backend);
+
+    internal static string GetLocalizedLogLevelOption(LogLevel level) =>
+        GetLocalizedOption(LogLevelOptionLocKeys, (int)level);
+
+    private static string[] ResolveLocalizedOptions(IReadOnlyList<string> optionLocKeys)
+    {
+        string[] options = new string[optionLocKeys.Count];
+        for (int i = 0; i < optionLocKeys.Count; i++)
+            options[i] = ChooseTheAncientLocalization.GetSettingsText(optionLocKeys[i]);
+
+        return options;
+    }
+
+    private static string GetLocalizedOption(IReadOnlyList<string> optionLocKeys, int index)
+    {
+        if (index < 0 || index >= optionLocKeys.Count)
+            index = 0;
+
+        return ChooseTheAncientLocalization.GetSettingsText(optionLocKeys[index]);
+    }
+
+    private static bool TryGetLocalizedOptionIndex(
+        string value,
+        IReadOnlyList<string> canonicalOptions,
+        IReadOnlyList<string> optionLocKeys,
+        out int index)
+    {
+        int count = Math.Min(canonicalOptions.Count, optionLocKeys.Count);
+        for (int i = 0; i < count; i++)
+        {
+            if (string.Equals(value, canonicalOptions[i], StringComparison.OrdinalIgnoreCase)
+                || ChooseTheAncientLocalization.MatchesKnownTranslation(
+                    value,
+                    ChooseTheAncientLocalization.SettingsTableName,
+                    optionLocKeys[i]))
+            {
+                index = i;
+                return true;
+            }
+        }
+
+        index = -1;
+        return false;
+    }
+
     internal static SelectionGameMode NormalizeSelectionGameMode(object value)
     {
         if (value is SelectionGameMode mode)
@@ -788,10 +883,10 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
-            if (ChooseTheAncientSettingsText.TryGetOptionIndex(
+            if (TryGetLocalizedOptionIndex(
                     rawString,
                     SelectionGameModeOptions,
-                    ChooseTheAncientSettingsText.SelectionGameModeOptionKeys,
+                    SelectionGameModeOptionLocKeys,
                     out int localizedIndex))
             {
                 return (SelectionGameMode)localizedIndex;
@@ -859,10 +954,10 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
-            if (ChooseTheAncientSettingsText.TryGetOptionIndex(
+            if (TryGetLocalizedOptionIndex(
                     rawString,
                     VoteClickTargetOptions,
-                    ChooseTheAncientSettingsText.VoteClickTargetOptionKeys,
+                    VoteClickTargetOptionLocKeys,
                     out int localizedIndex))
             {
                 return (VoteClickTargetMode)localizedIndex;
@@ -916,10 +1011,10 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
-            if (ChooseTheAncientSettingsText.TryGetOptionIndex(
+            if (TryGetLocalizedOptionIndex(
                     rawString,
                     LogBackendOptions,
-                    ChooseTheAncientSettingsText.LogBackendOptionKeys,
+                    LogBackendOptionLocKeys,
                     out int localizedIndex))
             {
                 return (LogBackend)localizedIndex;
@@ -965,10 +1060,10 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
         if (value is string rawString)
         {
-            if (ChooseTheAncientSettingsText.TryGetOptionIndex(
+            if (TryGetLocalizedOptionIndex(
                     rawString,
                     LogLevelOptions,
-                    ChooseTheAncientSettingsText.LogLevelOptionKeys,
+                    LogLevelOptionLocKeys,
                     out int localizedIndex))
             {
                 return (LogLevel)localizedIndex;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using ChooseTheAncient.ChooseTheAncientCode;
@@ -7,6 +8,18 @@ namespace ChooseTheAncient.Scripts;
 
 internal static class RitsuLibModSettingsInteropProvider
 {
+    private static readonly string[] GameModeOptionIds =
+        ["monty_hall", "fair_fight", "want_everything", "simple_picker"];
+
+    private static readonly string[] VoteClickTargetOptionIds =
+        ["button_only", "whole_card", "whole_ancient_slot"];
+
+    private static readonly string[] LogBackendOptionIds =
+        ["game_logging", "modlog"];
+
+    private static readonly string[] LogLevelOptionIds =
+        ["error", "warn", "info", "debug", "very_debug"];
+
     public static object CreateRitsuLibSettingsSchema()
     {
         return "res://ChooseTheAncient/settings/ritsulib_settings_schema.json";
@@ -28,12 +41,12 @@ internal static class RitsuLibModSettingsInteropProvider
         {
             "enableRedundantSettings" => ChooseTheAncientConfig.EnableRedundantSettings,
             "ancientCount" => ChooseTheAncientConfig.AncientCount,
-            "gameMode" => ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode),
+            "gameMode" => GetOptionId(GameModeOptionIds, (int)ChooseTheAncientConfig.GameMode),
             "showControllerHotkeys" => ChooseTheAncientConfig.ShowControllerHotkeys,
             "showOnlyButtonOutline" => ChooseTheAncientConfig.ShowOnlyButtonOutline,
-            "voteClickTarget" => ChooseTheAncientConfig.VoteClickTargetToOption(ChooseTheAncientConfig.VoteClickTarget),
-            "logBackend" => ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend),
-            "logLevel" => ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel),
+            "voteClickTarget" => GetOptionId(VoteClickTargetOptionIds, (int)ChooseTheAncientConfig.VoteClickTarget),
+            "logBackend" => GetOptionId(LogBackendOptionIds, (int)ChooseTheAncientConfig.CurrentLogBackend),
+            "logLevel" => GetOptionId(LogLevelOptionIds, (int)ChooseTheAncientConfig.CurrentLogLevel),
             _ => null,
         };
     }
@@ -76,12 +89,15 @@ internal static class RitsuLibModSettingsInteropProvider
             }
             case "gameMode":
             {
-                var option = value?.ToString() ?? ChooseTheAncientConfig.SelectionGameModeToOption(
-                    ChooseTheAncientConfig.GameMode);
+                string option = ToCanonicalOption(
+                    value,
+                    GameModeOptionIds,
+                    ChooseTheAncientConfig.SelectionGameModeOptions,
+                    (int)ChooseTheAncientConfig.GameMode);
                 ChooseTheAncientConfig.ApplySelectionGameMode(option);
                 ModConfigBridge.SetValue(
                     "gameMode",
-                    ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode));
+                    ChooseTheAncientConfig.GetLocalizedSelectionGameModeOption(ChooseTheAncientConfig.GameMode));
                 return;
             }
             case "showControllerHotkeys":
@@ -98,32 +114,83 @@ internal static class RitsuLibModSettingsInteropProvider
             }
             case "voteClickTarget":
             {
-                var option = value?.ToString() ?? ChooseTheAncientConfig.VoteClickTargetToOption(
-                    ChooseTheAncientConfig.VoteClickTarget);
+                string option = ToCanonicalOption(
+                    value,
+                    VoteClickTargetOptionIds,
+                    ChooseTheAncientConfig.VoteClickTargetOptions,
+                    (int)ChooseTheAncientConfig.VoteClickTarget);
                 ChooseTheAncientConfig.ApplyVoteClickTarget(option);
                 return;
             }
             case "logBackend":
             {
-                var option = value?.ToString() ?? ChooseTheAncientConfig.LogBackendToOption(
-                    ChooseTheAncientConfig.CurrentLogBackend);
+                string option = ToCanonicalOption(
+                    value,
+                    LogBackendOptionIds,
+                    ChooseTheAncientConfig.LogBackendOptions,
+                    (int)ChooseTheAncientConfig.CurrentLogBackend);
                 ChooseTheAncientConfig.ApplyLogBackend(option);
                 ModConfigBridge.SetValue(
                     "logBackend",
-                    ChooseTheAncientConfig.LogBackendToOption(ChooseTheAncientConfig.CurrentLogBackend));
+                    ChooseTheAncientConfig.GetLocalizedLogBackendOption(ChooseTheAncientConfig.CurrentLogBackend));
                 return;
             }
             case "logLevel":
             {
-                var option = value?.ToString() ?? ChooseTheAncientConfig.LogLevelToOption(
-                    ChooseTheAncientConfig.CurrentLogLevel);
+                string option = ToCanonicalOption(
+                    value,
+                    LogLevelOptionIds,
+                    ChooseTheAncientConfig.LogLevelOptions,
+                    (int)ChooseTheAncientConfig.CurrentLogLevel);
                 ChooseTheAncientConfig.ApplyLogLevel(option);
                 ModConfigBridge.SetValue(
                     "logLevel",
-                    ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel));
+                    ChooseTheAncientConfig.GetLocalizedLogLevelOption(ChooseTheAncientConfig.CurrentLogLevel));
                 return;
             }
         }
+    }
+    
+    private static string GetOptionId(IReadOnlyList<string> optionIds, int index)
+    {
+        /*
+         * If Gome Mod is being selected, it's selected via index from optionIds
+         * for option 1, it will return fair_fight.
+         */
+        if (optionIds.Count == 0)
+            return "";
+
+        int safeIndex = Math.Clamp(index, 0, optionIds.Count - 1);
+        return optionIds[safeIndex];
+    }
+
+    private static string ToCanonicalOption(
+        object? value,
+        IReadOnlyList<string> optionIds,
+        IReadOnlyList<string> canonicalOptions,
+        int fallbackIndex)
+    {
+        /*
+         * If Game Mode is being selected and the first optionIds is fair_fight
+         * this returns it's actual value for eng which is Fair Fight.
+         */
+        int optionCount = Math.Min(optionIds.Count, canonicalOptions.Count);
+        string text = value?.ToString() ?? "";
+
+        for (int index = 0; index < optionCount; index++)
+        {
+            if (string.Equals(text, optionIds[index], StringComparison.OrdinalIgnoreCase))
+                return canonicalOptions[index];
+        }
+
+        if (!string.IsNullOrWhiteSpace(text))
+            return text;
+
+        if (canonicalOptions.Count == 0)
+            return "";
+
+        int safeIndex = Math.Clamp(fallbackIndex, 0, canonicalOptions.Count - 1);
+        return canonicalOptions[safeIndex];
     }
 
     public static bool IsRitsuLibRedundantSettingsEnabled()

@@ -31,10 +31,11 @@ public static class ChooseTheAncientBaseAncientText
 
     public static string GetInitialRoundBannerText(int nextActIndex)
     {
-        LocString loc = new(UiTableName, "choose_the_ancient.round_intro.initial_keep_vote");
-        loc.Add("ActLabel", GetNumberedActLabelText(nextActIndex));
-        loc.Add("ActNumber", (nextActIndex + 1).ToString(CultureInfo.InvariantCulture));
-        return SafeFormat(loc, $"Choose the Act {nextActIndex + 1} Ancients");
+        return ChooseTheAncientLocalization.GetText(
+            UiTableName,
+            "choose_the_ancient.round_intro.initial_keep_vote",
+            ("ActLabel", GetNumberedActLabelText(nextActIndex)),
+            ("ActNumber", (nextActIndex + 1).ToString(CultureInfo.InvariantCulture)));
     }
 
     public static string GetSecondRoundBannerText(AncientTextContext context)
@@ -47,12 +48,13 @@ public static class ChooseTheAncientBaseAncientText
         context = ResolveRuntimeActContext(runState, context);
         string key = GetSecondRoundBannerLocKey(context);
 
-        LocString loc = new(AncientTableName, key);
-        AddFinalRevealVariables(loc, context);
+        Dictionary<string, object> variables =
+            BuildBuiltInVariables(context, DialogueSpeakerRole.Reaction);
 
-        return SafeFormat(
-            loc,
-            $"{context.ReactionAncientTitle ?? context.ReactionAncientEntry} Offers");
+        return ChooseTheAncientLocalization.GetText(
+            AncientTableName,
+            key,
+            variables.Select(pair => (pair.Key, pair.Value)).ToArray());
     }
 
     public static string GetSecondRoundDialogueText(RunState? runState, AncientTextContext context)
@@ -102,24 +104,26 @@ public static class ChooseTheAncientBaseAncientText
         {
             string warning = BuildMissingDialogueAndDefaultWarning(context, speakerRole);
             ModLog.Warn(warning);
-            return warning;
+            return string.Empty;
         }
 
-        AddDialogueVariables(
-            loc,
-            context,
-            speakerRole);
+        Dictionary<string, object> variables =
+            BuildBuiltInVariables(context, speakerRole);
+        AddVariablesToLocString(loc, variables);
+
+        string englishFallback = ChooseTheAncientLocalization.GetTextForLanguage(
+            "eng",
+            AncientTableName,
+            loc.LocEntryKey,
+            variables.Select(pair => (pair.Key, pair.Value)).ToArray());
 
         string formattingWarning = BuildInvalidDialogueWarning(
             context,
             speakerRole,
             loc.LocEntryKey);
-        string formattedText = SafeFormat(loc, formattingWarning, out Exception? formattingError);
+        string formattedText = SafeFormat(loc, englishFallback, out Exception? formattingError);
         if (formattingError != null)
-        {
             ModLog.Warn($"{formattingWarning} Formatting failed: {formattingError.Message}");
-            return formattedText;
-        }
 
         ModLog.Debug(
             $"Second-round dialogue resolved: role={speakerRole}, " +
@@ -167,32 +171,29 @@ public static class ChooseTheAncientBaseAncientText
     }
 
     public static string GetVoteForThisAncientButtonText() =>
-        GetUiText("choose_the_ancient.button.vote_for_this_ancient", "Vote For This Ancient");
+        GetUiText("choose_the_ancient.button.vote_for_this_ancient");
 
     public static string GetSelectedAncientButtonText() =>
-        GetUiText("choose_the_ancient.button.selected_ancient", "Selected Ancient");
+        GetUiText("choose_the_ancient.button.selected_ancient");
 
     public static string GetVotingClosedButtonText() =>
-        GetUiText("choose_the_ancient.button.voting_closed", "Voting Closed");
+        GetUiText("choose_the_ancient.button.voting_closed");
 
     public static string GetVoteLockedButtonText() =>
-        GetUiText("choose_the_ancient.button.vote_locked", "Vote Locked");
+        GetUiText("choose_the_ancient.button.vote_locked");
 
     public static string GetUnavailableButtonText() =>
-        GetUiText("choose_the_ancient.button.unavailable", "Unavailable");
+        GetUiText("choose_the_ancient.button.unavailable");
 
     private static string GetNumberedActLabelText(int nextActIndex)
     {
         int actNumber = nextActIndex + 1;
-        return GetUiText($"choose_the_ancient.act_label.{actNumber}", $"Act {actNumber}");
+        return GetUiText($"choose_the_ancient.act_label.{actNumber}");
     }
 
-    private static string GetUiText(string key, string fallback)
+    private static string GetUiText(string key)
     {
-        if (!UiKeyExists(key))
-            return fallback;
-
-        return SafeFormat(new LocString(UiTableName, key), fallback);
+        return ChooseTheAncientLocalization.GetText(UiTableName, key);
     }
 
     private static string GetSecondRoundBannerLocKey(
@@ -213,7 +214,9 @@ public static class ChooseTheAncientBaseAncientText
         Rng? rng,
         out bool usedDefaultDialogue)
     {
+        List<(string Prefix, bool IsDefault)> searchOrder = [];
         string? speakerEntry = GetSpeakerAncientEntry(context, speakerRole);
+
         if (!string.IsNullOrWhiteSpace(speakerEntry))
         {
             string? otherAncientEntry =
@@ -246,13 +249,7 @@ public static class ChooseTheAncientBaseAncientText
                                  branch.Name,
                                  branch.Value))
                 {
-                    LocString? loc =
-                        GetDirectIndexedLocString(prefix, rng);
-                    if (loc != null)
-                    {
-                        usedDefaultDialogue = false;
-                        return loc;
-                    }
+                    searchOrder.Add((prefix, false));
                 }
             }
 
@@ -262,12 +259,7 @@ public static class ChooseTheAncientBaseAncientText
                              SecondRoundDialogueRoot,
                              lookupContext))
             {
-                LocString? loc = GetDirectIndexedLocString(prefix, rng);
-                if (loc != null)
-                {
-                    usedDefaultDialogue = false;
-                    return loc;
-                }
+                searchOrder.Add((prefix, false));
             }
         }
 
@@ -275,9 +267,71 @@ public static class ChooseTheAncientBaseAncientText
             ChooseTheAncientDialogueLocalizationRules.BuildDefaultPrefix(
                 SecondRoundDialogueRoot,
                 speakerRole);
-        LocString? defaultLoc = GetDirectIndexedLocString(defaultPrefix, rng);
-        usedDefaultDialogue = defaultLoc != null;
-        return defaultLoc;
+        searchOrder.Add((defaultPrefix, true));
+
+        LocString? localLoc = GetFirstAvailableDialogueLocString(
+            searchOrder,
+            rng,
+            useEnglishTable: false,
+            out usedDefaultDialogue);
+        if (localLoc != null)
+            return localLoc;
+
+        return GetFirstAvailableDialogueLocString(
+            searchOrder,
+            rng,
+            useEnglishTable: true,
+            out usedDefaultDialogue);
+    }
+
+    private static LocString? GetFirstAvailableDialogueLocString(
+        IReadOnlyList<(string Prefix, bool IsDefault)> searchOrder,
+        Rng? rng,
+        bool useEnglishTable,
+        out bool usedDefaultDialogue)
+    {
+        foreach ((string prefix, bool isDefault) in searchOrder)
+        {
+            IReadOnlyList<LocString> options = useEnglishTable
+                ? GetEnglishDirectIndexedLocStrings(prefix)
+                : GetDirectIndexedLocStrings(AncientTableName, prefix);
+
+            LocString? selected = SelectIndexedLocString(options, rng);
+            if (selected == null)
+                continue;
+
+            usedDefaultDialogue = isDefault;
+            return selected;
+        }
+
+        usedDefaultDialogue = false;
+        return null;
+    }
+
+    private static LocString? SelectIndexedLocString(
+        IReadOnlyList<LocString> options,
+        Rng? rng)
+    {
+        if (options.Count == 0)
+            return null;
+
+        return rng == null
+            ? options[0]
+            : rng.NextItem(options);
+    }
+
+    private static IReadOnlyList<LocString> GetEnglishDirectIndexedLocStrings(
+        string keyPrefix)
+    {
+        IReadOnlyList<string> englishKeys =
+            ChooseTheAncientLocalization.GetDirectIndexedKeysForLanguage(
+                "eng",
+                AncientTableName,
+                keyPrefix);
+
+        return englishKeys
+            .Select(key => new LocString(AncientTableName, key))
+            .ToArray();
     }
 
     private static string? GetSpeakerAncientEntry(
@@ -296,17 +350,6 @@ public static class ChooseTheAncientBaseAncientText
         return speakerRole == DialogueSpeakerRole.Suppressed
             ? context.ReactionAncientEntry
             : context.SuppressedAncientEntry;
-    }
-
-    private static LocString? GetDirectIndexedLocString(string keyPrefix, Rng? rng)
-    {
-        IReadOnlyList<LocString> options = GetDirectIndexedLocStrings(AncientTableName, keyPrefix);
-        if (options.Count == 0)
-            return null;
-
-        return rng == null
-            ? options[0]
-            : rng.NextItem(options);
     }
 
     internal static IReadOnlyList<LocString> GetDirectIndexedLocStrings(
@@ -336,7 +379,10 @@ public static class ChooseTheAncientBaseAncientText
             int indexComparison = left.Index.CompareTo(right.Index);
             return indexComparison != 0
                 ? indexComparison
-                : string.Compare(left.Loc.LocEntryKey, right.Loc.LocEntryKey, StringComparison.Ordinal);
+                : string.Compare(
+                    left.Loc.LocEntryKey,
+                    right.Loc.LocEntryKey,
+                    StringComparison.Ordinal);
         });
 
         return indexedOptions.Select(option => option.Loc).ToList();
@@ -375,27 +421,6 @@ public static class ChooseTheAncientBaseAncientText
                 $"Could not resolve ActModel at runState.Acts[{nextActIndex}] for dialogue localization: {ex.Message}");
             return null;
         }
-    }
-
-    private static void AddFinalRevealVariables(
-        LocString loc,
-        AncientTextContext context)
-    {
-        Dictionary<string, object> variables =
-            BuildBuiltInVariables(context, DialogueSpeakerRole.Reaction);
-
-        AddVariablesToLocString(loc, variables);
-    }
-
-    private static void AddDialogueVariables(
-        LocString loc,
-        AncientTextContext context,
-        DialogueSpeakerRole speakerRole)
-    {
-        Dictionary<string, object> variables =
-            BuildBuiltInVariables(context, speakerRole);
-
-        AddVariablesToLocString(loc, variables);
     }
 
     private static Dictionary<string, object> BuildBuiltInVariables(
@@ -452,7 +477,6 @@ public static class ChooseTheAncientBaseAncientText
         AncientTextContext context,
         DialogueSpeakerRole speakerRole)
     {
-        string language = TryGetActiveLanguage() ?? "UNKNOWN_LANGUAGE";
         string roleSegment = speakerRole == DialogueSpeakerRole.Suppressed
             ? "suppressed"
             : "reaction";
@@ -464,10 +488,8 @@ public static class ChooseTheAncientBaseAncientText
                 speakerRole);
 
         return
-            $"WARNING: ChooseTheAncient found no {roleSegment} second-round dialogue " +
-            $"for ancient '{speakerEntry}' and no {roleSegment} default dialogue for " +
-            $"language '{language}'. No defaults activated. This language should be supported. " +
-            $"Add '{defaultPrefix}0' to this locale's ancients.json.";
+            $"ChooseTheAncient found no {roleSegment} second-round dialogue for " +
+            $"ancient '{speakerEntry}', and the English fallback '{defaultPrefix}0' is missing.";
     }
 
     private static string BuildInvalidDialogueWarning(
@@ -484,18 +506,6 @@ public static class ChooseTheAncientBaseAncientText
         return
             $"WARNING: ChooseTheAncient could not format {roleSegment} second-round " +
             $"dialogue localization '{locEntryKey}' for ancient '{speakerEntry}'.";
-    }
-
-    private static string? TryGetActiveLanguage()
-    {
-        try
-        {
-            return LocManager.Instance.Language;
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     private static string SafeFormat(LocString loc, string fallback)
@@ -520,16 +530,11 @@ public static class ChooseTheAncientBaseAncientText
         }
     }
 
-    private static bool UiKeyExists(string key)
-    {
-        LocTable? table = TryGetTable(UiTableName);
-        return table?.HasEntry(key) ?? false;
-    }
-
     private static bool AncientKeyExists(string key)
     {
-        LocTable? table = TryGetTable(AncientTableName);
-        return table?.HasEntry(key) ?? false;
+        return ChooseTheAncientLocalization.HasActiveOrEnglishText(
+            AncientTableName,
+            key);
     }
 
     private static LocTable? TryGetTable(string tableName)
