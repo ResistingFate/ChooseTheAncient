@@ -3,7 +3,7 @@
   "name": "ChooseTheAncient",
   "author": "xyzlewis",
   "description": "After each act lets you pick 1 of the next Ancients. Also a framework for picking between your custom ancients.",
-  "version": "v1.2.5",
+  "version": "v1.2.6",
   "has_pck": true,
   "has_dll": true,
   "min_game_version": "0.107.1",

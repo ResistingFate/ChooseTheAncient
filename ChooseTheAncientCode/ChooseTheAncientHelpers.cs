@@ -310,12 +310,31 @@ public static class ChooseTheAncientHelpers
         RunState runState,
         int targetActIndex,
         IReadOnlyList<int>? enabledSourceActsOverride = null,
-        IReadOnlyDictionary<string, bool>? specialAncientOverridesOverride = null)
+        IReadOnlyDictionary<string, bool>? specialAncientOverridesOverride = null,
+        bool? enableRedundantSettingsOverride = null)
     /*
      * Builds the full CTA candidate pool for a target act using the configured source acts and special ancient overrides.
      */
     {
         ChooseTheAncientConfig.RefreshFromNativeSettings();
+
+        bool enableRedundantSettings = enableRedundantSettingsOverride
+            ?? ChooseTheAncientConfig.EnableRedundantSettings;
+        List<AncientEventModel> forcedAncients = GetBaseLibForcedAncientsForTargetAct(act);
+
+        if (!enableRedundantSettings)
+        {
+            ModLog.Info(
+                $"Redundant legacy ancient settings are disabled for act {targetActIndex + 1}; " +
+                "using the normal target-act pool without source-act filters or Neow/Darv overrides.");
+
+            return BuildDefaultCandidatePool(
+                act,
+                runState,
+                targetActIndex,
+                forcedAncients,
+                specialAncientOverrides: null);
+        }
 
         IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides = specialAncientOverridesOverride
             ?? ChooseTheAncientConfig.GetSpecialAncientOverridesSnapshot(targetActIndex);
@@ -323,11 +342,10 @@ public static class ChooseTheAncientHelpers
         ModLog.Debug(
             $"BuildCandidatePool start: targetActIndex={targetActIndex + 1}, " +
             $"targetAct={act.Id.Entry}, currentActIndex={runState.CurrentActIndex + 1}, " +
+            $"enableRedundantSettings={enableRedundantSettings}, " +
             $"enabledSourceActsOverride={(enabledSourceActsOverride == null ? "<null>" : ChooseTheAncientConfig.DescribeAncientPoolSourceActs(enabledSourceActsOverride))}, " +
             $"localSourceActs={ChooseTheAncientConfig.DescribeAncientPoolSourceActs(ChooseTheAncientConfig.GetEnabledAncientPoolSourceActs(targetActIndex))}, " +
             $"effectiveSpecialAncientOverrides={ChooseTheAncientConfig.DescribeSpecialAncientOverrides(effectiveSpecialAncientOverrides)}");
-
-        List<AncientEventModel> forcedAncients = GetBaseLibForcedAncientsForTargetAct(act);
 
         List<AncientEventModel> defaultPool = BuildDefaultCandidatePool(
             act,
@@ -388,7 +406,7 @@ public static class ChooseTheAncientHelpers
         RunState runState,
         int targetActIndex,
         IReadOnlyList<AncientEventModel> forcedAncients,
-        IReadOnlyDictionary<string, bool> specialAncientOverrides)
+        IReadOnlyDictionary<string, bool>? specialAncientOverrides)
     /*
      * Builds the vanilla-like candidate pool for the target act, then applies CTA's special ancient overrides.
      */
@@ -412,12 +430,21 @@ public static class ChooseTheAncientHelpers
 
         LogPool($"Act {targetActIndex + 1} default pool before special overrides for target {targetAct.Id.Entry}", defaultPool);
 
-        defaultPool = ApplySpecialAncientOverrides(
-            targetAct,
-            runState,
-            targetActIndex,
-            defaultPool,
-            specialAncientOverrides);
+        if (specialAncientOverrides != null)
+        {
+            defaultPool = ApplySpecialAncientOverrides(
+                targetAct,
+                runState,
+                targetActIndex,
+                defaultPool,
+                specialAncientOverrides);
+        }
+        else
+        {
+            ModLog.Debug(
+                $"Skipping legacy Neow/Darv special overrides for act {targetActIndex + 1} " +
+                "because redundant settings are disabled.");
+        }
 
         LogPool($"Act {runState.CurrentActIndex + 1} default pool for target {targetAct.Id.Entry}", defaultPool);
         return defaultPool;

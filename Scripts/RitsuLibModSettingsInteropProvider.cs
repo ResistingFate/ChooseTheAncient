@@ -26,6 +26,7 @@ internal static class RitsuLibModSettingsInteropProvider
 
         return key switch
         {
+            "enableRedundantSettings" => ChooseTheAncientConfig.EnableRedundantSettings,
             "ancientCount" => ChooseTheAncientConfig.AncientCount,
             "gameMode" => ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode),
             "showControllerHotkeys" => ChooseTheAncientConfig.ShowControllerHotkeys,
@@ -39,6 +40,13 @@ internal static class RitsuLibModSettingsInteropProvider
 
     public static void SetRitsuLibSettingValue(string key, object? value)
     {
+        if (string.Equals(key, "enableRedundantSettings", StringComparison.Ordinal))
+        {
+            ChooseTheAncientConfig.ApplyEnableRedundantSettings(
+                ToBool(value, ChooseTheAncientConfig.EnableRedundantSettings));
+            return;
+        }
+
         if (TryParseAncientPoolSourceActKey(key, out int targetActIndex, out int sourceActIndex))
         {
             ChooseTheAncientConfig.ApplyAncientPoolSourceActToggle(
@@ -116,6 +124,11 @@ internal static class RitsuLibModSettingsInteropProvider
                 return;
             }
         }
+    }
+
+    public static bool IsRitsuLibRedundantSettingsEnabled()
+    {
+        return ChooseTheAncientConfig.EnableRedundantSettings;
     }
 
     public static bool GetRitsuLibSettingBool(string key)

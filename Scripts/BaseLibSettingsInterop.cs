@@ -271,7 +271,7 @@ internal static class BaseLibSettingsInterop
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "LogBackend", logBackendEnumType);
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "LogLevel", logLevelEnumType);
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "ShowAdvancedSettings", typeof(bool));
-        BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "ShowRedundantSettings", typeof(bool));
+        BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "EnableRedundantSettings", typeof(bool));
 
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "ShowControllerHotkeys", typeof(bool));
         BuildGeneratedConfigProperty(typeBuilder, settingChangedMethodField, "ShowOnlyButtonOutline", typeof(bool));
@@ -533,7 +533,6 @@ public static class BaseLibSettingsPage
     private static bool _suppressGeneratedSettingCallbacks;
     private static int _currentAncientPoolTargetActIndex = -1;
     private static bool _showAdvancedSettings;
-    private static bool _showRedundantSettings;
     private static Control? _advancedSettingsContainer;
     private static Control? _redundantSettingsContainer;
 
@@ -661,24 +660,27 @@ public static class BaseLibSettingsPage
 
             AddToggle(
                 optionContainer,
-                "Show redundant settings",
-                _showRedundantSettings,
+                "Show and enable",
+                ChooseTheAncientConfig.EnableRedundantSettings,
                 value =>
                 {
-                    _showRedundantSettings = value;
+                    ChooseTheAncientConfig.ApplyEnableRedundantSettings(value);
+                    ModConfigBridge.PushImportantSettingsToModConfig();
                     UpdateRedundantSettingsVisibility();
                 });
 
+            optionContainer.AddChild(CreateDescription(
+                "Shows these legacy options and enables their source-act filters and Neow/Darv overrides."));
+
             var redundantContainer = new VBoxContainer
             {
-                Visible = _showRedundantSettings,
+                Visible = ChooseTheAncientConfig.EnableRedundantSettings,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
             };
             _redundantSettingsContainer = redundantContainer;
 
             redundantContainer.AddChild(CreateDescription(
-                "Use AncientConfigsPlus for ancient filtering when it is installed. " +
-                "(Plus these legacy options only affect vanilla ancients.)"));
+                "This is old. Use AncientConfigsPlus for ancient filtering."));
 
             redundantContainer.AddChild(CreateSubSectionHeader("Special ancient overrides"));
 
@@ -777,8 +779,8 @@ public static class BaseLibSettingsPage
                     _showAdvancedSettings = Convert.ToBoolean(value);
                     UpdateAdvancedSettingsVisibility();
                     break;
-                case "ShowRedundantSettings":
-                    _showRedundantSettings = Convert.ToBoolean(value);
+                case "EnableRedundantSettings":
+                    ChooseTheAncientConfig.ApplyEnableRedundantSettings(Convert.ToBoolean(value));
                     UpdateRedundantSettingsVisibility();
                     break;
                 case "ShowControllerHotkeys":
@@ -878,7 +880,7 @@ public static class BaseLibSettingsPage
                 ChooseTheAncientConfig.LogLevelOptions,
                 ChooseTheAncientConfig.LogLevelToOption(ChooseTheAncientConfig.CurrentLogLevel));
             SetGeneratedProperty(type, "ShowAdvancedSettings", _showAdvancedSettings);
-            SetGeneratedProperty(type, "ShowRedundantSettings", _showRedundantSettings);
+            SetGeneratedProperty(type, "EnableRedundantSettings", ChooseTheAncientConfig.EnableRedundantSettings);
             SetGeneratedProperty(type, "ShowControllerHotkeys", ChooseTheAncientConfig.ShowControllerHotkeys);
             SetGeneratedProperty(type, "ShowOnlyButtonOutline", ChooseTheAncientConfig.ShowOnlyButtonOutline);
 
@@ -1077,7 +1079,8 @@ public static class BaseLibSettingsPage
             return;
         }
 
-        _redundantSettingsContainer.Visible = _showRedundantSettings;
+        _redundantSettingsContainer.Visible =
+            ChooseTheAncientConfig.EnableRedundantSettings;
     }
 
 
@@ -1386,7 +1389,7 @@ public static class BaseLibSettingsPage
         return label switch
         {
             "Show advanced settings" => "ShowAdvancedSettings",
-            "Show redundant settings" => "ShowRedundantSettings",
+            "Show and enable" => "EnableRedundantSettings",
             "Controller hotkeys" => "ShowControllerHotkeys",
             "Show controller hotkeys" => "ShowControllerHotkeys",
             "Button outline" => "ShowOnlyButtonOutline",

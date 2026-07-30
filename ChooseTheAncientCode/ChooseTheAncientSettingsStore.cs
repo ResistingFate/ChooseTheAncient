@@ -9,6 +9,9 @@ namespace ChooseTheAncient.ChooseTheAncientCode;
 
 internal sealed class ChooseTheAncientSettings
 {
+    public bool EnableRedundantSettings { get; set; } =
+        ChooseTheAncientConfig.DefaultEnableRedundantSettings;
+
     public int AncientCount { get; set; } = ChooseTheAncientConfig.DefaultAncientCount;
 
     public string GameMode { get; set; } =
@@ -98,6 +101,7 @@ internal static class ChooseTheAncientSettingsStore
     {
         var settings = new ChooseTheAncientSettings
         {
+            EnableRedundantSettings = ChooseTheAncientConfig.EnableRedundantSettings,
             AncientCount = ChooseTheAncientConfig.AncientCount,
             GameMode = ChooseTheAncientConfig.SelectionGameModeToOption(ChooseTheAncientConfig.GameMode),
             ShowControllerHotkeys = ChooseTheAncientConfig.ShowControllerHotkeys,

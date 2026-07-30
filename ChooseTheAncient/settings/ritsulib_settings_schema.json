@@ -178,9 +178,18 @@
           "title": "About these options",
           "entries": [
             {
+              "id": "show_and_enable_redundant_settings",
+              "type": "toggle",
+              "key": "enableRedundantSettings",
+              "label": "Show and enable",
+              "description": "Show these redundant settings and enable their gameplay checks. Saved choices are preserved while disabled.",
+              "defaultValue": false,
+              "scope": "global"
+            },
+            {
               "id": "redundant_notice_text",
               "type": "header",
-              "label": "Use AncientConfigsPlus for ancient filtering. These legacy options only affect Choose The Ancient's built-in vanilla-style act pools and special ancient overrides before AncientConfigsPlus filtering is applied."
+              "label": "This is old. Use AncientConfigsPlus for ancient filtering."
             }
           ]
         },
@@ -194,7 +203,8 @@
               "key": "includeNeowInAct1Selection",
               "label": "Neow — include in Act 1 selection",
               "defaultValue": true,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "include_neow_act2",
@@ -202,7 +212,8 @@
               "key": "includeNeowInAct2Selection",
               "label": "Neow — include in Act 2 selection",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "include_neow_act3",
@@ -210,7 +221,8 @@
               "key": "includeNeowInAct3Selection",
               "label": "Neow — include in Act 3 selection",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "include_darv_act1",
@@ -218,7 +230,8 @@
               "key": "includeDarvInAct1Selection",
               "label": "Darv — include in Act 1 selection",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "include_darv_act2",
@@ -226,7 +239,8 @@
               "key": "includeDarvInAct2Selection",
               "label": "Darv — include in Act 2 selection",
               "defaultValue": true,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "include_darv_act3",
@@ -234,7 +248,8 @@
               "key": "includeDarvInAct3Selection",
               "label": "Darv — include in Act 3 selection",
               "defaultValue": true,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             }
           ]
         },
@@ -245,7 +260,8 @@
             {
               "id": "header_act1",
               "type": "header",
-              "label": "Act 1 selection"
+              "label": "Act 1 selection",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act1_from_act1",
@@ -253,7 +269,8 @@
               "key": "act1AncientsFromAct1",
               "label": "Allow From Act 1 ancients",
               "defaultValue": true,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act1_from_act2",
@@ -261,7 +278,8 @@
               "key": "act1AncientsFromAct2",
               "label": "Allow From Act 2 ancients",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act1_from_act3",
@@ -269,12 +287,14 @@
               "key": "act1AncientsFromAct3",
               "label": "Allow From Act 3 ancients",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "header_act2",
               "type": "header",
-              "label": "Act 2 selection"
+              "label": "Act 2 selection",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act2_from_act1",
@@ -282,7 +302,8 @@
               "key": "act2AncientsFromAct1",
               "label": "Allow From Act 1 ancients",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act2_from_act2",
@@ -290,7 +311,8 @@
               "key": "act2AncientsFromAct2",
               "label": "Allow From Act 2 ancients",
               "defaultValue": true,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act2_from_act3",
@@ -298,12 +320,14 @@
               "key": "act2AncientsFromAct3",
               "label": "Allow From Act 3 ancients",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "header_act3",
               "type": "header",
-              "label": "Act 3 selection"
+              "label": "Act 3 selection",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act3_from_act1",
@@ -311,7 +335,8 @@
               "key": "act3AncientsFromAct1",
               "label": "Allow From Act 1 ancients",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act3_from_act2",
@@ -319,7 +344,8 @@
               "key": "act3AncientsFromAct2",
               "label": "Allow From Act 2 ancients",
               "defaultValue": false,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             },
             {
               "id": "act3_from_act3",
@@ -327,7 +353,8 @@
               "key": "act3AncientsFromAct3",
               "label": "Allow From Act 3 ancients",
               "defaultValue": true,
-              "scope": "global"
+              "scope": "global",
+              "visibleWhenMethod": "IsRitsuLibRedundantSettingsEnabled"
             }
           ]
         }

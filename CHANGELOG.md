@@ -12,7 +12,15 @@
 
 - None
 
-## [v1.2.5] - 
+## [v1.2.6] -
+
+## Fixes
+- Redundant settings now disable by default, and showing is now showing and enabling those settings.
+
+## [v1.2.5] - Removed AncientHPBaseline Patch 
+
+### Features
+- Can reset ChooseTheAncient config settings from it's own menu. (For Baselib, it'll update if you press the reset button then go in and out the menu.)
 
 ### Fixes
 

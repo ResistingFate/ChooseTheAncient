@@ -154,16 +154,21 @@ public static class ChooseTheAncientCoordinator
 
             int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
             ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
-            IReadOnlyList<int>? effectiveAncientPoolSourceActs =
-                await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0);
-            IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
-                await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, targetActIndex: 0);
+            bool enableRedundantSettings =
+                await GetEffectiveEnableRedundantSettingsAsync(orderedPlayers);
+            IReadOnlyList<int>? effectiveAncientPoolSourceActs = enableRedundantSettings
+                ? await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, targetActIndex: 0)
+                : null;
+            IReadOnlyDictionary<string, bool>? effectiveSpecialAncientOverrides = enableRedundantSettings
+                ? await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, targetActIndex: 0)
+                : null;
 
             ModLog.Info(
                 "Act 1 starting-room flow effective settings: " +
                 $"AncientCount={ancientCount}, GameMode={gameMode}, " +
-                $"SourceActs={ChooseTheAncientConfig.DescribeAncientPoolSourceActs(effectiveAncientPoolSourceActs ?? Array.Empty<int>())}, " +
-                $"SpecialAncients={ChooseTheAncientConfig.DescribeSpecialAncientOverrides(effectiveSpecialAncientOverrides)}.");
+                $"EnableRedundantSettings={enableRedundantSettings}, " +
+                $"SourceActs={(enableRedundantSettings ? ChooseTheAncientConfig.DescribeAncientPoolSourceActs(effectiveAncientPoolSourceActs ?? Array.Empty<int>()) : "(disabled)")}, " +
+                $"SpecialAncients={(enableRedundantSettings ? ChooseTheAncientConfig.DescribeSpecialAncientOverrides(effectiveSpecialAncientOverrides) : "(disabled)")}.");
 
             ActModel firstAct = runState.Acts[0];
             List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
@@ -171,7 +176,8 @@ public static class ChooseTheAncientCoordinator
                 runState,
                 targetActIndex: 0,
                 enabledSourceActsOverride: effectiveAncientPoolSourceActs,
-                specialAncientOverridesOverride: effectiveSpecialAncientOverrides);
+                specialAncientOverridesOverride: effectiveSpecialAncientOverrides,
+                enableRedundantSettingsOverride: enableRedundantSettings);
 
             pool = await GetEffectiveBallotAsync(
                 runState,
@@ -430,17 +436,22 @@ public static class ChooseTheAncientCoordinator
 
                 int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
                 ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
-                IReadOnlyList<int>? effectiveAncientPoolSourceActs =
-                    await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, nextActIndex);
-                IReadOnlyDictionary<string, bool> effectiveSpecialAncientOverrides =
-                    await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, nextActIndex);
+                bool enableRedundantSettings =
+                    await GetEffectiveEnableRedundantSettingsAsync(orderedPlayers);
+                IReadOnlyList<int>? effectiveAncientPoolSourceActs = enableRedundantSettings
+                    ? await GetEffectiveAncientPoolSourceActsAsync(orderedPlayers, nextActIndex)
+                    : null;
+                IReadOnlyDictionary<string, bool>? effectiveSpecialAncientOverrides = enableRedundantSettings
+                    ? await GetEffectiveSpecialAncientOverridesAsync(orderedPlayers, nextActIndex)
+                    : null;
 
                 List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
                     nextAct,
                     runState,
                     nextActIndex,
                     effectiveAncientPoolSourceActs,
-                    effectiveSpecialAncientOverrides);
+                    effectiveSpecialAncientOverrides,
+                    enableRedundantSettings);
 
                 if (ModLog.IsDebugEnabled)
                 {
@@ -1871,6 +1882,40 @@ public static class ChooseTheAncientCoordinator
             $"ancients={ChooseTheAncientHelpers.DescribeAncients(syncedBallot)}");
 
         return syncedBallot;
+    }
+
+
+    private static async Task<bool> GetEffectiveEnableRedundantSettingsAsync(
+        IReadOnlyList<Player> orderedPlayers)
+    {
+        ChooseTheAncientConfig.RefreshFromNativeSettings();
+
+        if (RunManager.Instance.NetService.Type == NetGameType.Singleplayer)
+            return ChooseTheAncientConfig.EnableRedundantSettings;
+
+        Player hostPlayer = GetHostPlayer(orderedPlayers);
+        uint choiceId = RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(hostPlayer);
+
+        if (LocalContext.IsMe(hostPlayer))
+        {
+            int encodedEnabled = ChooseTheAncientConfig.EnableRedundantSettings ? 1 : 0;
+            RunManager.Instance.PlayerChoiceSynchronizer.SyncLocalChoice(
+                hostPlayer,
+                choiceId,
+                PlayerChoiceResult.FromIndex(encodedEnabled));
+
+            ModLog.Debug(
+                $"Broadcasting host redundant-settings gate: enabled={ChooseTheAncientConfig.EnableRedundantSettings}.");
+            return ChooseTheAncientConfig.EnableRedundantSettings;
+        }
+
+        int syncedEnabled = (await RunManager.Instance.PlayerChoiceSynchronizer
+                .WaitForRemoteChoice(hostPlayer, choiceId))
+            .AsIndex();
+
+        bool enabled = syncedEnabled != 0;
+        ModLog.Debug($"Received host redundant-settings gate: enabled={enabled}.");
+        return enabled;
     }
 
 

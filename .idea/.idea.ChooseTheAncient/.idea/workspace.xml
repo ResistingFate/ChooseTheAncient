@@ -5,12 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ModUploader/text_to_add_to_description.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/AncientHpBaselineTranspilerPatch.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/AncientHpBaselineTranspilerPatch.cs.uid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,6 +45,9 @@
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/ModUploader/ChooseTheAncient/workshop.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/../StS2ModEnergizedSpire2-main/EnergizedSpire2Code/Ancients/EnergizedSpire2Ancient.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/../StS2ModEnergizedSpire2-main/EnergizedSpire2Code/EnergizedSpire2MainFile.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="McpProjectServerCommands">
     <commands />
@@ -283,31 +285,9 @@
       <workItem from="1785175163861" duration="875000" />
       <workItem from="1785176663431" duration="3801000" />
       <workItem from="1785184420179" duration="28669000" />
-      <workItem from="1785249454011" duration="12836000" />
-    </task>
-    <task id="LOCAL-00054" summary="STS2v0.109.0 compatability. MegaCrit changed RunRngSet.Seed from uint to ulong. We made the same changes, but added compatability class &quot;SeedCompatability.cs&quot; that all methods using seeds call so if the player is using 0.107.0 they will use uint instead.&#10;[Expect to remove all compatability in the next main update]&#10;&#10;Changes were also made for the following game changes:&#10;StringHelper.GetDeterministicHashCode: now returns ulong&#10;Rng constructors now use ulong&#10;Rng.Seed no longer exists&#10;NMapScreen.SetMap(...) now accepts an ulong seed&#10;&#10;Updated megadot used by .csproj to 4.5.1 m-14">
-      <option name="closed" value="true" />
-      <created>1784315179816</created>
-      <option name="number" value="00054" />
-      <option name="presentableId" value="LOCAL-00054" />
-      <option name="project" value="LOCAL" />
-      <updated>1784315179816</updated>
-    </task>
-    <task id="LOCAL-00055" summary="Added tutorial Scripts for the aligning custom ancients videos in the workshop folder">
-      <option name="closed" value="true" />
-      <created>1784732147521</created>
-      <option name="number" value="00055" />
-      <option name="presentableId" value="LOCAL-00055" />
-      <option name="project" value="LOCAL" />
-      <updated>1784732147521</updated>
-    </task>
-    <task id="LOCAL-00056" summary="Changing up how acts past act 3 are handleed so skip ancient selection when no next act exists. Also the EnterNextAct has been updated in 0.109.0 to include Victor Room guards, se we've updated the patch too.">
-      <option name="closed" value="true" />
-      <created>1784743083434</created>
-      <option name="number" value="00056" />
-      <option name="presentableId" value="LOCAL-00056" />
-      <option name="project" value="LOCAL" />
-      <updated>1784743083434</updated>
+      <workItem from="1785249454011" duration="14420000" />
+      <workItem from="1785334365678" duration="10489000" />
+      <workItem from="1785413522615" duration="3535000" />
     </task>
     <task id="LOCAL-00057" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Act 2+ transitions close only CTA’s screen instead of clearing every RunManager screen. This is why InvokeRunManagerVoid((clearScreenMethod, runManager) is removed in the Coordinator.cs&#10;Act 1 screen-clearing behavior remains unchanged.">
       <option name="closed" value="true" />
@@ -677,7 +657,31 @@
       <option name="project" value="LOCAL" />
       <updated>1785264095440</updated>
     </task>
-    <option name="localTasksCounter" value="103" />
+    <task id="LOCAL-00103" summary="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons.">
+      <option name="closed" value="true" />
+      <created>1785273348233</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1785273348233</updated>
+    </task>
+    <task id="LOCAL-00104" summary="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons.">
+      <option name="closed" value="true" />
+      <created>1785273355684</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1785273355684</updated>
+    </task>
+    <task id="LOCAL-00105" summary="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension.">
+      <option name="closed" value="true" />
+      <created>1785422747149</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1785422747149</updated>
+    </task>
+    <option name="localTasksCounter" value="106" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -713,8 +717,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Edited the aligning custom ancient scipts. Added the alligning Neow script. Added the simplified scripts." />
-    <MESSAGE value="Edited the Focus Ancient 2 Script. Added the simplified script for Focus Ancient 2. Added the Neow script." />
     <MESSAGE value="Edited the Neow Script." />
     <MESSAGE value="Removed ChooseTheAncientPortalSourceNodePath and ChooseTheAncientPortalAutoDetectSourceNode properties from the API. Also removed all the code they required in Selection Screen to change the positions and baseSize. The API is simpler without them now that we have a consistent tutorial to get the values manually from godot." />
     <MESSAGE value="Added tutorials for aligning the API to the workshop folder" />
@@ -738,7 +740,9 @@
     <MESSAGE value="Stopped the redundant Neow and Darv override from filtering them out from act 4+ on endless modes." />
     <MESSAGE value="Change up SelectAncientsFromLimitedBallot. I was forcing custom ancients to appear in the ballot. I prefred it before ancient config plus came along. Now, hopefully this is getting to clean enough state so that only ancient config type mods will be needed for controlling the ancients that appear on the ballot." />
     <MESSAGE value="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code." />
-    <option name="LAST_COMMIT_MESSAGE" value="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code." />
+    <MESSAGE value="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons." />
+    <MESSAGE value="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension." />
+    <option name="LAST_COMMIT_MESSAGE" value="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

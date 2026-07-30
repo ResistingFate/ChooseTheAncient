@@ -236,6 +236,7 @@ internal static class ChooseTheAncientConfig
         SimplePicker = 3,
     }
 
+    public const bool DefaultEnableRedundantSettings = false;
     public const int DefaultAncientCount = 3;
     public const bool DefaultShowControllerHotkeys = false;
     public const bool DefaultShowOnlyButtonOutline = true;
@@ -274,6 +275,7 @@ internal static class ChooseTheAncientConfig
         "Simple Picker"
     };
 
+    public static bool EnableRedundantSettings { get; private set; } = DefaultEnableRedundantSettings;
     public static int AncientCount { get; private set; } = DefaultAncientCount;
     public static bool ShowControllerHotkeys { get; private set; } = DefaultShowControllerHotkeys;
     public static bool ShowOnlyButtonOutline { get; private set; } = DefaultShowOnlyButtonOutline;
@@ -329,7 +331,8 @@ internal static class ChooseTheAncientConfig
         return ancientId.ToUpperInvariant() switch
         {
             NeowAncientId => new[] { true, false, false },
-            DarvAncientId => new[] { false, true, true }
+            DarvAncientId => new[] { false, true, true },
+            _ => throw new ArgumentOutOfRangeException()
         };
     }
 
@@ -355,6 +358,13 @@ internal static class ChooseTheAncientConfig
 
     public static void ApplySpecialAncientOverrideToggle(string ancientId, int targetActIndex, object value)
     {
+        if (!EnableRedundantSettings)
+        {
+            ModLog.Debug(
+                $"Ignoring special-ancient override change for '{ancientId}' because redundant settings are disabled.");
+            return;
+        }
+
         if (!SpecialAncientOverridesByTargetAct.TryGetValue(ancientId, out bool[]? actFlags))
         {
             ModLog.Warn($"Attempted to apply unsupported special-ancient override for '{ancientId}'.");
@@ -492,6 +502,7 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
     internal static void ApplySettingsSnapshot(ChooseTheAncientSettings settings, string source)
     {
+        EnableRedundantSettings = settings.EnableRedundantSettings;
         AncientCount = NormalizeAncientCount(settings.AncientCount);
         ShowControllerHotkeys = settings.ShowControllerHotkeys;
         ShowOnlyButtonOutline = settings.ShowOnlyButtonOutline;
@@ -541,6 +552,7 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
     private static void LogRefreshSummary()
     {
         string refreshSummary =
+            $"EnableRedundantSettings={EnableRedundantSettings}, " +
             $"AncientCount={AncientCount}, GameMode={GameMode}, " +
             $"Act1Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(0))}, " +
             $"Act2Sources={DescribeAncientPoolSourceActs(GetEnabledAncientPoolSourceActs(1))}, " +
@@ -554,6 +566,15 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
             _lastRefreshSummary = refreshSummary;
             ModLog.Info("Config refresh complete. " + refreshSummary);
         }
+    }
+
+    public static void ApplyEnableRedundantSettings(object value)
+    {
+        EnableRedundantSettings = Convert.ToBoolean(value);
+        ModLog.Info(
+            $"Redundant legacy ancient settings are now {(EnableRedundantSettings ? "enabled" : "disabled")}. " +
+            "Saved child choices are preserved.");
+        PersistCurrentSettings();
     }
 
     public static void ApplyAncientCount(object value)
@@ -634,6 +655,14 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
 
     public static void ApplyAncientPoolSourceActToggle(int targetActIndex, int sourceActIndex, object value)
     {
+        if (!EnableRedundantSettings)
+        {
+            ModLog.Debug(
+                $"Ignoring ancient-pool source-act change for target act {targetActIndex + 1} " +
+                "because redundant settings are disabled.");
+            return;
+        }
+
         if (!AncientPoolSourceActsByTargetAct.TryGetValue(targetActIndex, out bool[]? sourceActFlags))
         {
             ModLog.Warn($"Attempted to apply ancient pool toggle for unsupported target act {targetActIndex + 1}.");
