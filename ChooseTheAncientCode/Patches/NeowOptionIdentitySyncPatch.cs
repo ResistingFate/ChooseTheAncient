@@ -57,7 +57,7 @@ public static class NeowOptionIdentitySyncPatch
         /*
          * Compatibility:
          * - STS2 0.107.1 is the stable branch this mod supports.
-         * - STS2 0.109.0 is the beta branch and uses IRunState plus a 64-bit seed.
+         * - STS2 0.110.0 is the beta branch and uses IRunState plus a 64-bit seed.
          * - The transitional IRunState plus 32-bit seed signature remains a fallback.
          * - Future EventSynchronizer API changes do not prevent the rest
          *   of Choose The Ancient's Harmony patches from loading.
@@ -237,7 +237,7 @@ public static class NeowOptionIdentitySyncPatch
 
             if (betaConstructor != null)
             {
-                targetDescription = "0.109.0 beta signature with IRunState and 64-bit seed";
+                targetDescription = "0.110.0 beta signature with IRunState and 64-bit seed";
                 return betaConstructor;
             }
 

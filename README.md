@@ -29,18 +29,32 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
     - I Want To Know Everything
     - Simple Picker
 
-## Optional  Requirements
-- Modconfig for settings
-- BaseLib and CustomAncients if you want more ancients
-- Ancient Config Plus to weight or disable which Ancients show
+## Mod Compatibility
+
+* [BasLlib](https://steamcommunity.com/sharedfiles/filedetails/?id=3737335127) Custom Ancients
+* [Ritsulib](https://steamcommunity.com/sharedfiles/filedetails/?id=3747602295) Custom Ancients
+* Use either for Full Settings
+* Limited settings on [Mod Config](https://steamcommunity.com/sharedfiles/filedetails/?id=3749062616)
+* [Ancient Configs Plus](https://steamcommunity.com/sharedfiles/filedetails/?id=3747493112) to filter ancients. (BaseLib only)
+* Works in endless mode, like [New Game ++](https://steamcommunity.com/sharedfiles/filedetails/?id=3771500862). (asc 10 breaks, ACP filters only act 1 to 3 bosses).
+* Act 4 mods don't have an ancient node at start, so no choice screen here.
+* Usable with [Ancient Affection](https://steamcommunity.com/workshop/filedetails/?id=3750930021), however the preview shows the "beloved" rewards on the wrong reward options.
+* [Slay the Streamer 2](https://steamcommunity.com/sharedfiles/filedetails/?id=3761888849) has even more votes.
+
 
 # For Custom Ancient Modders
 - [Guide Here!](https://github.com/ResistingFate/ChooseTheAncient/blob/master/workshop/Gude_To_Perfectly_Fitting_Your_Ancient_In_ChooseTheAncient.md)
 
-## Mods Compatability list
-- BaseLib Custom Acients
-- Ancient Config Plus
-- Some Endless modes
+# Translation Volunteers
+I'm thankful for any volunteers offering to translate. I will only be accepting translations from people willing to keep these localizations updated. Send me the modified localization files, and I’ll consider adding them to the mod. Contributors will be credited here.
+- [ancients.json](https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/ChooseTheAncient/localization/eng/ancients.json)
+- [gameplay_ui.json](https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/ChooseTheAncient/localization/eng/gameplay_ui.json)
+- [settings_ui.json](https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/ChooseTheAncient/localization/eng/settings_ui.json)
+
+### Note: I am **NOT** responsible or liable for the translations provided by Volunteers.
+This is an accessibility feature provided by volunteers, the creators make no promises of, 
+will not be responsible to update/modify/verify the authenticity of any content in regards 
+to translated content.
 
 ## Technical
 - I patch the `EnterNextAct` method in `RunManager.cs` so that this mod loads before the next act starts
@@ -81,7 +95,6 @@ This mod no longer applies these fixes. This allows the mod to maintain compatab
 - C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
 
 ## New features Roadmap
-- Slay the Stremer Relic addition patches? (maybe as separate mod)
 - Ancient Affection patches? (maybe as separate mod)
 - Nicer transition between moments in the flow like changing rooms in the base game. Right now if the loading takes a bit longer we get an empty black screen with the game's toolbar still in view.
 - Ask help for good zhs translation

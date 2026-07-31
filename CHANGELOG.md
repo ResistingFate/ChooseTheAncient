@@ -4,18 +4,24 @@
 - EventSynchronizer patch is unnecessary and should be removed soon.
   - Also likely the custom messages too.
 - Redundant settings are unnecessary and should be removed soon.
-- Discord 2 factar authentication, Steam 2 factor authentication
-- Localizations string search through whole project
-- workshop page
+- compatability patches for seed and directionalinput should be removed on next main
 - TESTING within a CI Pipeline
 - csproj auto make release, auto make nexus release, auto make steam release
 
-- None
+- Vanilla ancient zoom by 1.1 to 1.3, see if it looks better (check tanx vfx is working)
 
-## [v1.2.6] -
+## [v1.3.0] - Compatability with v0.110.0 and Slay the Streamer support
 
-## Fixes
-- Redundant settings now disable by default, and showing is now showing and enabling those settings.
+### Fetaures
+- Slay the Streamer support
+- Compatable with v1.110.0 of the game
+- All localization values are in the loc tables for ease of translation
+
+### Fixes
+- Redundant settings now disable by default, and showing is now showing and enabling those settings. Darv still disabled for act 1
+
+### Technical
+- Added compatability file to switch between IsUsningController to IsUsingDirectionsNavigation 
 
 ## [v1.2.5] - Removed AncientHPBaseline Patch 
 

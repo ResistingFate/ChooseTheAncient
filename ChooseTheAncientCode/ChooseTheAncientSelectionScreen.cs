@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Audio.Debug;
 using MegaCrit.Sts2.Core.Context;
@@ -5148,9 +5149,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Shows the controller prompt only on the active slot and animates prompt visibility changes.
          */
+        NControllerManager? controllerManager = NControllerManager.Instance;
         bool showControllerPrompts =
-            NControllerManager.Instance != null &&
-            NControllerManager.Instance.IsUsingController &&
+            controllerManager != null &&
+            InputNavigationCompatibility.IsUsingDirectionalNavigation(controllerManager) &&
             ShowControllerHotkeys;
 
         Texture2D? selectIcon = NInputManager.Instance?.GetHotkeyIcon(MegaInput.select);
