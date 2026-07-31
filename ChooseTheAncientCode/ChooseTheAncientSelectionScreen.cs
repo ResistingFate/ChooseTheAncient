@@ -297,53 +297,53 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     {
         ["DARV"] = new AncientSceneConfig(
             new Vector2(1920f, 1080f),
-            1.6f,
+            1.8f,
             new Vector2(
                 (855f) / 1920f,
                 (430f) / 1080f),
-            new Vector2(+14, 0f)),
+            new Vector2(+14-100, 0f)),
         ["OROBAS"] = new AncientSceneConfig(
             new Vector2(1920f, 1080f),
-            1.1f,
+            1.3f,
             new Vector2(
                 (852f) / 1920f,
                 (423f) / 1080f),
             new Vector2(-32, -10f)),
         ["PAEL"] = new AncientSceneConfig(
             new Vector2(1920f, 1080f),
-            1.25f,
+            1.3f,
             new Vector2(
                 (1073f) / 1920f,
                 (517f) / 1080f),
             new Vector2(0f, 55f)),
         ["TEZCATARA"] = new AncientSceneConfig(
             new Vector2(1920f, 1080f),
-            1.1f,
+            1.3f,
             new Vector2(
                 (928f) / 1920f,
                 (543f) / 1080f),
             new Vector2(0f, 0f)),
         ["NONUPEIPE"] = new AncientSceneConfig(
             new Vector2(1920f, 1080f),
-            1.3f,
+            1.6f,
             new Vector2(
                 (1064) / 1920f,
                 (350f) / 1080f),
-            new Vector2(30f, -110f)),
+            new Vector2(30f+80f, -110f+100f)),
         ["TANX"] = new AncientSceneConfig(
             new Vector2(1920f, 1080f),
-            1.1f,
+            1.4f,
             new Vector2(
                 (743f) / 1920f,
                 (492f) / 1080f),
-            new Vector2(0f, 0f)),
+            new Vector2(0f-100f, 0f+130f)),
         ["VAKUU"] = new AncientSceneConfig(
             new Vector2(1920f, 1080f),
-            0.88f,
+            1.3f,
             new Vector2(
                 (710f) / 1920f,
                 (500f) / 1080f),
-            new Vector2(0f, -51f)),
+            new Vector2(0f, -51f+200f)),
         ["NEOW"] = new AncientSceneConfig(
             new Vector2(1920f, 1080f),
             0.88f,

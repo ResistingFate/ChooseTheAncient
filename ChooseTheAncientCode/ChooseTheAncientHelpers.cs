@@ -428,9 +428,6 @@ public static class ChooseTheAncientHelpers
             .OrderBy(a => a.Id.Entry)
             .ToList();
 
-        if (targetActIndex == 0)
-            defaultPool.RemoveAll(IsDarvAncient);
-
         LogPool($"Act {targetActIndex + 1} default pool before special overrides for target {targetAct.Id.Entry}", defaultPool);
 
         if (specialAncientOverrides != null)
@@ -444,6 +441,17 @@ public static class ChooseTheAncientHelpers
         }
         else
         {
+            if (targetActIndex == 0)
+            {
+                IReadOnlyDictionary<string, int>? weights = AncientConfigsPlusInterop.TryParseWeights(1);
+                if (weights == null ||
+                    !weights.TryGetValue("Darv", out int darvWeight) ||
+                    darvWeight <= 0)
+                {
+                    defaultPool.RemoveAll(IsDarvAncient);
+                }
+            }
+
             ModLog.Debug(
                 $"Skipping legacy Neow/Darv special overrides for act {targetActIndex + 1} " +
                 "because redundant settings are disabled.");
@@ -756,6 +764,19 @@ public static class ChooseTheAncientHelpers
 
         IReadOnlyDictionary<string, int>? ancientConfigsPlusWeights =
             AncientConfigsPlusInterop.TryParseWeights(nextActIndex + 1);
+
+        if (nextActIndex == 0 &&
+            ChooseTheAncientConfig.EnableRedundantSettings &&
+            ancientConfigsPlusWeights is { Count: > 0 })
+        {
+            Dictionary<string, int> adjustedWeights =
+                new(ancientConfigsPlusWeights, StringComparer.Ordinal)
+                {
+                    ["Darv"] = ChooseTheAncientConfig.IsSpecialAncientOverrideEnabled("DARV", 0) ? 1 : 0
+                };
+
+            ancientConfigsPlusWeights = adjustedWeights;
+        }
 
         bool useAncientConfigsPlusWeights =
             ancientConfigsPlusWeights is { Count: > 0 };

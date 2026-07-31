@@ -8,7 +8,18 @@
 - TESTING within a CI Pipeline
 - csproj auto make release, auto make nexus release, auto make steam release
 
-- Vanilla ancient zoom by 1.1 to 1.3, see if it looks better (check tanx vfx is working)
+- Todo
+- decrease to half as much space for cards description and title, move title up to name
+- more dimming of other ancients on hover on one ancient, not as much as winner/vote selected
+- keyboard mode tooltip, better tooltip handling
+
+## [v1.3.1] - Zoomed in Vanilla Ancients
+
+### Features
+- zoomed in the heads of the ancients
+
+### Fixes
+- Darv now removed from act 1, unless legacy setting adds him back in
 
 ## [v1.3.0] - Compatability with v0.110.0 and Slay the Streamer support
 
