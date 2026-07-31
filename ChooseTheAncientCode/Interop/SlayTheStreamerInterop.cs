@@ -94,7 +94,7 @@ internal static class SlayTheStreamerInterop
             string[] normalizedOptions = options
                 .Select((option, index) =>
                     string.IsNullOrWhiteSpace(option)
-                        ? $"Option {index}"
+                        ? ChooseTheAncientBaseAncientText.GetStreamerOptionFallbackLabel(index)
                         : option.Trim())
                 .ToArray();
 

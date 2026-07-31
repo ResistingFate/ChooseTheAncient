@@ -1313,10 +1313,9 @@ public static class ChooseTheAncientCoordinator
         if (screenVoteTask.IsCompleted)
             return await screenVoteTask;
 
-        string voteLabel = round.RoundType ==
-                           ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote
-            ? "Choose the final Ancient"
-            : "Choose the Ancient";
+        string voteLabel = ChooseTheAncientBaseAncientText.GetStreamerVoteLabel(
+            round.RoundType ==
+            ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote);
 
         string[] optionLabels = round.Pool
             .Select((ancient, index) =>
@@ -1326,7 +1325,7 @@ public static class ChooseTheAncientCoordinator
                     return title;
 
                 return string.IsNullOrWhiteSpace(ancient.Id.Entry)
-                    ? $"Ancient {index}"
+                    ? ChooseTheAncientBaseAncientText.GetStreamerAncientFallbackLabel(index)
                     : ancient.Id.Entry;
             })
             .ToArray();

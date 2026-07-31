@@ -185,6 +185,24 @@ public static class ChooseTheAncientBaseAncientText
     public static string GetUnavailableButtonText() =>
         GetUiText("choose_the_ancient.button.unavailable");
 
+    internal static string GetStreamerVoteLabel(bool isFinalRevealVote) =>
+        GetUiText(
+            isFinalRevealVote
+                ? "choose_the_ancient.streamer.vote_label.final_reveal"
+                : "choose_the_ancient.streamer.vote_label.standard");
+
+    internal static string GetStreamerAncientFallbackLabel(int index) =>
+        ChooseTheAncientLocalization.GetText(
+            UiTableName,
+            "choose_the_ancient.streamer.fallback.ancient",
+            ("Index", index.ToString(CultureInfo.InvariantCulture)));
+
+    internal static string GetStreamerOptionFallbackLabel(int index) =>
+        ChooseTheAncientLocalization.GetText(
+            UiTableName,
+            "choose_the_ancient.streamer.fallback.option",
+            ("Index", index.ToString(CultureInfo.InvariantCulture)));
+
     private static string GetNumberedActLabelText(int nextActIndex)
     {
         int actNumber = nextActIndex + 1;

@@ -7,5 +7,9 @@
   "choose_the_ancient.button.selected_ancient": "Selected Ancient",
   "choose_the_ancient.button.voting_closed": "Voting Closed",
   "choose_the_ancient.button.vote_locked": "Vote Locked",
-  "choose_the_ancient.button.unavailable": "Unavailable"
+  "choose_the_ancient.button.unavailable": "Unavailable",
+  "choose_the_ancient.streamer.vote_label.standard": "Choose the Ancient",
+  "choose_the_ancient.streamer.vote_label.final_reveal": "Choose the final Ancient",
+  "choose_the_ancient.streamer.fallback.ancient": "Ancient {Index}",
+  "choose_the_ancient.streamer.fallback.option": "Option {Index}"
 }
