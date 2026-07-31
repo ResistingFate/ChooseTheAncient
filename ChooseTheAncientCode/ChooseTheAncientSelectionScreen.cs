@@ -503,6 +503,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private readonly TaskCompletionSource<bool> _readyCompletion = new();
 
     private TaskCompletionSource<int> _voteSubmitted = new();
+    private TaskCompletionSource<bool> _roundPresented = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private IReadOnlyList<AncientEventModel> _pool = Array.Empty<AncientEventModel>();
     private VoteRoundType _roundType = VoteRoundType.InitialKeepVote;
@@ -516,6 +517,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private int? _pendingPoolIndex;
     private int? _selectedPoolIndex;
     private bool _resolved;
+    private bool _manualSelectionLocked;
     private bool _closing;
     private bool _suppressAutoResolveVisibility;
     private bool _uiReady;
@@ -779,7 +781,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Consumes select and cancel actions that apply to the currently focused vote controls.
          */
-        if (_resolved)
+        if (_resolved || _manualSelectionLocked)
         {
             return;
         }
@@ -790,7 +792,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             SlotRefs? focusedSlot = FindFocusedVoteSlot(focusedControl);
             if (focusedSlot != null && !focusedSlot.ChooseButton.Disabled)
             {
-                Select(focusedSlot.PoolIndex);
+                TrySelectManually(focusedSlot.PoolIndex);
                 AcceptEvent();
                 return;
             }
@@ -843,6 +845,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         if (!_voteSubmitted.Task.IsCompleted)
         {
             _voteSubmitted.TrySetCanceled();
+        }
+
+        if (!_roundPresented.Task.IsCompleted)
+        {
+            _roundPresented.TrySetCanceled();
         }
 
         base._ExitTree();
@@ -1038,9 +1045,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          * Resets all round-scoped state, applies the supplied round data, and waits for a vote to be submitted.
          */
         /* Handles each of the vote rounds for the selection screen */
+        _voteSubmitted = new TaskCompletionSource<int>();
+        _roundPresented = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
         await _readyCompletion.Task;
 
-        _voteSubmitted = new TaskCompletionSource<int>();
         _pool = round.Pool;
         _roundType = round.RoundType;
         _previewDataByAncientId = round.PreviewDataByAncientId?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
@@ -1075,8 +1084,26 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _initialSecondRoundWinnerEmphasisFadeTween = null;
         _initialSecondRoundWinnerEmphasisAmount = 0f;
 
-        await ApplyRoundAsync();
+        try
+        {
+            await ApplyRoundAsync();
+            _roundPresented.TrySetResult(true);
+        }
+        catch (Exception ex)
+        {
+            _roundPresented.TrySetException(ex);
+            throw;
+        }
+
         return await _voteSubmitted.Task;
+    }
+
+    public Task WaitUntilRoundPresentedAsync()
+    {
+        /*
+         * Slay the relic if on will wait for screen to open before starting it's functionailty 
+         */
+        return _roundPresented.Task;
     }
 
     private async Task ApplyRoundAsync()
@@ -2204,7 +2231,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         chooseButton.FocusExited += () => OnSlotUnhovered(poolIndex);
 
         int capturedIndex = poolIndex;
-        chooseButton.Pressed += () => Select(capturedIndex);
+        chooseButton.Pressed += () => TrySelectManually(capturedIndex);
 
         SlotRefs refs = new()
         {
@@ -2458,7 +2485,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             }
             else
             {
-                refs.ChooseButton.Disabled = false;
+                refs.ChooseButton.Disabled = _manualSelectionLocked;
                 refs.ChooseButton.Text = ChooseTheAncientBaseAncientText.GetVoteForThisAncientButtonText();
             }
             
@@ -4477,7 +4504,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
-        if (_resolved || _closing)
+        if (_resolved || _closing || _manualSelectionLocked)
         {
             return;
         }
@@ -4498,7 +4525,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
-        Select(poolIndex.Value);
+        TrySelectManually(poolIndex.Value);
         AcceptEvent();
     }
 
@@ -4507,7 +4534,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Validates click-target input against the active click mode before submitting a selection.
          */
-        if (_resolved)
+        if (_resolved || _manualSelectionLocked)
         {
             return;
         }
@@ -4529,7 +4556,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
-        Select(poolIndex);
+        TrySelectManually(poolIndex);
         AcceptEvent();
     }
 
@@ -5462,6 +5489,89 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         int fallbackIndex = _orderedPlayers.IndexOf(player);
         return fallbackIndex >= 0 ? fallbackIndex : 999;
+    }
+
+    public void SetManualSelectionLocked(bool locked)
+    {
+        /*
+         * Enables or disables every local selection path while an external vote
+         * owns the round. The external winner can still resolve the screen through
+         * TrySubmitExternalVote..
+         */
+        if (!GodotObject.IsInstanceValid(this) || _closing)
+        {
+            return;
+        }
+
+        if (_manualSelectionLocked == locked)
+        {
+            return;
+        }
+
+        _manualSelectionLocked = locked;
+
+        if (!_uiReady || _slots.Count == 0)
+        {
+            return;
+        }
+
+        if (locked)
+        {
+            _pendingPoolIndex = null;
+            _hoveredSlot = null;
+            _lastHoveredPoolIndex = null;
+        }
+
+        RefreshButtonTexts();
+        RefreshSlotVisuals(animate: true);
+
+        if (!locked && !_resolved)
+        {
+            GrabInitialFocus();
+        }
+    }
+
+    private bool TrySelectManually(int poolIndex)
+    {
+        /*
+         * Central guard for mouse, button, whole-slot, and controller selection.
+         * External integrations bypass this method and use TrySubmitExternalVote.
+         */
+        if (_manualSelectionLocked || _resolved || _closing)
+        {
+            return false;
+        }
+
+        if (poolIndex < 0 || poolIndex >= _pool.Count)
+        {
+            return false;
+        }
+
+        Select(poolIndex);
+        return true;
+    }
+
+    public bool TrySubmitExternalVote(int poolIndex)
+    {
+        /*
+         * Lets an optional external voting provider resolve the currently active
+         * round without exposing or duplicating the screen's private selection flow.
+         */
+        if (!GodotObject.IsInstanceValid(this) || _resolved || _closing)
+        {
+            return false;
+        }
+
+        if (poolIndex < 0 || poolIndex >= _pool.Count)
+        {
+            ModLog.Warn(
+                $"Rejected external CTA vote index {poolIndex}; " +
+                $"valid range is 0..{_pool.Count - 1}.");
+            return false;
+        }
+
+        Select(poolIndex);
+        return true;
     }
 
     private void Select(int poolIndex)

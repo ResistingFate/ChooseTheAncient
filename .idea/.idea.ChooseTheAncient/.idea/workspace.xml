@@ -4,11 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="I have moved all localization into loc tables.">
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/SlayTheStreamerInterop.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ModUploader/mobile_performance.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -289,31 +293,7 @@
       <workItem from="1785334365678" duration="10489000" />
       <workItem from="1785413522615" duration="10501000" />
       <workItem from="1785436383625" duration="11042000" />
-      <workItem from="1785455069439" duration="467000" />
-    </task>
-    <task id="LOCAL-00061" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
-      <option name="closed" value="true" />
-      <created>1784744451126</created>
-      <option name="number" value="00061" />
-      <option name="presentableId" value="LOCAL-00061" />
-      <option name="project" value="LOCAL" />
-      <updated>1784744451126</updated>
-    </task>
-    <task id="LOCAL-00062" summary="Still experimenting with changes to how mods which extend acts are handled. Seeing if we can improve compatability.&#10;&#10;Separated the isVictorRoom guard for some of these mods so Victory rooms only skip CTA when no indexed next act exists.&#10;Made a note that InvokeRunManagerVoid((clearScreenMethod, runManager) in the Coordinator.cs is involved in some endless mode mods transitions during act 5 ancients.">
-      <option name="closed" value="true" />
-      <created>1784754252787</created>
-      <option name="number" value="00062" />
-      <option name="presentableId" value="LOCAL-00062" />
-      <option name="project" value="LOCAL" />
-      <updated>1784754252787</updated>
-    </task>
-    <task id="LOCAL-00063" summary="Edited the Focus Ancient 2 Script. Added the simplified script for Focus Ancient 2. Added the Neow script.">
-      <option name="closed" value="true" />
-      <created>1784755622433</created>
-      <option name="number" value="00063" />
-      <option name="presentableId" value="LOCAL-00063" />
-      <option name="project" value="LOCAL" />
-      <updated>1784755622438</updated>
+      <workItem from="1785455069439" duration="9774000" />
     </task>
     <task id="LOCAL-00064" summary="Edited the Neow Script.">
       <option name="closed" value="true" />
@@ -683,7 +663,31 @@
       <option name="project" value="LOCAL" />
       <updated>1785454031573</updated>
     </task>
-    <option name="localTasksCounter" value="110" />
+    <task id="LOCAL-00110" summary="I have moved all localization into loc tables.">
+      <option name="closed" value="true" />
+      <created>1785455550462</created>
+      <option name="number" value="00110" />
+      <option name="presentableId" value="LOCAL-00110" />
+      <option name="project" value="LOCAL" />
+      <updated>1785455550462</updated>
+    </task>
+    <task id="LOCAL-00111" summary="I have moved all localization into loc tables, so game ui and mod settings are in the tables along with the dialouge.&#10;Added Machine translated versions of the game ui and mod setting in the zhs tables.&#10;ChooseTheAncientLocalization.cs as a helper for the mod settings localization mostly and also allows the language to fallback to english is no translation for the current language exists.&#10;For Enums, optionIds were made and canonicalChoices so they would remain stable in ritsulib and other settings.">
+      <option name="closed" value="true" />
+      <created>1785457212519</created>
+      <option name="number" value="00111" />
+      <option name="presentableId" value="LOCAL-00111" />
+      <option name="project" value="LOCAL" />
+      <updated>1785457212520</updated>
+    </task>
+    <task id="LOCAL-00112" summary="Adding the winners showcase to github so it can be linked on the steam workshop">
+      <option name="closed" value="true" />
+      <created>1785467541240</created>
+      <option name="number" value="00112" />
+      <option name="presentableId" value="LOCAL-00112" />
+      <option name="project" value="LOCAL" />
+      <updated>1785467541240</updated>
+    </task>
+    <option name="localTasksCounter" value="113" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -719,8 +723,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Removed ChooseTheAncientPortalSourceNodePath and ChooseTheAncientPortalAutoDetectSourceNode properties from the API. Also removed all the code they required in Selection Screen to change the positions and baseSize. The API is simpler without them now that we have a consistent tutorial to get the values manually from godot." />
-    <MESSAGE value="Added tutorials for aligning the API to the workshop folder" />
     <MESSAGE value="Adjusted all the vanilla ancients position in their ancient config" />
     <MESSAGE value="Update the act 1 node with a post fix patch to have a new ancient node random icon. The icon is saved under scenes -&gt; map" />
     <MESSAGE value="Updated Dialouge so the Acient Json dialouge keys can sort through other ancient, the player character, the act name.&#10;Also added the backbone to read suppressed ancients to have dialouge responses. Added the generic lines and vanilla ancient lines for this to the ancient.json. Still actually need to add ui bubble to show these lines in Fair Fight mode.&#10;&#10;API for custom ancient now has no properties for these dialouges. It will merge through ancients.json.&#10;&#10;Added DialougeVariable provider. I want other mods to try add their own dialouge for their own contexts, like ancient affinity mod has a stat level of how close you are to the ancient.&#10;&#10;Added Unit Tests too." />
@@ -744,7 +746,9 @@
     <MESSAGE value="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons." />
     <MESSAGE value="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension." />
     <MESSAGE value="I have moved all localization into loc tables." />
-    <option name="LAST_COMMIT_MESSAGE" value="I have moved all localization into loc tables." />
+    <MESSAGE value="I have moved all localization into loc tables, so game ui and mod settings are in the tables along with the dialouge.&#10;Added Machine translated versions of the game ui and mod setting in the zhs tables.&#10;ChooseTheAncientLocalization.cs as a helper for the mod settings localization mostly and also allows the language to fallback to english is no translation for the current language exists.&#10;For Enums, optionIds were made and canonicalChoices so they would remain stable in ritsulib and other settings." />
+    <MESSAGE value="Adding the winners showcase to github so it can be linked on the steam workshop" />
+    <option name="LAST_COMMIT_MESSAGE" value="Adding the winners showcase to github so it can be linked on the steam workshop" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

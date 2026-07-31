@@ -19,6 +19,7 @@ using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using ChooseTheAncient.ChooseTheAncientCode.Rooms;
 using ChooseTheAncient.ChooseTheAncientCode.Messages;
+using ChooseTheAncient.ChooseTheAncientCode.Interop;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -1258,7 +1259,10 @@ public static class ChooseTheAncientCoordinator
             if (localScreen == null)
                 throw new InvalidOperationException("Local ancient selection screen was not created.");
 
-            int localVote = await localScreen.RunRoundAsync(round);
+            int localVote = await CollectSingleplayerVote(
+                round,
+                localScreen);
+
             localScreen.RecordVote(orderedPlayers[0], localVote);
             ModLog.Debug($"Vote received for player {orderedPlayers[0].NetId}: {localVote}");
             return [localVote];
@@ -1291,6 +1295,159 @@ public static class ChooseTheAncientCoordinator
     }
 
     
+    private static async Task<int> CollectSingleplayerVote(
+        ChooseTheAncientSelectionScreen.RoundDefinition round,
+        ChooseTheAncientSelectionScreen localScreen)
+    /*
+     * Runs the normal CTA screen and, when available, mirrors the same ballot into
+     * Slay the Streamer through a reflection-only optional interop.
+     */
+    {
+        // Lock before the round is built so there is no frame where a player can
+        // click an option before the Twitch session takes ownership.
+        localScreen.SetManualSelectionLocked(true);
+
+        Task<int> screenVoteTask = localScreen.RunRoundAsync(round);
+        await localScreen.WaitUntilRoundPresentedAsync();
+
+        if (screenVoteTask.IsCompleted)
+            return await screenVoteTask;
+
+        string voteLabel = round.RoundType ==
+                           ChooseTheAncientSelectionScreen.VoteRoundType.FinalRevealVote
+            ? "Choose the final Ancient"
+            : "Choose the Ancient";
+
+        string[] optionLabels = round.Pool
+            .Select((ancient, index) =>
+            {
+                string title = ancient.Title.GetFormattedText();
+                if (!string.IsNullOrWhiteSpace(title))
+                    return title;
+
+                return string.IsNullOrWhiteSpace(ancient.Id.Entry)
+                    ? $"Ancient {index}"
+                    : ancient.Id.Entry;
+            })
+            .ToArray();
+
+        if (!SlayTheStreamerInterop.TryStartVote(
+                voteLabel,
+                optionLabels,
+                out SlayTheStreamerVote? streamerVote,
+                out string unavailableReason)
+            || streamerVote == null)
+        {
+            localScreen.SetManualSelectionLocked(false);
+            ModLog.Debug(
+                $"Slay the Streamer did not take this CTA ballot because {unavailableReason}. " +
+                "Manual selection was restored.");
+            return await screenVoteTask;
+        }
+
+        try
+        {
+            Task<int> firstCompleted = await Task.WhenAny(
+                screenVoteTask,
+                streamerVote.WinnerTask);
+
+            if (ReferenceEquals(firstCompleted, screenVoteTask))
+            {
+                // Screen was Closed. Manual input is locked while this session is active.
+                if (!screenVoteTask.IsCompletedSuccessfully)
+                {
+                    TryCancelSlayTheStreamerVote(streamerVote);
+                    return await screenVoteTask;
+                }
+
+                int externallyResolvedVote = await screenVoteTask;
+                streamerVote.TryForceWinner(externallyResolvedVote);
+                return externallyResolvedVote;
+            }
+
+            int chatWinner = await streamerVote.WinnerTask;
+            if (chatWinner < 0 || chatWinner >= round.Pool.Count)
+            {
+                ModLog.Warn(
+                    $"Slay the Streamer returned invalid CTA option index {chatWinner}; " +
+                    $"expected 0..{round.Pool.Count - 1}. Falling back to normal selection.");
+
+                SetManualSelectionLockedDeferred(localScreen, locked: false);
+                return await screenVoteTask;
+            }
+
+            Callable.From(() =>
+            {
+                if (!localScreen.TrySubmitExternalVote(chatWinner))
+                {
+                    ModLog.Debug(
+                        $"CTA ignored chat option {chatWinner} because the screen " +
+                        "had already resolved or was closing.");
+                }
+            }).CallDeferred();
+
+            int resolvedVote = await screenVoteTask;
+
+            if (resolvedVote != chatWinner)
+            {
+                ModLog.Debug(
+                    $"CTA resolved to {resolvedVote} while chat resolved to {chatWinner}; " +
+                    "the already-completed local screen choice was kept.");
+            }
+            else
+            {
+                ModLog.Info(
+                    $"Slay the Streamer selected CTA option {chatWinner}: " +
+                    $"{optionLabels[chatWinner]}.");
+            }
+
+            return resolvedVote;
+        }
+        catch (OperationCanceledException)
+        {
+            TryCancelSlayTheStreamerVote(streamerVote);
+
+            if (screenVoteTask.IsCanceled)
+                throw;
+
+            SetManualSelectionLockedDeferred(localScreen, locked: false);
+            ModLog.Warn(
+                "The Slay the Streamer CTA vote was cancelled. " +
+                "Manual selection was restored.");
+            return await screenVoteTask;
+        }
+        catch (Exception ex)
+        {
+            TryCancelSlayTheStreamerVote(streamerVote);
+            SetManualSelectionLockedDeferred(localScreen, locked: false);
+            ModLog.Warn(
+                "The Slay the Streamer CTA vote failed after opening. " +
+                $"Manual selection was restored. {ex}");
+            return await screenVoteTask;
+        }
+    }
+
+    private static void SetManualSelectionLockedDeferred(
+        ChooseTheAncientSelectionScreen screen,
+        bool locked)
+    {
+        Callable.From(() => screen.SetManualSelectionLocked(locked)).CallDeferred();
+    }
+
+    private static void TryCancelSlayTheStreamerVote(SlayTheStreamerVote vote)
+    {
+        try
+        {
+            vote.Cancel();
+        }
+        catch (Exception ex)
+        {
+            ModLog.Debug(
+                $"Could not cancel the reflected Slay the Streamer vote during cleanup: " +
+                $"{ex.GetBaseException().Message}");
+        }
+    }
+
     private static async Task<int> GetVoteForPlayer(
         Player player,
         uint choiceId,
