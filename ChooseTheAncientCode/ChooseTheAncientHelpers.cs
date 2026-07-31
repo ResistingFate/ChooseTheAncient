@@ -428,6 +428,9 @@ public static class ChooseTheAncientHelpers
             .OrderBy(a => a.Id.Entry)
             .ToList();
 
+        if (targetActIndex == 0)
+            defaultPool.RemoveAll(IsDarvAncient);
+
         LogPool($"Act {targetActIndex + 1} default pool before special overrides for target {targetAct.Id.Entry}", defaultPool);
 
         if (specialAncientOverrides != null)
@@ -1412,6 +1415,9 @@ public static class ChooseTheAncientHelpers
      * CTA source-act settings do not affect this calculation.
      */
     {
+        if (string.Equals(eventModel.Id.Entry, "DARV", StringComparison.OrdinalIgnoreCase))
+            return 1;
+
         int? minimumActIndex = null;
 
         for (int actIndex = 0; actIndex < runState.Acts.Count; actIndex++)
