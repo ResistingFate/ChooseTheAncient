@@ -12,6 +12,8 @@ The custom Ancient shown is [Arq's Ancients – Phoenix](https://steamcommunity.
 [](https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/showcase/hades2.gif)
 [](https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/showcase/hades1.gif)
 
+![]([](https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/showcase/hades3.gif))
+
 # Ancients Awakand
 [Ancients Awakened](https://steamcommunity.com/sharedfiles/filedetails/?id=3747492675) by crpticAurora and Soy
 [](https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/showcase/ancientsawakened2.gif)
