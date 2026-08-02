@@ -261,7 +261,7 @@ choose_the_ancient.second_round.dialogue.<reaction/suppressed>.MY_ANCIENT.[other
 ```
 Where `[]` are optional and `<>` are required parts of the key.
 * `reaction` means this dialogue is said by the ancient revealing their options for a second try.
-* `suppressed` means this dialogue is said by the most voted ancient. (Only shows during Fair Fight mode)
+* `suppressed` means this dialogue is said by the most voted ancient. (Only shows during Fair Fight mode. It is the most voted ancient responding to the 2nd most voted ancient trying to coax the player to pick them instead.)
 * The `[]` keys mean this key is only said when the condition is met.
 * `N` is just an identifier for the key of the same type as all keys needs to be different. If there is more than 1 key for the same type, the key is randomly picked for all keys of the same type using the different indices. Number them `0 to 1` numerically.
   

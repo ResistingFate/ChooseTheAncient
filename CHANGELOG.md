@@ -10,6 +10,7 @@
 
 - Todo
 - decrease to half as much space for cards description and title, move title up to name
+- Ancient Name and title is too small
 - more dimming of other ancients on hover on one ancient, not as much as winner/vote selected
 - keyboard mode tooltip, better tooltip handling
 
@@ -17,6 +18,7 @@
 
 ### Features
 - zoomed in the heads of the ancients
+- 
 
 ### Fixes
 - Darv now removed from act 1, unless legacy setting adds him back in
