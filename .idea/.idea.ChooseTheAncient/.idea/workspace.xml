@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/workshop/winners_showcase.md" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/winners_showcase.md" afterDir="false" />
-    </list>
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -292,22 +290,6 @@
       <workItem from="1785505320994" duration="10080000" />
       <workItem from="1785625331802" duration="4732000" />
       <workItem from="1785662198950" duration="302000" />
-    </task>
-    <task id="LOCAL-00077" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
-      <option name="closed" value="true" />
-      <created>1785174839217</created>
-      <option name="number" value="00077" />
-      <option name="presentableId" value="LOCAL-00077" />
-      <option name="project" value="LOCAL" />
-      <updated>1785174839217</updated>
-    </task>
-    <task id="LOCAL-00078" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
-      <option name="closed" value="true" />
-      <created>1785174881813</created>
-      <option name="number" value="00078" />
-      <option name="presentableId" value="LOCAL-00078" />
-      <option name="project" value="LOCAL" />
-      <updated>1785174881813</updated>
     </task>
     <task id="LOCAL-00079" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
       <option name="closed" value="true" />
@@ -685,7 +667,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785697983873</updated>
     </task>
-    <option name="localTasksCounter" value="126" />
+    <task id="LOCAL-00126" summary="wener showcase now with html links to the raw github gifs.">
+      <option name="closed" value="true" />
+      <created>1785698225745</created>
+      <option name="number" value="00126" />
+      <option name="presentableId" value="LOCAL-00126" />
+      <option name="project" value="LOCAL" />
+      <updated>1785698225745</updated>
+    </task>
+    <task id="LOCAL-00127" summary="moved the winners_showcase to the showcase folder">
+      <option name="closed" value="true" />
+      <created>1785698293920</created>
+      <option name="number" value="00127" />
+      <option name="presentableId" value="LOCAL-00127" />
+      <option name="project" value="LOCAL" />
+      <updated>1785698293920</updated>
+    </task>
+    <option name="localTasksCounter" value="128" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -721,8 +719,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="- Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen." />
-    <MESSAGE value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder." />
     <MESSAGE value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.&#10;&#10;Trace looks like VeryDebug in the menus now." />
     <MESSAGE value="Add the slot templates to the github in preparation of the push, so a weblink of them can be developed for the guide." />
     <MESSAGE value="Added the selection screen template download links." />
@@ -746,7 +742,9 @@
     <MESSAGE value="Merge remote-tracking branch 'origin/master'&#10;&#10;# Conflicts:&#10;#&#9;.idea/.idea.ChooseTheAncient/.idea/workspace.xml" />
     <MESSAGE value="Updated the links in the winners showcase to the github raw links" />
     <MESSAGE value="winners showcase raw gif links attempt 2" />
-    <option name="LAST_COMMIT_MESSAGE" value="winners showcase raw gif links attempt 2" />
+    <MESSAGE value="wener showcase now with html links to the raw github gifs." />
+    <MESSAGE value="moved the winners_showcase to the showcase folder" />
+    <option name="LAST_COMMIT_MESSAGE" value="moved the winners_showcase to the showcase folder" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
