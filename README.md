@@ -2,7 +2,7 @@
 
 No longer do you stumble upon the Ancients, now they come to you.
 At the end of each act, vote the ancient you want for the start of the next.
-(Updated for STS2 v0.108.0)
+(For Main 1.070.1 & Beta 0.110.0)
 
 <img src="https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/workshop/Choose_The_Ancients_Custom_Short_Decision.gif" alt="Alt Text" width="480" />
 

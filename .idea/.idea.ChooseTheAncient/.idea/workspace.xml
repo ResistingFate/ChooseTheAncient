@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/workshop/steam_workshop_description.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/showcase/winners_showcase.md" beforeDir="false" afterPath="$PROJECT_DIR$/showcase/winners_showcase.md" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -290,14 +294,6 @@
       <workItem from="1785505320994" duration="10080000" />
       <workItem from="1785625331802" duration="4732000" />
       <workItem from="1785662198950" duration="302000" />
-    </task>
-    <task id="LOCAL-00079" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
-      <option name="closed" value="true" />
-      <created>1785174889939</created>
-      <option name="number" value="00079" />
-      <option name="presentableId" value="LOCAL-00079" />
-      <option name="project" value="LOCAL" />
-      <updated>1785174889939</updated>
     </task>
     <task id="LOCAL-00080" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
       <option name="closed" value="true" />
@@ -683,7 +679,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785698293920</updated>
     </task>
-    <option name="localTasksCounter" value="128" />
+    <task id="LOCAL-00128" summary="Removed description from workshop file as when I updated it, it replaced the edited description on the steam store.">
+      <option name="closed" value="true" />
+      <created>1785702365633</created>
+      <option name="number" value="00128" />
+      <option name="presentableId" value="LOCAL-00128" />
+      <option name="project" value="LOCAL" />
+      <updated>1785702365633</updated>
+    </task>
+    <option name="localTasksCounter" value="129" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -719,7 +723,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.&#10;&#10;Trace looks like VeryDebug in the menus now." />
     <MESSAGE value="Add the slot templates to the github in preparation of the push, so a weblink of them can be developed for the guide." />
     <MESSAGE value="Added the selection screen template download links." />
     <MESSAGE value="Reorganised tutorials" />
@@ -744,7 +747,8 @@
     <MESSAGE value="winners showcase raw gif links attempt 2" />
     <MESSAGE value="wener showcase now with html links to the raw github gifs." />
     <MESSAGE value="moved the winners_showcase to the showcase folder" />
-    <option name="LAST_COMMIT_MESSAGE" value="moved the winners_showcase to the showcase folder" />
+    <MESSAGE value="Removed description from workshop file as when I updated it, it replaced the edited description on the steam store." />
+    <option name="LAST_COMMIT_MESSAGE" value="Removed description from workshop file as when I updated it, it replaced the edited description on the steam store." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

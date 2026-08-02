@@ -1,4 +1,4 @@
-﻿[## Weekly Ancient Showcase
+﻿## Weekly Ancient Showcase
 
 Every week, I’ll feature the most popular Ancient on this mod’s homepage. You can see the previous winners below.
 
