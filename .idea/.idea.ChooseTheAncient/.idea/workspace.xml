@@ -5,10 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/workshop/Gude_To_Perfectly_Fitting_Your_Ancient_In_ChooseTheAncient.md" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/Gude_To_Perfectly_Fitting_Your_Ancient_In_ChooseTheAncient.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/workshop/winners_showcase.md" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/winners_showcase.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -296,30 +292,6 @@
       <workItem from="1785505320994" duration="10080000" />
       <workItem from="1785625331802" duration="4732000" />
       <workItem from="1785662198950" duration="302000" />
-    </task>
-    <task id="LOCAL-00074" summary="Coordinator now handles selection ballet through the host only through the GetEffectciveBallotAsync method">
-      <option name="closed" value="true" />
-      <created>1785169264855</created>
-      <option name="number" value="00074" />
-      <option name="presentableId" value="LOCAL-00074" />
-      <option name="project" value="LOCAL" />
-      <updated>1785169264855</updated>
-    </task>
-    <task id="LOCAL-00075" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within its own slot, support instant presentation, and keep Monty Hall behavior unchanged.">
-      <option name="closed" value="true" />
-      <created>1785171615763</created>
-      <option name="number" value="00075" />
-      <option name="presentableId" value="LOCAL-00075" />
-      <option name="project" value="LOCAL" />
-      <updated>1785171615763</updated>
-    </task>
-    <task id="LOCAL-00076" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
-      <option name="closed" value="true" />
-      <created>1785174524016</created>
-      <option name="number" value="00076" />
-      <option name="presentableId" value="LOCAL-00076" />
-      <option name="project" value="LOCAL" />
-      <updated>1785174524016</updated>
     </task>
     <task id="LOCAL-00077" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
       <option name="closed" value="true" />
@@ -689,7 +661,31 @@
       <option name="project" value="LOCAL" />
       <updated>1785524172199</updated>
     </task>
-    <option name="localTasksCounter" value="123" />
+    <task id="LOCAL-00123" summary="Merge remote-tracking branch 'origin/master'&#10;&#10;# Conflicts:&#10;#&#9;.idea/.idea.ChooseTheAncient/.idea/workspace.xml">
+      <option name="closed" value="true" />
+      <created>1785697513652</created>
+      <option name="number" value="00123" />
+      <option name="presentableId" value="LOCAL-00123" />
+      <option name="project" value="LOCAL" />
+      <updated>1785697513652</updated>
+    </task>
+    <task id="LOCAL-00124" summary="Updated the links in the winners showcase to the github raw links">
+      <option name="closed" value="true" />
+      <created>1785697850020</created>
+      <option name="number" value="00124" />
+      <option name="presentableId" value="LOCAL-00124" />
+      <option name="project" value="LOCAL" />
+      <updated>1785697850020</updated>
+    </task>
+    <task id="LOCAL-00125" summary="winners showcase raw gif links attempt 2">
+      <option name="closed" value="true" />
+      <created>1785697983873</created>
+      <option name="number" value="00125" />
+      <option name="presentableId" value="LOCAL-00125" />
+      <option name="project" value="LOCAL" />
+      <updated>1785697983873</updated>
+    </task>
+    <option name="localTasksCounter" value="126" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -725,9 +721,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Added code to mke sure selection screen with large number of anciets scales cards and buttons to all fit on the screen, previnting a previous bug where when ancient name was long they'd take up the whole screen." />
-    <MESSAGE value="Include BaseLib force-spawn ancients even when IsValidForAct returns false. BaseLib intentionally separates normal pool eligibility from ShouldForceSpawn, so filtering only by act validity could hide Act 1 ancients such as Phoenix.&#10;Check ancient validity starting from Act 1 when calculating reward offsets. The previous search began at Act 2, causing valid Act 1 ancients to report an unknown minimum act and fall back unnecessarily.&#10;Read RitsuLib act validity through IModAncientActValidity. This also supports ancients that implement the interface explicitly instead of exposing a public IsValidForAct method." />
-    <MESSAGE value="Made a gudie for custom ancients working with this mod." />
     <MESSAGE value="- Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen." />
     <MESSAGE value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder." />
     <MESSAGE value="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.&#10;&#10;Trace looks like VeryDebug in the menus now." />
@@ -750,7 +743,10 @@
     <MESSAGE value="Darv no longer shows in act 1 unless redundant setting is on." />
     <MESSAGE value="Localized the strings used in the slay the streamer compatability. Added Zhs machine translation." />
     <MESSAGE value="Zoomed in ancient heads, and did a fix for Darv to work with Ancient config on not showing for act 1 but the legacy settings still working." />
-    <option name="LAST_COMMIT_MESSAGE" value="Zoomed in ancient heads, and did a fix for Darv to work with Ancient config on not showing for act 1 but the legacy settings still working." />
+    <MESSAGE value="Merge remote-tracking branch 'origin/master'&#10;&#10;# Conflicts:&#10;#&#9;.idea/.idea.ChooseTheAncient/.idea/workspace.xml" />
+    <MESSAGE value="Updated the links in the winners showcase to the github raw links" />
+    <MESSAGE value="winners showcase raw gif links attempt 2" />
+    <option name="LAST_COMMIT_MESSAGE" value="winners showcase raw gif links attempt 2" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
