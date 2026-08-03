@@ -1,4 +1,4 @@
-﻿No longer do you stumble upon the Ancients—now they come to you. At the end of each act, vote for the Ancient you want at the start of the next. [b]Compatible with Main 1.070.1 and Beta 0.110.0[/b]
+﻿No longer do you stumble upon the Ancients—now they come to you. At the end of each act, vote for the Ancient you want at the start of the next. [b]For Main 0.1070.1 and Beta 0.110.0[/b]
 
 [img]https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/workshop/Choose_The_Ancients_Custom_Short_Decision.gif[/img]
 As you can see, you have three Ancients to vote for. After you select one, another Ancient has the chance to change your mind. The custom Ancient shown is [b]Arq's Ancients — Phoenix[/b] by Arquebus.
@@ -39,7 +39,7 @@ As you can see, you have three Ancients to vote for. After you select one, anoth
 [*]Works in endless mode, including [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3771500862]New Game ++[/url]. [i](Ascension 10 breaks; ACP only filters Act 1–3 bosses.)[/i]
 [*]Act 4 mods do not have an Ancient node at the start, so no choice screen appears there.
 [*]Usable with [url=https://steamcommunity.com/workshop/filedetails/?id=3750930021]Ancient Affection[/url]. However, the preview displays the “beloved” rewards under the wrong reward options.
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3761888849]Slay the Streamer 2[/url] adds even more votes.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3761888849]Slay the Streamer 2[/url] support.
 [/list]
 
 [h1]Showcase[/h1]

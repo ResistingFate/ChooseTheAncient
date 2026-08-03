@@ -8,8 +8,8 @@
 
         <!-- Keep test project files out of the Godot/mod project item graph. -->
         <DefaultItemExcludes>$(DefaultItemExcludes);packages/**;tests/**</DefaultItemExcludes>
-
-        <AppOutputBase>$(MSBuildProjectDirectory)\</AppOutputBase>
+        
+        <PublishDir>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\</PublishDir>
 
         <!-- These let the test project reference this project without copying/publishing the mod. -->
         <CopyModOnBuild Condition="'$(CopyModOnBuild)' == ''">true</CopyModOnBuild>
@@ -26,7 +26,7 @@
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <Optimize>true</Optimize>
         <DebugType>none</DebugType>
-        <PathMap>$(AppOutputBase)=.\</PathMap>
+        <PathMap>$(MSBuildProjectDirectory)=.\</PathMap>
     </PropertyGroup>
 
     <!-- OS Detection -->
@@ -142,7 +142,8 @@
         <None Include=".gitignore" />
         <None Include="ChooseTheAncient.json" />
         <None Include="project.godot" />
-        <None Include="ChooseTheAncient\**" />
+        <None Include="ChooseTheAncient\**"
+              Exclude="ChooseTheAncient\bin\**;ChooseTheAncient\obj\**" />
     </ItemGroup>
 
     <ItemGroup>
