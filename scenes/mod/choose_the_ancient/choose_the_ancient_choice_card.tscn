@@ -157,7 +157,7 @@ theme_override_constants/margin_bottom = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 40
+theme_override_constants/separation = 14
 alignment = 2
 
 [node name="Header" type="HBoxContainer" parent="Padding/VBox"]
@@ -166,7 +166,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 14
 
 [node name="Icon" type="TextureRect" parent="Padding/VBox/Header"]
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(82, 82)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
@@ -175,6 +175,7 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = -6
+alignment = 1
 
 [node name="NameLabel" type="Label" parent="Padding/VBox/Header/TextBox"]
 layout_mode = 2
