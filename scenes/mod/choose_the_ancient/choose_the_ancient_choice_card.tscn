@@ -181,7 +181,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.960784, 0.878431, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 28
 text = "Orobas"
 
 [node name="EpithetLabel" type="Label" parent="Padding/VBox/Header/TextBox"]
@@ -189,7 +189,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.85098, 0.890196, 0.956863, 0.82)
 theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 19
 text = "Living Rainbow"
 autowrap_mode = 3
 
