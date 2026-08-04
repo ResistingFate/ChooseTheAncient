@@ -4895,10 +4895,20 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             float flashAlpha = hovered && !pendingSelected ? 0.05f : 0f;
             float shadeAlpha = _resolved
                 ? (selected ? 0.06f : 0.34f)
-                : (pendingSelected ? 0.04f : hovered ? 0.10f : 0.18f);
+                : (pendingSelected
+                    ? 0.04f
+                    : hovered
+                        ? 0.10f
+                        : anyHovered
+                            ? 0.26f
+                            : 0.18f);
             float slotAlpha = _resolved
                 ? (selected ? 1f : 0.42f)
-                : (pendingSelected ? 1f : anyHovered ? (hovered ? 1f : 0.84f) : 1f);
+                : (pendingSelected
+                    ? 1f
+                    : anyHovered
+                        ? (hovered ? 1f : 0.56f)
+                        : 1f);
             float rimAlpha = _resolved
                 ? (selected ? 0.94f : 0.28f)
                 : (pendingSelected ? 0.98f : hovered ? 0.86f : 0.58f);

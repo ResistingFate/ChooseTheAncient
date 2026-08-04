@@ -5,14 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_script_doc_cache.res" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/editor/project_metadata.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/project_metadata.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/export-cec4429fdfba31e98ca898799490eabd-choose_the_ancient_choice_card.scn" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/export-cec4429fdfba31e98ca898799490eabd-choose_the_ancient_choice_card.scn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/export_presets.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/export_presets.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/workshop/steam_workshop_description.txt" beforeDir="false" afterPath="$PROJECT_DIR$/workshop/steam_workshop_description.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,32 +67,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    ".NET Executable. dotnet test ChooseTheAncient.Tests.executor": "Run",
-    ".NET Executable.SlayTheSpire2_Debug.executor": "Debug",
-    ".NET Executable.clean rebuild tests.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
-    "Publish to folder.Publish ChooseTheAncient to folder.executor": "Run",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.build.godotPlugin",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;.NET Executable. dotnet test ChooseTheAncient.Tests.executor&quot;: &quot;Run&quot;,
+    &quot;.NET Executable.SlayTheSpire2_Debug.executor&quot;: &quot;Debug&quot;,
+    &quot;.NET Executable.clean rebuild tests.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Publish to folder.Publish ChooseTheAncient Tests to folder.executor&quot;: &quot;Run&quot;,
+    &quot;Publish to folder.Publish ChooseTheAncient to folder.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.build.godotPlugin&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
@@ -299,31 +297,10 @@
       <workItem from="1785505320994" duration="10080000" />
       <workItem from="1785625331802" duration="4732000" />
       <workItem from="1785662198950" duration="302000" />
-      <workItem from="1785718196334" duration="2479000" />
-    </task>
-    <task id="LOCAL-00081" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
-      <option name="closed" value="true" />
-      <created>1785175986130</created>
-      <option name="number" value="00081" />
-      <option name="presentableId" value="LOCAL-00081" />
-      <option name="project" value="LOCAL" />
-      <updated>1785175986130</updated>
-    </task>
-    <task id="LOCAL-00082" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
-      <option name="closed" value="true" />
-      <created>1785177293263</created>
-      <option name="number" value="00082" />
-      <option name="presentableId" value="LOCAL-00082" />
-      <option name="project" value="LOCAL" />
-      <updated>1785177293263</updated>
-    </task>
-    <task id="LOCAL-00083" summary="Implemented the suppressed ancient dialogue in Fair Fight&#10;&#10;Add a second dialogue bubble for the suppressed ancient after the reaction dialogue completes. Raise the reaction bubble within the reaction ancient'sslot, not it's own slot. Supports instant presentation, and keep Monty Hall behavior unchanged.">
-      <option name="closed" value="true" />
-      <created>1785177580715</created>
-      <option name="number" value="00083" />
-      <option name="presentableId" value="LOCAL-00083" />
-      <option name="project" value="LOCAL" />
-      <updated>1785177580715</updated>
+      <workItem from="1785718196334" duration="2565000" />
+      <workItem from="1785761298365" duration="6243000" />
+      <workItem from="1785867430809" duration="3572000" />
+      <workItem from="1785871730523" duration="3267000" />
     </task>
     <task id="LOCAL-00084" summary="Added code to mke sure selection screen with large number of anciets scales cards and buttons to all fit on the screen, previnting a previous bug where when ancient name was long they'd take up the whole screen.">
       <option name="closed" value="true" />
@@ -693,7 +670,31 @@
       <option name="project" value="LOCAL" />
       <updated>1785708188760</updated>
     </task>
-    <option name="localTasksCounter" value="130" />
+    <task id="LOCAL-00130" summary="added excludes to export_presets.cfg so that pck goes down from 42mb to 1.4mb.">
+      <option name="closed" value="true" />
+      <created>1785721232223</created>
+      <option name="number" value="00130" />
+      <option name="presentableId" value="LOCAL-00130" />
+      <option name="project" value="LOCAL" />
+      <updated>1785721232223</updated>
+    </task>
+    <task id="LOCAL-00131" summary="Increased ancient name and title size.">
+      <option name="closed" value="true" />
+      <created>1785872083623</created>
+      <option name="number" value="00131" />
+      <option name="presentableId" value="LOCAL-00131" />
+      <option name="project" value="LOCAL" />
+      <updated>1785872083623</updated>
+    </task>
+    <task id="LOCAL-00132" summary="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker.">
+      <option name="closed" value="true" />
+      <created>1785874543634</created>
+      <option name="number" value="00132" />
+      <option name="presentableId" value="LOCAL-00132" />
+      <option name="project" value="LOCAL" />
+      <updated>1785874543634</updated>
+    </task>
+    <option name="localTasksCounter" value="133" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -729,9 +730,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Added the selection screen template download links." />
-    <MESSAGE value="Reorganised tutorials" />
-    <MESSAGE value="Updated Readme to link to custom ancient modder CTA tutorial." />
     <MESSAGE value="Stopped the redundant Neow and Darv override from filtering them out from act 4+ on endless modes." />
     <MESSAGE value="Change up SelectAncientsFromLimitedBallot. I was forcing custom ancients to appear in the ballot. I prefred it before ancient config plus came along. Now, hopefully this is getting to clean enough state so that only ancient config type mods will be needed for controlling the ancients that appear on the ballot." />
     <MESSAGE value="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code." />
@@ -754,7 +752,10 @@
     <MESSAGE value="moved the winners_showcase to the showcase folder" />
     <MESSAGE value="Removed description from workshop file as when I updated it, it replaced the edited description on the steam store." />
     <MESSAGE value="winners showcase fixed grammer errors&#10;fixed README.md&#10;added steam discription to a file" />
-    <option name="LAST_COMMIT_MESSAGE" value="winners showcase fixed grammer errors&#10;fixed README.md&#10;added steam discription to a file" />
+    <MESSAGE value="added excludes to export_presets.cfg so that pck goes down from 42mb to 1.4mb." />
+    <MESSAGE value="Increased ancient name and title size." />
+    <MESSAGE value="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
