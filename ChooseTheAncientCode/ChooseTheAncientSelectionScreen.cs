@@ -3641,7 +3641,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         float buttonHeight = MathF.Round(Mathf.Lerp(52f, 72f, widthFactor));
         float accentInset = MathF.Round(Mathf.Lerp(12f, 22f, widthFactor));
 
-        int cardGap = (int)MathF.Round(Mathf.Lerp(8f, 14f, widthFactor));
+        int cardGap = (int)MathF.Round(Mathf.Lerp(24f, 40f, widthFactor));
         int headerGap = (int)MathF.Round(Mathf.Lerp(6f, 14f, widthFactor));
         int nameFontSize = (int)MathF.Round(Mathf.Lerp(19f, 28f, widthFactor));
         int epithetFontSize = (int)MathF.Round(Mathf.Lerp(14f, 19f, widthFactor));

@@ -157,7 +157,7 @@ theme_override_constants/margin_bottom = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 14
+theme_override_constants/separation = 40
 alignment = 2
 
 [node name="Header" type="HBoxContainer" parent="Padding/VBox"]
@@ -174,7 +174,7 @@ stretch_mode = 5
 [node name="TextBox" type="VBoxContainer" parent="Padding/VBox/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 2
+theme_override_constants/separation = -6
 
 [node name="NameLabel" type="Label" parent="Padding/VBox/Header/TextBox"]
 layout_mode = 2
