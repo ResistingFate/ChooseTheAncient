@@ -5,12 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_script_doc_cache.res" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/choose_the_ancient_choice_card.tscn-folding-cec4429fdfba31e98ca898799490eabd.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/choose_the_ancient_choice_card.tscn-folding-cec4429fdfba31e98ca898799490eabd.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/project_metadata.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/project_metadata.cfg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/export-cec4429fdfba31e98ca898799490eabd-choose_the_ancient_choice_card.scn" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/export-cec4429fdfba31e98ca898799490eabd-choose_the_ancient_choice_card.scn" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -300,39 +304,7 @@
       <workItem from="1785718196334" duration="2565000" />
       <workItem from="1785761298365" duration="6243000" />
       <workItem from="1785867430809" duration="3572000" />
-      <workItem from="1785871730523" duration="3267000" />
-    </task>
-    <task id="LOCAL-00084" summary="Added code to mke sure selection screen with large number of anciets scales cards and buttons to all fit on the screen, previnting a previous bug where when ancient name was long they'd take up the whole screen.">
-      <option name="closed" value="true" />
-      <created>1785179989179</created>
-      <option name="number" value="00084" />
-      <option name="presentableId" value="LOCAL-00084" />
-      <option name="project" value="LOCAL" />
-      <updated>1785179989179</updated>
-    </task>
-    <task id="LOCAL-00085" summary="Added code to mke sure selection screen with large number of anciets scales cards and buttons to all fit on the screen, previnting a previous bug where when ancient name was long they'd take up the whole screen.">
-      <option name="closed" value="true" />
-      <created>1785180048832</created>
-      <option name="number" value="00085" />
-      <option name="presentableId" value="LOCAL-00085" />
-      <option name="project" value="LOCAL" />
-      <updated>1785180048832</updated>
-    </task>
-    <task id="LOCAL-00086" summary="Include BaseLib force-spawn ancients even when IsValidForAct returns false. BaseLib intentionally separates normal pool eligibility from ShouldForceSpawn, so filtering only by act validity could hide Act 1 ancients such as Phoenix.&#10;Check ancient validity starting from Act 1 when calculating reward offsets. The previous search began at Act 2, causing valid Act 1 ancients to report an unknown minimum act and fall back unnecessarily.&#10;Read RitsuLib act validity through IModAncientActValidity. This also supports ancients that implement the interface explicitly instead of exposing a public IsValidForAct method.">
-      <option name="closed" value="true" />
-      <created>1785207425964</created>
-      <option name="number" value="00086" />
-      <option name="presentableId" value="LOCAL-00086" />
-      <option name="project" value="LOCAL" />
-      <updated>1785207425965</updated>
-    </task>
-    <task id="LOCAL-00087" summary="Include BaseLib force-spawn ancients even when IsValidForAct returns false. BaseLib intentionally separates normal pool eligibility from ShouldForceSpawn, so filtering only by act validity could hide Act 1 ancients such as Phoenix.&#10;Check ancient validity starting from Act 1 when calculating reward offsets. The previous search began at Act 2, causing valid Act 1 ancients to report an unknown minimum act and fall back unnecessarily.&#10;Read RitsuLib act validity through IModAncientActValidity. This also supports ancients that implement the interface explicitly instead of exposing a public IsValidForAct method.">
-      <option name="closed" value="true" />
-      <created>1785207433426</created>
-      <option name="number" value="00087" />
-      <option name="presentableId" value="LOCAL-00087" />
-      <option name="project" value="LOCAL" />
-      <updated>1785207433426</updated>
+      <workItem from="1785871730523" duration="14921000" />
     </task>
     <task id="LOCAL-00088" summary="Made a gudie for custom ancients working with this mod.">
       <option name="closed" value="true" />
@@ -694,7 +666,39 @@
       <option name="project" value="LOCAL" />
       <updated>1785874543634</updated>
     </task>
-    <option name="localTasksCounter" value="133" />
+    <task id="LOCAL-00133" summary="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker.">
+      <option name="closed" value="true" />
+      <created>1785875911857</created>
+      <option name="number" value="00133" />
+      <option name="presentableId" value="LOCAL-00133" />
+      <option name="project" value="LOCAL" />
+      <updated>1785875911857</updated>
+    </task>
+    <task id="LOCAL-00134" summary="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker.">
+      <option name="closed" value="true" />
+      <created>1785875928533</created>
+      <option name="number" value="00134" />
+      <option name="presentableId" value="LOCAL-00134" />
+      <option name="project" value="LOCAL" />
+      <updated>1785875928533</updated>
+    </task>
+    <task id="LOCAL-00135" summary="improved card ancient name and title and raised it higher.">
+      <option name="closed" value="true" />
+      <created>1785877068369</created>
+      <option name="number" value="00135" />
+      <option name="presentableId" value="LOCAL-00135" />
+      <option name="project" value="LOCAL" />
+      <updated>1785877068370</updated>
+    </task>
+    <task id="LOCAL-00136" summary="Increased the size of the icon, name and title as there was more space due to increasing bottom padding">
+      <option name="closed" value="true" />
+      <created>1785879189635</created>
+      <option name="number" value="00136" />
+      <option name="presentableId" value="LOCAL-00136" />
+      <option name="project" value="LOCAL" />
+      <updated>1785879189635</updated>
+    </task>
+    <option name="localTasksCounter" value="137" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -730,9 +734,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Stopped the redundant Neow and Darv override from filtering them out from act 4+ on endless modes." />
-    <MESSAGE value="Change up SelectAncientsFromLimitedBallot. I was forcing custom ancients to appear in the ballot. I prefred it before ancient config plus came along. Now, hopefully this is getting to clean enough state so that only ancient config type mods will be needed for controlling the ancients that appear on the ballot." />
-    <MESSAGE value="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code." />
     <MESSAGE value="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons." />
     <MESSAGE value="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension." />
     <MESSAGE value="I have moved all localization into loc tables." />
@@ -755,7 +756,10 @@
     <MESSAGE value="added excludes to export_presets.cfg so that pck goes down from 42mb to 1.4mb." />
     <MESSAGE value="Increased ancient name and title size." />
     <MESSAGE value="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
+    <MESSAGE value="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
+    <MESSAGE value="improved card ancient name and title and raised it higher." />
+    <MESSAGE value="Increased the size of the icon, name and title as there was more space due to increasing bottom padding" />
+    <option name="LAST_COMMIT_MESSAGE" value="Increased the size of the icon, name and title as there was more space due to increasing bottom padding" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

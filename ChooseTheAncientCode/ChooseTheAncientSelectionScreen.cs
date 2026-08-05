@@ -45,6 +45,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private const string CardScenePath =
         "res://scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn";
 
+    private const string HotkeyIconScenePath =
+        "res://scenes/ui/hotkey_icon.tscn";
+
     private const string FallbackAncientIconPath =
         "res://scenes/mod/choose_the_ancient/map/ancient_node_random.png";
 
@@ -210,7 +213,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public required Button ChooseButton { get; init; }
         public required Control CardClickTarget { get; init; }
         public required Control SlotClickTarget { get; init; }
-        public required TextureRect? ChooseButtonControllerIcon { get; init; }
+        public required NHotkeyIcon VoteButtonPrompt { get; init; }
         public required Control VoteIconsAnchor { get; init; }
         public required Control PreviewAnchor { get; init; }
         public required Control ReactionAnchor { get; init; }
@@ -232,7 +235,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public PortalShape Shape { get; set; }
         public List<PreviewWidgetRefs> PreviewWidgets { get; } = new();
         public NinePatchRect ChooseButtonOutline { get; set; } = null!;
-        public Tween? ChooseButtonControllerIconTween { get; set; }
+        public Tween? VoteButtonPromptTween { get; set; }
     }
 
 
@@ -498,6 +501,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private static Texture2D? _fallbackAncientIcon;
     private static bool _fallbackAncientIconLoadAttempted;
 
+    private PackedScene _hotkeyIconScene = null!;
+
     private readonly List<SlotRefs> _slots = new();
     private readonly List<Player> _orderedPlayers = new();
     private readonly Dictionary<ulong, int> _votesByPlayerNetId = new();
@@ -662,6 +667,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          * Instantiates the root scene, wires up cached node references, installs audio, and marks the screen ready.
          */
         SyncConfigFromSavedSettings();
+
+        _hotkeyIconScene = GD.Load<PackedScene>(HotkeyIconScenePath)
+            ?? throw new InvalidOperationException(
+                $"Could not load adaptive vote prompt scene: {HotkeyIconScenePath}");
+
         PackedScene? layoutScene = GD.Load<PackedScene>(LayoutScenePath);
         if (layoutScene == null)
         {
@@ -742,7 +752,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _stageArea.GuiInput += OnStageAreaGuiInput;
         _stageArea.Resized += RefreshLayout;
         ConnectControllerPromptSignals();
-        UpdateVoteButtonControllerIcons();
+        UpdateVoteButtonPrompts();
         
         InitiateConfigValues();
         RefreshModConfigValues();
@@ -2042,7 +2052,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         RefreshSlotVisuals(animate: false);
         RefreshButtonTexts();
         ConfigureControllerNavigation();
-        UpdateVoteButtonControllerIcons();
+        UpdateVoteButtonPrompts();
         RefreshVoteDisplays(animate: false);
         GrabInitialFocus();
     }
@@ -2156,7 +2166,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         Control chooseButtonWrap = cardRoot.GetNode<Control>("Padding/VBox/ChooseButtonWrap");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButtonWrap/ChooseButton");
         NinePatchRect chooseButtonOutline = cardRoot.GetNode<NinePatchRect>("Padding/VBox/ChooseButtonWrap/ChooseButtonOutline");
-        TextureRect? chooseButtonControllerIcon = chooseButtonWrap.GetNodeOrNull<TextureRect>("ControllerIcon");
+        NHotkeyIcon voteButtonPrompt =
+            _hotkeyIconScene.Instantiate<NHotkeyIcon>(); // tooltip for keyboard space, plastation x, and xbox a
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
         Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
@@ -2172,6 +2183,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ApplyVoteButtonLook(chooseButton, chooseButtonOutline, bodyVisible: !ShowOnlyButtonOutline);
         ApplyCardOutlineLook(cardOutline);
 
+        voteButtonPrompt.Name = "HotkeyIcon";
+        voteButtonPrompt.MouseFilter = MouseFilterEnum.Ignore;
+        voteButtonPrompt.FocusMode = FocusModeEnum.None;
+        voteButtonPrompt.Visible = false;
+        voteButtonPrompt.ZIndex = 4;
+        chooseButtonWrap.AddChild(voteButtonPrompt);
+        
         chooseButtonWrap.FocusMode = FocusModeEnum.All;
         chooseButtonWrap.MouseFilter = MouseFilterEnum.Ignore;
         chooseButton.FocusMode = FocusModeEnum.None;
@@ -2261,7 +2279,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             ChooseButton = chooseButton,
             CardClickTarget = cardClickTarget,
             SlotClickTarget = slotClickTarget,
-            ChooseButtonControllerIcon = chooseButtonControllerIcon,
+            VoteButtonPrompt = voteButtonPrompt,
             ChooseButtonOutline = chooseButtonOutline,
             VoteIconsAnchor = voteIconsAnchor,
             PreviewAnchor = previewAnchor,
@@ -2494,7 +2512,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         ConfigureControllerNavigation();
-        UpdateVoteButtonControllerIcons();
+        UpdateVoteButtonPrompts();
     }
 
     private void UpdateVoteButtonOutline(SlotRefs refs)
@@ -3614,7 +3632,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             LayoutPreviewAnchors(refs);
             ApplyPortalGeometry(shape, refs, _topUiCutoffYInStageSpace);
             ApplySceneTransform(refs, hovered: !_resolved && ReferenceEquals(_hoveredSlot, refs), animate: false);
-            LayoutVoteButtonControllerIcon(refs);
+            LayoutVoteButtonPrompt(refs);
             LayoutVoteIcons(refs);
             LayoutPreview(refs);
             LayoutReaction(refs);
@@ -3683,13 +3701,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         refs.TopAccent.OffsetRight = -accentInset;
     }
 
-    private void LayoutVoteButtonControllerIcon(SlotRefs refs)
+    private void LayoutVoteButtonPrompt(SlotRefs refs)
     {
         /*
          * Positions and sizes the vote-button controller prompt icon with screen-responsive scaling.
          */
-        TextureRect? icon = refs.ChooseButtonControllerIcon;
-        if (icon == null || !GodotObject.IsInstanceValid(icon))
+        NHotkeyIcon icon = refs.VoteButtonPrompt;
+        if (!GodotObject.IsInstanceValid(icon))
         {
             return;
         }
@@ -3698,7 +3716,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             ? Mathf.Clamp(_stageArea.Size.Y / 1080f, 0.90f, 1.25f)
             : 1f;
 
-        float iconSize = Mathf.Clamp(32f * screenScale, 28f, 40f);
+        bool keyboardOnly = NControllerManager.Instance?.InputType == InputType.KeyboardOnlyMode;
+        float iconHeight = Mathf.Clamp(32f * screenScale, 28f, 40f);
+        float iconWidth = keyboardOnly
+            ? Mathf.Clamp(72f * screenScale, 64f, 88f)
+            : iconHeight;
         float rightMargin = Mathf.Clamp(12f * screenScale, 10f, 16f);
 
         icon.LayoutMode = 1;
@@ -3706,11 +3728,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         icon.AnchorRight = 1f;
         icon.AnchorTop = 0.5f;
         icon.AnchorBottom = 0.5f;
-        icon.OffsetLeft = -rightMargin - iconSize;
+        icon.OffsetLeft = -rightMargin - iconWidth;
         icon.OffsetRight = -rightMargin;
-        icon.OffsetTop = -iconSize * 0.5f;
-        icon.OffsetBottom = iconSize * 0.5f;
-        icon.CustomMinimumSize = new Vector2(iconSize, iconSize);
+        icon.OffsetTop = -iconHeight * 0.5f;
+        icon.OffsetBottom = iconHeight * 0.5f;
+        icon.CustomMinimumSize = new Vector2(iconWidth, iconHeight);
     }
 
     private void LayoutPreview(SlotRefs refs)
@@ -4470,7 +4492,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 _lastHoveredPoolIndex = null;
                 RefreshSlotVisuals(animate: true);
                 RefreshAllVoteButtonOutlines();
-                UpdateVoteButtonControllerIcons();
+                UpdateVoteButtonPrompts();
             }
 
             return;
@@ -4486,7 +4508,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 _lastHoveredPoolIndex = null;
                 RefreshSlotVisuals(animate: true);
                 RefreshAllVoteButtonOutlines();
-                UpdateVoteButtonControllerIcons();
+                UpdateVoteButtonPrompts();
             }
 
             return;
@@ -4687,7 +4709,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _hoveredSlot = refs;
         RefreshSlotVisuals(animate: true);
         RefreshAllVoteButtonOutlines();
-        UpdateVoteButtonControllerIcons();
+        UpdateVoteButtonPrompts();
     }
 
     private void OnSlotUnhovered(int poolIndex)
@@ -4735,7 +4757,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         RefreshSlotVisuals(animate: true);
         
         UpdateVoteButtonOutline(refs);
-        UpdateVoteButtonControllerIcons();
+        UpdateVoteButtonPrompts();
     }
 
     private void OnPreviewHovered(SlotRefs refs, int previewIndex)
@@ -4766,7 +4788,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ApplyPreviewHoverVisuals(widget, hovered: true);
         RefreshSlotVisuals(animate: true);
         RefreshAllVoteButtonOutlines();
-        UpdateVoteButtonControllerIcons();
+        UpdateVoteButtonPrompts();
 
         try
         {
@@ -4829,7 +4851,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _hoveredPreviewWidget = null;
         ApplyPreviewHoverVisuals(widget, hovered: false);
         NHoverTipSet.Remove(widget.Wrapper);
-        UpdateVoteButtonControllerIcons();
+        UpdateVoteButtonPrompts();
         CallDeferred(nameof(ClearHoveredSlotIfInactive), refs.PoolIndex);
     }
 
@@ -5003,7 +5025,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /* Deferred to deal with timing to settle focus. Might need to be deferred twice if
          this is not working. */
         CallDeferred(nameof(RefreshAllVoteButtonOutlines));
-        CallDeferred(nameof(UpdateVoteButtonControllerIcons));
+        CallDeferred(nameof(UpdateVoteButtonPrompts));
     }
 
     #endregion
@@ -5022,7 +5044,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         if (NControllerManager.Instance != null)
         {
-            Callable updatePrompts = Callable.From(UpdateVoteButtonControllerIcons);
+            Callable updatePrompts = Callable.From(UpdateVoteButtonPrompts);
             if (!NControllerManager.Instance.IsConnected(NControllerManager.SignalName.MouseDetected, updatePrompts))
             {
                 NControllerManager.Instance.Connect(NControllerManager.SignalName.MouseDetected, updatePrompts);
@@ -5036,7 +5058,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         if (NInputManager.Instance != null)
         {
-            Callable updatePrompts = Callable.From(UpdateVoteButtonControllerIcons);
+            Callable updatePrompts = Callable.From(UpdateVoteButtonPrompts);
             if (!NInputManager.Instance.IsConnected(NInputManager.SignalName.InputRebound, updatePrompts))
             {
                 NInputManager.Instance.Connect(NInputManager.SignalName.InputRebound, updatePrompts);
@@ -5049,7 +5071,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Removes controller and input rebinding subscriptions during teardown.
          */
-        Callable updatePrompts = Callable.From(UpdateVoteButtonControllerIcons);
+        Callable updatePrompts = Callable.From(UpdateVoteButtonPrompts);
 
         if (NControllerManager.Instance != null)
         {
@@ -5095,19 +5117,19 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         return null;
     }
 
-    private void SetVoteButtonControllerIconVisible(SlotRefs refs, bool shouldShow)
+    private void SetVoteButtonPromptVisible(SlotRefs refs, bool shouldShow)
     {
         /*
-         * Animates a vote-button controller prompt in or out for a single slot.
+         * Animates the active vote-button prompt in or out for a single slot.
          */
-        TextureRect? icon = refs.ChooseButtonControllerIcon;
-        if (icon == null || !GodotObject.IsInstanceValid(icon))
+        NHotkeyIcon icon = refs.VoteButtonPrompt;
+        if (!GodotObject.IsInstanceValid(icon))
         {
             return;
         }
 
-        refs.ChooseButtonControllerIconTween?.Kill();
-        refs.ChooseButtonControllerIconTween = null;
+        refs.VoteButtonPromptTween?.Kill();
+        refs.VoteButtonPromptTween = null;
 
         if (shouldShow)
         {
@@ -5123,11 +5145,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             icon.Scale = Vector2.One * 0.90f;
 
             Tween tween = CreateTween();
-            refs.ChooseButtonControllerIconTween = tween;
+            refs.VoteButtonPromptTween = tween;
             tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
             tween.TweenProperty(icon, "modulate:a", 1f, 0.14f);
             tween.Parallel().TweenProperty(icon, "scale", Vector2.One, 0.14f);
-            tween.TweenCallback(Callable.From(() => refs.ChooseButtonControllerIconTween = null));
+            tween.TweenCallback(Callable.From(() => refs.VoteButtonPromptTween = null));
             return;
         }
 
@@ -5139,7 +5161,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         Tween hideTween = CreateTween();
-        refs.ChooseButtonControllerIconTween = hideTween;
+        refs.VoteButtonPromptTween = hideTween;
         hideTween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
         hideTween.TweenProperty(icon, "modulate:a", 0f, 0.10f);
         hideTween.Parallel().TweenProperty(icon, "scale", Vector2.One * 0.90f, 0.10f);
@@ -5150,42 +5172,39 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 icon.Visible = false;
             }
 
-            refs.ChooseButtonControllerIconTween = null;
+            refs.VoteButtonPromptTween = null;
         }));
     }
 
-    private void UpdateVoteButtonControllerIcons()
+    private void UpdateVoteButtonPrompts()
     {
         /*
-         * Shows the controller prompt only on the active slot and animates prompt visibility changes.
+         * Shows the controller prompt or keyboard prompt only on the active slot and animates prompt visibility changes.
          */
         NControllerManager? controllerManager = NControllerManager.Instance;
-        bool showControllerPrompts =
+        bool showDirectionalPrompts =
             controllerManager != null &&
             InputNavigationCompatibility.IsUsingDirectionalNavigation(controllerManager) &&
             ShowControllerHotkeys;
 
-        Texture2D? selectIcon = NInputManager.Instance?.GetHotkeyIcon(MegaInput.select);
-        SlotRefs? activeSlot = showControllerPrompts ? GetActiveVoteSlotForPrompt() : null;
+        SlotRefs? activeSlot = showDirectionalPrompts ? GetActiveVoteSlotForPrompt() : null;
 
         foreach (SlotRefs refs in _slots)
         {
-            if (refs.ChooseButtonControllerIcon == null || !GodotObject.IsInstanceValid(refs.ChooseButtonControllerIcon))
+            if (!IsInstanceValid(refs.VoteButtonPrompt))
             {
                 continue;
             }
 
-            if (selectIcon != null)
-            {
-                refs.ChooseButtonControllerIcon.Texture = selectIcon;
-            }
+            refs.VoteButtonPrompt.UpdateInput(MegaInput.select);
+            LayoutVoteButtonPrompt(refs);
 
             bool shouldShow =
-                showControllerPrompts &&
+                showDirectionalPrompts &&
                 !refs.ChooseButton.Disabled &&
                 ReferenceEquals(activeSlot, refs);
 
-            SetVoteButtonControllerIconVisible(refs, shouldShow);
+            SetVoteButtonPromptVisible(refs, shouldShow);
         }
     }
 
