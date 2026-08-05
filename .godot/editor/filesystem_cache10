@@ -1,6 +1,6 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1785887391
-CHANGELOG.md::TextFile::-1::1785880512::0::1::::<><><>0<>0<><>::
+::res://::1785889616
+CHANGELOG.md::TextFile::-1::1785889616::0::1::::<><><>0<>0<><>::
 ChooseTheAncient.json::JSON::-1::1785524351::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1785720010::0::1::::<><><>0<>0<><>::
 MainFile.cs::CSharpScript::5996418427638783768::1785521887::0::1::::<>Node<><>0<>0<><>::
@@ -18,7 +18,7 @@ mod_image.png::CompressedTexture2D::1919318290695053380::1783029794::1785416716:
 ::res://ChooseTheAncient/bin/::1785720056
 ::res://ChooseTheAncient/bin/ExportRelease/::1785720056
 ::res://ChooseTheAncient/bin/ExportRelease/net9.0/::1785720056
-::res://ChooseTheAncient/bin/ExportRelease/net9.0/publish/::1785888677
+::res://ChooseTheAncient/bin/ExportRelease/net9.0/publish/::1785889622
 ChooseTheAncient.deps.json::JSON::-1::1785887501::0::1::::<><><>0<>0<><>::
 ChooseTheAncient.runtimeconfig.json::JSON::-1::1785887501::0::1::::<><><>0<>0<><>::
 Sentry.Godot.xml::TextFile::-1::1785623415::0::1::::<><><>0<>0<><>::
@@ -35,7 +35,7 @@ settings_ui.json::JSON::-1::1785453829::0::1::::<><><>0<>0<><>::
 ::res://ChooseTheAncient/settings/::1785464837
 BASELIB_NOTES.txt::TextFile::-1::1785209884::0::1::::<><><>0<>0<><>::
 ritsulib_settings_schema.json::JSON::-1::1785464837::0::1::::<><><>0<>0<><>::
-::res://ChooseTheAncientCode/::1785888652
+::res://ChooseTheAncientCode/::1785889516
 ChooseTheAncientBaseAncientText.cs::CSharpScript::2452066060654417075::1785474492::0::1::::<><><>0<>0<><>::
 ChooseTheAncientConfig.cs::CSharpScript::2564393916526341802::1785451130::0::1::::<><><>0<>0<><>::
 ChooseTheAncientCoordinator.cs::CSharpScript::6326317095097407068::1785474492::0::1::::<><><>0<>0<><>::
@@ -44,7 +44,7 @@ ChooseTheAncientFlowState.cs::CSharpScript::1082555364368103115::1785416716::0::
 ChooseTheAncientHelpers.cs::CSharpScript::4713250848785078256::1785517128::0::1::::<><><>0<>0<><>::
 ChooseTheAncientLocalization.cs::CSharpScript::7623904307163113106::1785464837::0::1::::<><><>0<>0<><>::
 ChooseTheAncientPlayerWarnings.cs::CSharpScript::818634881608227946::1785416716::0::1::::<><><>0<>0<><>::
-ChooseTheAncientSelectionScreen.cs::CSharpScript::3139458558456567365::1785888652::0::1::::<>Control<><>0<>0<><>::
+ChooseTheAncientSelectionScreen.cs::CSharpScript::3139458558456567365::1785889516::0::1::::<>Control<><>0<>0<><>::
 ChooseTheAncientSettingsStore.cs::CSharpScript::4951749427947090984::1785417008::0::1::::<><><>0<>0<><>::
 ChooseTheAncientStateStore.cs::CSharpScript::3216509903433080452::1785416716::0::1::::<><><>0<>0<><>::
 ChooseTheAncientVotingResult.cs::CSharpScript::3175271234947265155::1785416716::0::1::::<><><>0<>0<><>::

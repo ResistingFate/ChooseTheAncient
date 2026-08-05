@@ -5283,7 +5283,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             List<PreviewWidgetRefs> previews = GetNavigablePreviewWidgets(refs);
             if (previews.Count > 0)
             {
-                refs.ChooseButtonWrap.FocusNeighborTop = previews[0].Wrapper.GetPath();
+                refs.ChooseButtonWrap.FocusNeighborTop = previews[^1].Wrapper.GetPath();
             }
             else
             {
@@ -5304,7 +5304,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 PreviewWidgetRefs widget = previews[previewIndex];
                 widget.Wrapper.FocusMode = FocusModeEnum.All;
                 widget.Wrapper.FocusNeighborTop = (previewIndex == 0
-                    ? refs.ChooseButtonWrap.GetPath()
+                    ? widget.Wrapper.GetPath()
                     : previews[previewIndex - 1].Wrapper.GetPath());
                 widget.Wrapper.FocusNeighborBottom = (previewIndex == previews.Count - 1
                     ? refs.ChooseButtonWrap.GetPath()

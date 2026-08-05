@@ -5,16 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/choose_the_ancient_choice_card.tscn-folding-cec4429fdfba31e98ca898799490eabd.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/choose_the_ancient_choice_card.tscn-folding-cec4429fdfba31e98ca898799490eabd.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/editor/project_metadata.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/project_metadata.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/export-cec4429fdfba31e98ca898799490eabd-choose_the_ancient_choice_card.scn" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/export-cec4429fdfba31e98ca898799490eabd-choose_the_ancient_choice_card.scn" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/scenes/mod/choose_the_ancient/choose_the_ancient_choice_card.tscn" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -304,15 +298,7 @@
       <workItem from="1785718196334" duration="2565000" />
       <workItem from="1785761298365" duration="6243000" />
       <workItem from="1785867430809" duration="3572000" />
-      <workItem from="1785871730523" duration="14921000" />
-    </task>
-    <task id="LOCAL-00088" summary="Made a gudie for custom ancients working with this mod.">
-      <option name="closed" value="true" />
-      <created>1785207604076</created>
-      <option name="number" value="00088" />
-      <option name="presentableId" value="LOCAL-00088" />
-      <option name="project" value="LOCAL" />
-      <updated>1785207604076</updated>
+      <workItem from="1785871730523" duration="16087000" />
     </task>
     <task id="LOCAL-00089" summary="Made a gudie for custom ancients working with this mod.">
       <option name="closed" value="true" />
@@ -698,7 +684,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785879189635</updated>
     </task>
-    <option name="localTasksCounter" value="137" />
+    <task id="LOCAL-00137" summary="Keyborad tooltip set for keybeard, and controllers like xbox and playstation">
+      <option name="closed" value="true" />
+      <created>1785889580343</created>
+      <option name="number" value="00137" />
+      <option name="presentableId" value="LOCAL-00137" />
+      <option name="project" value="LOCAL" />
+      <updated>1785889580343</updated>
+    </task>
+    <option name="localTasksCounter" value="138" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -734,7 +728,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons." />
     <MESSAGE value="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension." />
     <MESSAGE value="I have moved all localization into loc tables." />
     <MESSAGE value="I have moved all localization into loc tables, so game ui and mod settings are in the tables along with the dialouge.&#10;Added Machine translated versions of the game ui and mod setting in the zhs tables.&#10;ChooseTheAncientLocalization.cs as a helper for the mod settings localization mostly and also allows the language to fallback to english is no translation for the current language exists.&#10;For Enums, optionIds were made and canonicalChoices so they would remain stable in ritsulib and other settings." />
@@ -759,7 +752,8 @@
     <MESSAGE value="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
     <MESSAGE value="improved card ancient name and title and raised it higher." />
     <MESSAGE value="Increased the size of the icon, name and title as there was more space due to increasing bottom padding" />
-    <option name="LAST_COMMIT_MESSAGE" value="Increased the size of the icon, name and title as there was more space due to increasing bottom padding" />
+    <MESSAGE value="Keyborad tooltip set for keybeard, and controllers like xbox and playstation" />
+    <option name="LAST_COMMIT_MESSAGE" value="Keyborad tooltip set for keybeard, and controllers like xbox and playstation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
