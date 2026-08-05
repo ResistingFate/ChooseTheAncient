@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -298,15 +297,7 @@
       <workItem from="1785718196334" duration="2565000" />
       <workItem from="1785761298365" duration="6243000" />
       <workItem from="1785867430809" duration="3572000" />
-      <workItem from="1785871730523" duration="18307000" />
-    </task>
-    <task id="LOCAL-00091" summary="- Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen.">
-      <option name="closed" value="true" />
-      <created>1785209219684</created>
-      <option name="number" value="00091" />
-      <option name="presentableId" value="LOCAL-00091" />
-      <option name="project" value="LOCAL" />
-      <updated>1785209219684</updated>
+      <workItem from="1785871730523" duration="20571000" />
     </task>
     <task id="LOCAL-00092" summary="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.">
       <option name="closed" value="true" />
@@ -692,7 +683,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785891385405</updated>
     </task>
-    <option name="localTasksCounter" value="140" />
+    <task id="LOCAL-00140" summary="preview options highlight outline is now visible">
+      <option name="closed" value="true" />
+      <created>1785892602456</created>
+      <option name="number" value="00140" />
+      <option name="presentableId" value="LOCAL-00140" />
+      <option name="project" value="LOCAL" />
+      <updated>1785892602456</updated>
+    </task>
+    <option name="localTasksCounter" value="141" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -753,7 +752,7 @@
     <MESSAGE value="Keyborad tooltip set for keybeard, and controllers like xbox and playstation" />
     <MESSAGE value="controller and keybeard mode navigate up and down the preview options and vote button like a normal list" />
     <MESSAGE value="preview options highlight outline is now visible" />
-    <option name="LAST_COMMIT_MESSAGE" value="preview options highlight outline is now visible" />
+    <option name="LAST_COMMIT_MESSAGE" value="" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

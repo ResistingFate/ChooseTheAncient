@@ -4924,7 +4924,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                         : anyHovered
                             ? 0.26f
                             : 0.18f);
-            float slotAlpha = _resolved
+            float slotBrightness = _resolved
                 ? (selected ? 1f : 0.42f)
                 : (pendingSelected
                     ? 1f
@@ -4944,7 +4944,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 glowAlpha = Mathf.Lerp(glowAlpha, MathF.Max(glowAlpha, 0.10f), firstRoundWinnerOnSecondScreenAmount);
                 flashAlpha = Mathf.Lerp(flashAlpha, MathF.Max(flashAlpha, 0.02f), firstRoundWinnerOnSecondScreenAmount);
                 shadeAlpha = Mathf.Lerp(shadeAlpha, MathF.Min(shadeAlpha, 0.08f), firstRoundWinnerOnSecondScreenAmount);
-                slotAlpha = Mathf.Lerp(slotAlpha, MathF.Max(slotAlpha, 1f), firstRoundWinnerOnSecondScreenAmount);
+                slotBrightness = Mathf.Lerp(slotBrightness, MathF.Max(slotBrightness, 1f), firstRoundWinnerOnSecondScreenAmount);
                 rimAlpha = Mathf.Lerp(rimAlpha, MathF.Max(rimAlpha, 0.95f), firstRoundWinnerOnSecondScreenAmount);
                 accentAlpha = Mathf.Lerp(accentAlpha, MathF.Max(accentAlpha, 1f), firstRoundWinnerOnSecondScreenAmount);
             }
@@ -4955,7 +4955,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 glowAlpha = MathF.Max(glowAlpha, 0.18f);
                 flashAlpha = MathF.Max(flashAlpha, 0.05f);
                 shadeAlpha = MathF.Min(shadeAlpha, 0.03f);
-                slotAlpha = 1f;
+                slotBrightness = 1f;
                 rimAlpha = 1f;
                 accentAlpha = 1f;
             }
@@ -4963,7 +4963,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             Color glowColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, glowAlpha);
             Color flashColor = new(1f, 1f, 1f, flashAlpha);
             Color shadeColor = new(0f, 0f, 0f, shadeAlpha);
-            Color slotModulate = new(1f, 1f, 1f, slotAlpha);
+            Color slotModulate = new(slotBrightness, slotBrightness, slotBrightness, 1f);
             Color rimColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, rimAlpha);
             Color accentColor = new(refs.AccentColor.R, refs.AccentColor.G, refs.AccentColor.B, accentAlpha);
 
@@ -4984,7 +4984,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 tween.Parallel().TweenProperty(refs.CardShade, "color", shadeColor, SlotVisualFadeDuration);
                 tween.Parallel().TweenProperty(refs.ScenePolygon, "modulate", slotModulate, SlotVisualFadeDuration);
                 tween.Parallel().TweenProperty(refs.CardRoot, "modulate", slotModulate, SlotVisualFadeDuration);
-                tween.Parallel().TweenProperty(refs.PreviewAnchor, "modulate", slotModulate, SlotVisualFadeDuration);
                 tween.Parallel().TweenProperty(refs.LeftRim, "color", rimColor, SlotVisualFadeDuration);
                 tween.Parallel().TweenProperty(refs.RightRim, "color", rimColor, SlotVisualFadeDuration);
                 tween.Parallel().TweenProperty(refs.TopAccent, "color", accentColor, SlotVisualFadeDuration);
@@ -4997,7 +4996,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 refs.CardShade.Color = shadeColor;
                 refs.ScenePolygon.Modulate = slotModulate;
                 refs.CardRoot.Modulate = slotModulate;
-                refs.PreviewAnchor.Modulate = slotModulate;
                 refs.LeftRim.Color = rimColor;
                 refs.RightRim.Color = rimColor;
                 refs.TopAccent.Color = accentColor;
