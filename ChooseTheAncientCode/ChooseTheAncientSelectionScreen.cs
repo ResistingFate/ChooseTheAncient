@@ -5009,10 +5009,39 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void GrabInitialFocus()
     {
         /*
-         * Defers initial focus to the preferred control and then refreshes focus-dependent outlines.
+         * Defers initial focus until both the overlay and the rebuilt control are ready.
          */
-        DefaultFocusedControl?.CallDeferred(Control.MethodName.GrabFocus);
+        CallDeferred(nameof(TryGrabInitialFocus));
         CallDeferred(nameof(RefreshVoteButtonOutlinesAfterFocus));
+    }
+
+    private void TryGrabInitialFocus()
+    {
+        /*
+         * Calling GrabFocus directly on a hidden, detached, disabled, or stale control makes
+         * Godot emit "This control can't grab focus" during round rebuilds and overlay changes.
+         */
+        if (_closing || !Visible || !IsInsideTree())
+        {
+            return;
+        }
+
+        Control? control = DefaultFocusedControl;
+        if (control == null
+            || !GodotObject.IsInstanceValid(control)
+            || !control.IsInsideTree()
+            || !control.IsVisibleInTree()
+            || control.FocusMode == FocusModeEnum.None)
+        {
+            return;
+        }
+
+        if (control is BaseButton button && button.Disabled)
+        {
+            return;
+        }
+
+        control.GrabFocus();
     }
 
     private void RefreshVoteButtonOutlinesAfterFocus()
