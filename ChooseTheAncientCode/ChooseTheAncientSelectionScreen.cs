@@ -4877,7 +4877,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         if (widget.Outline != null)
         {
             Color targetOutline = hovered
-                ? new Color(0f, 0f, 0f, 0.92f)
+                ? new Color(1f, 1f, 1f, 0.92f)
                 : new Color(widget.Outline.Modulate.R, widget.Outline.Modulate.G, widget.Outline.Modulate.B, 0f);
             tween.Parallel().TweenProperty(widget.Outline, "modulate", targetOutline, hovered ? 0.12f : 0.22f);
         }

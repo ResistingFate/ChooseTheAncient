@@ -7,21 +7,30 @@
 - compatability patches for seed and directionalinput should be removed on next main
 - TESTING within a CI Pipeline
 - csproj auto make release, auto make nexus release, auto make steam release
+- Add api for stat collecting
+  - each row is an act's vote in a game
+    - includes the number of players, game mode, round
+      - the votes before player vote, what player voted, the other ancients, time taken, reward options shown in player's voted ancient, reward options shown in other ancients
+        - for relic options need to separated modded options from non modded options and bugged options, bugged ancients ect.
+      - the ancient that actually spawns and what the user picks
+      - the rest of the run stats
+      - the player run stats and history
+  - spirecodex already does this, so API if spire codex already installed
 
-- Todo
-- decrease to half as much space for cards description and title, move title up to name
-- Ancient Name and title is too small
-- more dimming of other ancients on hover on one ancient, not as much as winner/vote selected
-- keyboard mode tooltip, better tooltip handling
 
-## [v1.3.1] - Zoomed in Vanilla Ancients
+## [v1.3.1] - Steam Release with Zoomed in Vanilla Ancients
 
 ### Features
 - zoomed in the heads of the ancients
-- 
+- added more dimming to other ancients when selecting an ancient
+- the card ancient icon, name, and title size is increased as well as improved spacing
+- Tooltip hint supports keyboard only mode, and controllers like xbox and plastation
 
 ### Fixes
 - Darv now removed from act 1, unless legacy setting adds him back in
+- On keyboard mode, up and down is now normal with preview options and the vote button
+- Made preview options selection outline visible 
+- Decreased filesize as was packing irrelevent mod page resources. From 42mb to 1.4mb.
 
 ## [v1.3.0] - Compatability with v0.110.0 and Slay the Streamer support
 

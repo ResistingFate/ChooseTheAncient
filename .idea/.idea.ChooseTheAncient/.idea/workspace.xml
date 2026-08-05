@@ -8,7 +8,7 @@
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -298,23 +298,7 @@
       <workItem from="1785718196334" duration="2565000" />
       <workItem from="1785761298365" duration="6243000" />
       <workItem from="1785867430809" duration="3572000" />
-      <workItem from="1785871730523" duration="16087000" />
-    </task>
-    <task id="LOCAL-00089" summary="Made a gudie for custom ancients working with this mod.">
-      <option name="closed" value="true" />
-      <created>1785207608835</created>
-      <option name="number" value="00089" />
-      <option name="presentableId" value="LOCAL-00089" />
-      <option name="project" value="LOCAL" />
-      <updated>1785207608835</updated>
-    </task>
-    <task id="LOCAL-00090" summary="Made a gudie for custom ancients working with this mod.">
-      <option name="closed" value="true" />
-      <created>1785207735496</created>
-      <option name="number" value="00090" />
-      <option name="presentableId" value="LOCAL-00090" />
-      <option name="project" value="LOCAL" />
-      <updated>1785207735496</updated>
+      <workItem from="1785871730523" duration="18307000" />
     </task>
     <task id="LOCAL-00091" summary="- Add a defensive fallback in CreateSlot so one bad custom icon cannot break the whole CTA screen.">
       <option name="closed" value="true" />
@@ -692,7 +676,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785889580343</updated>
     </task>
-    <option name="localTasksCounter" value="138" />
+    <task id="LOCAL-00138" summary="controller and keybeard mode navigate up and down the preview options and vote button like a normal list">
+      <option name="closed" value="true" />
+      <created>1785890494639</created>
+      <option name="number" value="00138" />
+      <option name="presentableId" value="LOCAL-00138" />
+      <option name="project" value="LOCAL" />
+      <updated>1785890494639</updated>
+    </task>
+    <task id="LOCAL-00139" summary="preview options highlight outline is now visible">
+      <option name="closed" value="true" />
+      <created>1785891385405</created>
+      <option name="number" value="00139" />
+      <option name="presentableId" value="LOCAL-00139" />
+      <option name="project" value="LOCAL" />
+      <updated>1785891385405</updated>
+    </task>
+    <option name="localTasksCounter" value="140" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -728,8 +728,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension." />
-    <MESSAGE value="I have moved all localization into loc tables." />
     <MESSAGE value="I have moved all localization into loc tables, so game ui and mod settings are in the tables along with the dialouge.&#10;Added Machine translated versions of the game ui and mod setting in the zhs tables.&#10;ChooseTheAncientLocalization.cs as a helper for the mod settings localization mostly and also allows the language to fallback to english is no translation for the current language exists.&#10;For Enums, optionIds were made and canonicalChoices so they would remain stable in ritsulib and other settings." />
     <MESSAGE value="Adding the winners showcase to github so it can be linked on the steam workshop" />
     <MESSAGE value="Slay The Streamer implementation. Haven't tested if this commit breaks as game just updates." />
@@ -753,7 +751,9 @@
     <MESSAGE value="improved card ancient name and title and raised it higher." />
     <MESSAGE value="Increased the size of the icon, name and title as there was more space due to increasing bottom padding" />
     <MESSAGE value="Keyborad tooltip set for keybeard, and controllers like xbox and playstation" />
-    <option name="LAST_COMMIT_MESSAGE" value="Keyborad tooltip set for keybeard, and controllers like xbox and playstation" />
+    <MESSAGE value="controller and keybeard mode navigate up and down the preview options and vote button like a normal list" />
+    <MESSAGE value="preview options highlight outline is now visible" />
+    <option name="LAST_COMMIT_MESSAGE" value="preview options highlight outline is now visible" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
