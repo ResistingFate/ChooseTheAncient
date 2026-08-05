@@ -48,7 +48,7 @@ public static class EnterNextActPatch
             return true;
         }
 
-        if (flow.FlowInProgress)
+        if (flow.FlowInProgress || flow.ConsoleNavigationInProgress)
         {
             __result = Task.CompletedTask;
             return false;

@@ -21,6 +21,7 @@ The Custom Ancient is Arq's Ancients - Phoenix by Arquebus
 - Works with Custom Ancients
 - Controller Support
 - Resizes for different resolutions
+- Cmds begin with _cta_
 - Optional Settings 
   - Number of ancients
   - GameModes
@@ -71,6 +72,12 @@ to translated content.
 * **NeowOptionIdentitySync**: Optional `EventSynchronizer` compatibility patches. False returning Prefixes. Syncs Neow choices by option identity instead of raw list index when other mods reorder the options. It safely disables itself if the required multiplayer APIs are unavailable.
   * ( Was needed for extreme edge cases in multiplayer syncing pre patch 1.05. `Event Synchronizer` has updated since then so it might not be needed anymore.)
 * **SetCurrentRoom:** Postfix. Launches the Act 1 selection screen after entering the custom room. Not needed when the Subscriber method handles this instead.
+* **ActConsoleCmdNavigation:** Postfix. Edits the Act console command so it's compatable with ChooseTheAncient changes so going back acts and progressing selection screen doesn't crash.
+* **ActConsoleCmdNavigation**: Postfix on `ActConsoleCmd.Process`. Clears vanilla's stale act-transition votes and duplicate-transition guard after a successful `act` command. This allows debug navigation back to an earlier act without blocking the next legitimate act transition.
+* **ChooseTheAncientConsoleBallotPreprocess**: Non-skipping prefix on local `DevConsole.ProcessCommand(string)`. For valid `ctaact` and `ctastay` commands only, it cancels an older CTA ballot before vanilla queues the replacement command and hides the local console. It does not replace vanilla command processing or affect other command names.
+* **ChooseTheAncientConsoleSelectionResolutionHandlerRegistration**: Postfix on `RunManager.InitializeShared`. Registers CTA's immediate skip/cancel message handler after the run receives its network service. Registration is idempotent.
+* **ChooseTheAncientConsoleMapOpen**: Postfix on `NMapScreen.Open`. Applies a deferred map-selection synchronization rebase after a console-entered Ancient room, then clears the pending rebase.
+
 
 ### Things to watch out for when implementing an Act 1 Ancient
 - Custom Ancients in Act 1 accidently heal the player to full health in higher ascensions as it's Neow's job to set the players health at run start. Hopefully, Baselib has implemented this fix. If not, the answer lies in AncientHpBaseline. Look at Hades II mod by JonnyBazooka89.

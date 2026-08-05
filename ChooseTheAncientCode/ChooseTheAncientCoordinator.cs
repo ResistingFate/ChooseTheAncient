@@ -23,6 +23,13 @@ using ChooseTheAncient.ChooseTheAncientCode.Interop;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
+internal enum ChooseTheAncientFlowCompletion
+{
+    Completed,
+    Canceled,
+    Failed
+}
+
 public static class ChooseTheAncientCoordinator
 {
 
@@ -130,6 +137,9 @@ public static class ChooseTheAncientCoordinator
      */
     {
         ChooseTheAncientSelectionScreen? localScreen = null;
+        AncientEventModel? ancientBeforeFlow = null;
+        bool forceNeowBlessingModeBeforeFlow = flow.ForceNeowBlessingMode;
+        flow.ActiveFlowTargetActIndex = 0;
 
         try
         {
@@ -172,6 +182,7 @@ public static class ChooseTheAncientCoordinator
                 $"SpecialAncients={(enableRedundantSettings ? ChooseTheAncientConfig.DescribeSpecialAncientOverrides(effectiveSpecialAncientOverrides) : "(disabled)")}.");
 
             ActModel firstAct = runState.Acts[0];
+            ancientBeforeFlow = ChooseTheAncientHelpers.GetChosenAncient(firstAct);
             List<AncientEventModel> pool = ChooseTheAncientHelpers.BuildCandidatePool(
                 firstAct,
                 runState,
@@ -198,9 +209,11 @@ public static class ChooseTheAncientCoordinator
                     vanillaAncient,
                     "empty Act 1 ballot fallback");
 
+                ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
                 ChooseTheAncientHelpers.SetChosenAncient(firstAct, vanillaAncient);
                 await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
                 flow.ModifierBootstrapCompleted = true;
+                ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
                 SetForceNeowBlessingModeIfNeeded(flow, vanillaAncient, "empty Act 1 ballot fallback");
                 flow.ResolvedActs.Add(0);
                 ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, vanillaAncient);
@@ -213,7 +226,7 @@ public static class ChooseTheAncientCoordinator
             ChooseTheAncientHelpers.LogPool("Act 1 starting-room ballot", pool);
             ModLog.Info($"Using game mode {gameMode} for the Act 1 starting-room flow.");
 
-            AncientEventModel chosen;
+            AncientEventModel? chosen;
             if (pool.Count == 1)
             {
                 chosen = pool[0];
@@ -237,19 +250,30 @@ public static class ChooseTheAncientCoordinator
                 }
 
                 (chosen, localScreen) = await RunAncientSelectionBallotAsync(
-            runState,
-            0,
-            orderedPlayers,
-            pool,
-            gameMode);
-    }
+                    runState,
+                    0,
+                    orderedPlayers,
+                    pool,
+                    gameMode,
+                    flow);
+            }
 
-    ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
+            ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
 
-    ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
+            if (chosen == null)
+            {
+                chosen = ChooseTheAncientHelpers.ResolveVanillaAct1FallbackAncient(firstAct, runState);
+                ModLog.Info(
+                    $"CTA selection was skipped for Act 1. Preserving the vanilla/default ancient {chosen.Id.Entry}.");
+            }
+
+            ChooseTheAncientHelpers.SetChosenAncient(firstAct, chosen);
+
+            ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
 
             await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
             flow.ModifierBootstrapCompleted = true;
+            ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
             SetForceNeowBlessingModeIfNeeded(flow, chosen, "Act 1 choice resolved");
 
             flow.ResolvedActs.Add(0);
@@ -264,18 +288,36 @@ public static class ChooseTheAncientCoordinator
         }
         catch (OperationCanceledException ex)
         {
+            flow.ResolvedActs.Remove(0);
+            flow.ForceNeowBlessingMode = forceNeowBlessingModeBeforeFlow;
+            if (ancientBeforeFlow != null)
+            {
+                ChooseTheAncientHelpers.SetChosenAncient(runState.Acts[0], ancientBeforeFlow);
+            }
+
             ModLog.Warn(
                 $"Act 1 starting-room flow canceled: {ex.GetType().Name}. " +
                 "Leaving the current starting room in place.");
         }
         catch (Exception ex)
         {
+            flow.ResolvedActs.Remove(0);
+            flow.ForceNeowBlessingMode = forceNeowBlessingModeBeforeFlow;
+            if (ancientBeforeFlow != null)
+            {
+                ChooseTheAncientHelpers.SetChosenAncient(
+                    runState.Acts[0],
+                    ancientBeforeFlow);
+            }
+
             ModLog.Error($"Act 1 starting-room flow failed: {ex}");
         }
         finally
         {
             localScreen?.CloseScreen();
             ReleaseStartupBootstrapStepHandlerContext(flow);
+            flow.ClearConsoleSelectionResolution();
+            flow.ActiveFlowTargetActIndex = null;
             flow.FlowInProgress = false;
             if (!flow.ResolvedActs.Contains(0))
             {
@@ -406,16 +448,24 @@ public static class ChooseTheAncientCoordinator
     }
 
 
-    public static async Task RunAsync(
+    internal static async Task<ChooseTheAncientFlowCompletion> RunAsync(
         RunManager runManager,
         RunState runState,
         int nextActIndex,
-        ChooseTheAncientFlowState flow)
+        ChooseTheAncientFlowState flow,
+        int? consoleLocationActIndex = null,
+        int? consoleApplyToActIndex = null)
     {
         ChooseTheAncientSelectionScreen? localScreen = null;
         bool enterNextActStarted = false;
         bool shouldEnterNextAct = false;
         int actIndexBeforeTransition = runState.CurrentActIndex;
+        ChooseTheAncientFlowCompletion completion = ChooseTheAncientFlowCompletion.Failed;
+        int applyToActIndex = consoleApplyToActIndex ?? nextActIndex; // ancient can be from different acts due to ctastay
+        ActModel? targetActBeforeFlow = null;
+        AncientEventModel? ancientBeforeFlow = null;
+        bool forceNeowBlessingModeBeforeFlow = flow.ForceNeowBlessingMode;
+        flow.ActiveFlowTargetActIndex = nextActIndex;
 
         try
         {
@@ -424,13 +474,39 @@ public static class ChooseTheAncientCoordinator
             // run completion, not entering another act.
             if (!TryResolveTargetAct(runState, nextActIndex, out ActModel? nextAct, out int resolvedActModelIndex))
             {
-                ModLog.Info(
-                    $"Skipping CTA flow for act {nextActIndex + 1} because no indexed ActModel exists. " +
-                    $"RunState.Acts.Count={runState.Acts.Count}. Continuing vanilla EnterNextAct().");
-                shouldEnterNextAct = true;
+                if (consoleLocationActIndex.HasValue)
+                {
+                    ModLog.Error(
+                        $"Cannot open the console ballot for act {nextActIndex + 1} because no indexed " +
+                        $"ActModel exists. RunState.Acts.Count={runState.Acts.Count}. Remaining at act " +
+                        $"{consoleLocationActIndex.Value + 1}.");
+                    shouldEnterNextAct = false;
+                }
+                else
+                {
+                    ModLog.Info(
+                        $"Skipping CTA flow for act {nextActIndex + 1} because no indexed ActModel exists. " +
+                        $"RunState.Acts.Count={runState.Acts.Count}. Continuing vanilla EnterNextAct().");
+                    shouldEnterNextAct = true;
+                }
+            }
+            else if (!TryResolveTargetAct(
+                         runState,
+                         applyToActIndex,
+                         out ActModel? applyToAct,
+                         out int resolvedApplyToActModelIndex))
+            {
+                ModLog.Error(
+                    $"Cannot apply the act {nextActIndex + 1} CTA ballot to act " +
+                    $"{applyToActIndex + 1} because no indexed ActModel exists. " +
+                    $"RunState.Acts.Count={runState.Acts.Count}.");
+                shouldEnterNextAct = false;
             }
             else
             {
+                targetActBeforeFlow = applyToAct;
+                ancientBeforeFlow = ChooseTheAncientHelpers.GetChosenAncient(applyToAct);
+
                 List<Player> orderedPlayers = runState.Players
                     .OrderBy(runState.GetPlayerSlotIndex)
                     .ToList();
@@ -472,15 +548,21 @@ public static class ChooseTheAncientCoordinator
                 AncientEventModel? chosen = null;
                 if (pool.Count == 0)
                 {
-                    ModLog.Warn($"No ancient candidates remained for act {nextActIndex + 1}. Falling back to vanilla EnterNextAct().");
+                    string fallback = consoleLocationActIndex.HasValue
+                        ? "Preserving the act's existing vanilla/default ancient and remaining at the requested location."
+                        : "Falling back to vanilla EnterNextAct().";
+                    ModLog.Warn(
+                        $"No ancient candidates remained for act {nextActIndex + 1}. {fallback}");
                 }
                 else if (pool.Count == 1)
                 {
                     chosen = pool[0];
-                    ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
+                    ChooseTheAncientHelpers.SetChosenAncient(applyToAct, chosen);
                     ModLog.Info(
-                        $"Only one ancient available for act {nextActIndex + 1}: {chosen.Id.Entry}. " +
-                        $"ResolvedActModelIndex={resolvedActModelIndex + 1}.");
+                        $"Only one ancient available from the act {nextActIndex + 1} ballot: " +
+                        $"{chosen.Id.Entry}. AppliedToAct={applyToActIndex + 1}, " +
+                        $"BallotActModelIndex={resolvedActModelIndex + 1}, " +
+                        $"AppliedActModelIndex={resolvedApplyToActModelIndex + 1}.");
                 }
                 else
                 {
@@ -489,85 +571,169 @@ public static class ChooseTheAncientCoordinator
                         nextActIndex,
                         orderedPlayers,
                         pool,
-                        gameMode);
+                        gameMode,
+                        flow);
 
-                    ChooseTheAncientHelpers.SetChosenAncient(nextAct, chosen);
-                    ModLog.Info(
-                        $"Chosen ancient for act {nextActIndex + 1}: {chosen.Id.Entry}. " +
-                        $"ResolvedActModelIndex={resolvedActModelIndex + 1}.");
+                    ThrowIfConsoleSelectionCanceled(flow, nextActIndex);
+
+                    if (chosen != null)
+                    {
+                        ChooseTheAncientHelpers.SetChosenAncient(applyToAct, chosen);
+                        ModLog.Info(
+                            $"Chosen ancient from the act {nextActIndex + 1} ballot for act " +
+                            $"{applyToActIndex + 1}: {chosen.Id.Entry}. " +
+                            $"BallotActModelIndex={resolvedActModelIndex + 1}, " +
+                            $"AppliedActModelIndex={resolvedApplyToActModelIndex + 1}.");
+                    }
+                    else
+                    {
+                        AncientEventModel defaultAncient =
+                            ChooseTheAncientHelpers.GetChosenAncient(applyToAct);
+                        ModLog.Info(
+                            $"CTA selection was skipped for the act {nextActIndex + 1} ballot. " +
+                            $"Preserving act {applyToActIndex + 1}'s vanilla/default ancient " +
+                            $"{defaultAncient.Id.Entry}. AppliedActModelIndex=" +
+                            $"{resolvedApplyToActModelIndex + 1}.");
+                    }
                 }
+
+                ThrowIfConsoleSelectionCanceled(flow, nextActIndex);
 
                 if (chosen != null)
                 {
-                    SetForceNeowBlessingModeIfNeeded(flow, chosen, $"Act {nextActIndex + 1} choice resolved");
+                    SetForceNeowBlessingModeIfNeeded(
+                        flow,
+                        chosen,
+                        $"Act {nextActIndex + 1} ballot applied to act {applyToActIndex + 1}");
                 }
 
-                flow.ResolvedActs.Add(nextActIndex);
+                flow.ResolvedActs.Add(applyToActIndex);
                 shouldEnterNextAct = true;
             }
         }
         catch (OperationCanceledException ex)
         {
+            flow.ResolvedActs.Remove(applyToActIndex);
+            flow.ForceNeowBlessingMode = forceNeowBlessingModeBeforeFlow;
+            RestoreAncientAfterCanceledFlow(targetActBeforeFlow, ancientBeforeFlow);
             ModLog.Warn(
                 $"Ancient selection flow canceled for act {nextActIndex + 1}: " +
                 $"{ex.GetType().Name}. Skipping forced act progression.");
             shouldEnterNextAct = false;
+            completion = ChooseTheAncientFlowCompletion.Canceled;
         }
         catch (Exception ex)
         {
-            ModLog.Error(
-                $"Ancient selection flow failed before EnterNextAct for act {nextActIndex + 1}: {ex}. " +
-                "Falling back to vanilla EnterNextAct once.");
-            shouldEnterNextAct = true;
+            if (consoleLocationActIndex.HasValue)
+            {
+                flow.ResolvedActs.Remove(applyToActIndex);
+                flow.ForceNeowBlessingMode = forceNeowBlessingModeBeforeFlow;
+                RestoreAncientAfterCanceledFlow(targetActBeforeFlow, ancientBeforeFlow);
+                ModLog.Error(
+                    $"Console ballot failed for act {nextActIndex + 1} at act " +
+                    $"{consoleLocationActIndex.Value + 1}: {ex}. Remaining at the requested act.");
+                shouldEnterNextAct = false;
+            }
+            else
+            {
+                ModLog.Error(
+                    $"Ancient selection flow failed before EnterNextAct for act {nextActIndex + 1}: {ex}. " +
+                    "Falling back to vanilla EnterNextAct once.");
+                shouldEnterNextAct = true;
+            }
         }
 
         try
         {
+            if (shouldEnterNextAct
+                && ConsumeConsoleSelectionCancellation(flow, nextActIndex))
+            {
+                flow.ResolvedActs.Remove(applyToActIndex);
+                flow.ForceNeowBlessingMode = forceNeowBlessingModeBeforeFlow;
+                RestoreAncientAfterCanceledFlow(targetActBeforeFlow, ancientBeforeFlow);
+                shouldEnterNextAct = false;
+                completion = ChooseTheAncientFlowCompletion.Canceled;
+            }
+
             if (shouldEnterNextAct)
             {
                 localScreen?.CloseScreen();
                 localScreen = null;
 
-                ModLog.Debug(
-                    $"Preparing CTA screen state before EnterNextAct for act {nextActIndex + 1}. " +
-                    "Closing only the CTA screen, then waiting one process frame.");
+                if (consoleLocationActIndex.HasValue)
+                {
+                    completion = ChooseTheAncientFlowCompletion.Completed;
+                    ModLog.Info(
+                        $"Completed the act {nextActIndex + 1} console ballot at act " +
+                        $"{consoleLocationActIndex.Value + 1}; remaining at the requested act.");
+                }
+                else
+                {
+                    ModLog.Debug(
+                        $"Preparing CTA screen state before EnterNextAct for act {nextActIndex + 1}. " +
+                        "Closing only the CTA screen, then waiting one process frame.");
 
-                // Intentionally clear all RunManager screens before continuing so the
-                // completed boss room is not briefly shown behind the transition.
-                // Some endless mods reuse map-screen nodes across act cycles and may be
-                // incompatible with this cleanup, but vanilla transitions expect a clean screen stack.
-                InvokeRunManagerVoid(ClearScreensMethod, runManager); 
-                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+                    // Intentionally clear all RunManager screens before continuing so the
+                    // completed boss room is not briefly shown behind the transition.
+                    // Some endless mods reuse map-screen nodes across act cycles and may be
+                    // incompatible with this cleanup, but vanilla transitions expect a clean screen stack.
+                    InvokeRunManagerVoid(ClearScreensMethod, runManager);
+                    await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
 
-                enterNextActStarted = true;
-                flow.ContinueEnterNextAct = true;
-                await runManager.EnterNextAct();
+                    if (ConsumeConsoleSelectionCancellation(flow, nextActIndex))
+                    {
+                        flow.ResolvedActs.Remove(applyToActIndex);
+                        flow.ForceNeowBlessingMode = forceNeowBlessingModeBeforeFlow;
+                        RestoreAncientAfterCanceledFlow(targetActBeforeFlow, ancientBeforeFlow);
+                        completion = ChooseTheAncientFlowCompletion.Canceled;
+                    }
+                    else
+                    {
+                        enterNextActStarted = true;
+                        flow.ContinueEnterNextAct = true;
+                        await runManager.EnterNextAct();
+                        completion = ChooseTheAncientFlowCompletion.Completed;
+                    }
+                }
             }
         }
         catch (OperationCanceledException ex)
         {
+            string operationName = consoleLocationActIndex.HasValue
+                ? "console ballot completion"
+                : "EnterNextAct";
+
             ModLog.Warn(
-                $"EnterNextAct canceled for act {nextActIndex + 1} after CTA flow: " +
+                $"{operationName} canceled after the act {nextActIndex + 1} CTA flow: " +
                 $"{ex.GetType().Name}. Not retrying.");
             throw;
         }
         catch (Exception ex)
         {
+            string operationName = consoleLocationActIndex.HasValue
+                ? "console ballot completion"
+                : "EnterNextAct";
+
             ModLog.Error(
-                $"EnterNextAct failed for act {nextActIndex + 1} after the transition had started. " +
+                $"{operationName} failed after the act {nextActIndex + 1} CTA flow. " +
                 $"CurrentActIndexBefore={actIndexBeforeTransition + 1}, CurrentActIndexNow={runState.CurrentActIndex + 1}, " +
-                $"RunState.Acts.Count={runState.Acts.Count}. Not retrying because retrying can skip an act: {ex}");
+                $"RunState.Acts.Count={runState.Acts.Count}. Not retrying: {ex}");
             throw;
         }
         finally
         {
             localScreen?.CloseScreen();
+            flow.ClearConsoleSelectionResolution();
+            flow.ActiveFlowTargetActIndex = null;
             flow.FlowInProgress = false;
             flow.ContinueEnterNextAct = false;
             ModLog.Info(
                 $"Ancient flow cleanup. InProgress={flow.FlowInProgress}, ContinueNext={flow.ContinueEnterNextAct}, " +
-                $"EnterNextActStarted={enterNextActStarted}");
+                $"EnterNextActStarted={enterNextActStarted}, ConsoleLocation=" +
+                $"{(consoleLocationActIndex.HasValue ? (consoleLocationActIndex.Value + 1).ToString() : "<none>")}");
         }
+
+        return completion;
     }
 
     private static bool TryResolveTargetAct(
@@ -603,12 +769,13 @@ public static class ChooseTheAncientCoordinator
         return true;
     }
 
-    private static async Task<(AncientEventModel Chosen, ChooseTheAncientSelectionScreen? LocalScreen)> RunAncientSelectionBallotAsync(
+    private static async Task<(AncientEventModel? Chosen, ChooseTheAncientSelectionScreen? LocalScreen)> RunAncientSelectionBallotAsync(
         RunState runState,
         int targetActIndex,
         IReadOnlyList<Player> orderedPlayers,
         List<AncientEventModel> pool,
-        ChooseTheAncientConfig.SelectionGameMode gameMode)
+        ChooseTheAncientConfig.SelectionGameMode gameMode,
+        ChooseTheAncientFlowState flow)
     {
         if (pool.Count == 0)
         {
@@ -672,6 +839,13 @@ public static class ChooseTheAncientCoordinator
                 singleRound,
                 localScreen);
 
+            ThrowIfConsoleSelectionCanceled(flow, targetActIndex);
+
+            if (ConsumeConsoleSelectionSkip(flow, targetActIndex))
+            {
+                return (null, localScreen);
+            }
+
             int chosenIndex = ResolveMostVotedIndex(
                 runState,
                 targetActIndex,
@@ -709,6 +883,13 @@ public static class ChooseTheAncientCoordinator
                 orderedPlayers,
                 firstRound,
                 localScreen);
+
+            ThrowIfConsoleSelectionCanceled(flow, targetActIndex);
+
+            if (ConsumeConsoleSelectionSkip(flow, targetActIndex))
+            {
+                return (null, localScreen);
+            }
 
             int firstPlaceIndex = ResolveMostVotedIndex(
                 runState,
@@ -791,6 +972,13 @@ public static class ChooseTheAncientCoordinator
                 secondRound,
                 localScreen);
 
+            ThrowIfConsoleSelectionCanceled(flow, targetActIndex);
+
+            if (ConsumeConsoleSelectionSkip(flow, targetActIndex))
+            {
+                return (null, localScreen);
+            }
+
             int chosenIndex = ResolveMostVotedIndex(
                 runState,
                 targetActIndex,
@@ -809,6 +997,122 @@ public static class ChooseTheAncientCoordinator
     }
 
     
+    private static void RestoreAncientAfterCanceledFlow(
+        ActModel? targetAct,
+        AncientEventModel? previousAncient)
+    {
+        if (targetAct == null || previousAncient == null)
+        {
+            return;
+        }
+
+        ChooseTheAncientHelpers.SetChosenAncient(targetAct, previousAncient);
+    }
+
+    private static bool ConsumeConsoleSelectionCancellation(
+        ChooseTheAncientFlowState flow,
+        int targetActIndex)
+    {
+        if (!flow.ConsumeConsoleSelectionResolution(
+                targetActIndex,
+                ConsoleSelectionResolution.CancelFlow))
+        {
+            return false;
+        }
+
+        ModLog.Info(
+            $"Consumed CTA console cancellation for act {targetActIndex + 1}; " +
+            "the superseded flow will close without progressing to another act.");
+        return true;
+    }
+
+    private static void ThrowIfConsoleSelectionCanceled(
+        ChooseTheAncientFlowState flow,
+        int targetActIndex)
+    {
+        if (!ConsumeConsoleSelectionCancellation(flow, targetActIndex))
+        {
+            return;
+        }
+
+        throw new OperationCanceledException(
+            $"CTA console canceled the act {targetActIndex + 1} selection flow.");
+    }
+
+    private static bool ConsumeConsoleSelectionSkip(
+        ChooseTheAncientFlowState flow,
+        int targetActIndex)
+    {
+        if (!flow.ConsumeConsoleSelectionResolution(
+                targetActIndex,
+                ConsoleSelectionResolution.SkipBallot))
+        {
+            return false;
+        }
+
+        ModLog.Info(
+            $"Consumed CTA console skip request for act {targetActIndex + 1}; " +
+            "the act's existing vanilla/default ancient will be preserved.");
+        return true;
+    }
+
+
+    public static async Task EnsureConsoleModifierBootstrapAsync(
+        RunState runState,
+        ChooseTheAncientFlowState flow)
+    {
+        if (flow.ModifierBootstrapCompleted)
+        {
+            return;
+        }
+
+        List<Player> orderedPlayers = runState.Players
+            .OrderBy(runState.GetPlayerSlotIndex)
+            .ToList();
+
+        int syncEpoch = BeginAct1StartupBootstrapSync(
+            runState,
+            flow,
+            orderedPlayers);
+
+        try
+        {
+            ModLog.Info(
+                "Completing the one-time Act 1 modifier bootstrap before ctaact navigation.");
+            await EnsureModifierBootstrapCompletedAsync(
+                runState,
+                flow,
+                orderedPlayers,
+                syncEpoch);
+        }
+        finally
+        {
+            ReleaseStartupBootstrapStepHandlerContext(flow);
+        }
+    }
+
+    private static async Task EnsureModifierBootstrapCompletedAsync(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        IReadOnlyList<Player> orderedPlayers,
+        int syncEpoch)
+    {
+        /*
+         * Re-entering Act 1 through the debug console should reopen CTA's ballot, but
+         * start-of-run modifier rewards must not be granted a second time.
+         */
+        if (flow.ModifierBootstrapCompleted)
+        {
+            ModLog.Info(
+                "Skipping Act 1 modifier bootstrap because it already completed earlier in this run.");
+            return;
+        }
+
+        await RunModifierBootstrapAsync(runState, flow, orderedPlayers, syncEpoch);
+        flow.ModifierBootstrapCompleted = true;
+    }
+
+
     private static async Task RunModifierBootstrapAsync(
         RunState runState,
         ChooseTheAncientFlowState flow,

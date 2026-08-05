@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
@@ -34,7 +34,13 @@ public static class ActConsoleCmdNavigationPatch
             return;
         }
 
-        ActChangeSynchronizer synchronizer = RunManager.Instance.ActChangeSynchronizer;
+        ClearStaleTransitionState("vanilla act command");
+    }
+
+    internal static void ClearStaleTransitionState(string source)
+    {
+        ActChangeSynchronizer synchronizer =
+            RunManager.Instance.ActChangeSynchronizer;
 
         LastTransitioningActIndexField.SetValue(synchronizer, -1);
 
@@ -46,6 +52,7 @@ public static class ActConsoleCmdNavigationPatch
             readyPlayers[i] = false;
         }
 
-        ModLog.Info("Cleared vanilla act-transition state after console act navigation.");
+        ModLog.Info(
+            $"Cleared vanilla act-transition state after {source} navigation.");
     }
 }

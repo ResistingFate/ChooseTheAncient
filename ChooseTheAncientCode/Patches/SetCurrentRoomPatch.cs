@@ -31,6 +31,13 @@ public static class SetCurrentRoomPatch
 
         ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);
 
+        if (flow.ConsumeSuppressNextAct1StartingRoomFlow())
+        {
+            ModLog.Debug(
+                "Suppressed the automatic Act 1 starting-room CTA flow because ctaact owns the requested ballot.");
+            return;
+        }
+
         if (flow.ResolvedActs.Contains(0) || flow.FlowInProgress || flow.Act1StartingRoomFlowTriggered)
             return;
 

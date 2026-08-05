@@ -508,13 +508,16 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private readonly Dictionary<ulong, int> _votesByPlayerNetId = new();
     private readonly TaskCompletionSource<bool> _readyCompletion = new();
 
-    private TaskCompletionSource<int> _voteSubmitted = new();
+    private TaskCompletionSource<int> _voteSubmitted =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
     private TaskCompletionSource<bool> _roundPresented = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private IReadOnlyList<AncientEventModel> _pool = Array.Empty<AncientEventModel>();
     private VoteRoundType _roundType = VoteRoundType.InitialKeepVote;
     private Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData> _previewDataByAncientId = new();
     private string? _suppressedPreviewAncientId; // first-round winner used as the other ancient in second-round dialogue
+    private bool _configuredHideSuppressedPreview;
+    private bool _configuredHideSuppressedDialogue;
     private bool _hideSuppressedPreview;
     private bool _hideSuppressedDialogue;
     private string? _reactionAncientId; // ancient that reacts with dialogue on the final preview vote
@@ -606,6 +609,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Creates, initializes, and pushes a new selection screen onto the overlay stack.
          */
+        ChooseTheAncientConsoleDebugState.EnsureSelectionResolutionHandlerRegistered();
+
         NOverlayStack? overlayStack = NOverlayStack.Instance;
         if (overlayStack == null)
         {
@@ -972,7 +977,201 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     #endregion
 
     #region ModConfig state and live refresh behavior
+    /*
+     * SECTION: Console Command handling and removing stale screens.
+     * Try and defer screen opening, or dialogue preview showing.
+     */
 
+    public static int RefreshConsoleSuppressedContentOverride()
+    {
+        /*
+         * Applies the console-only suppressed-content override to every live CTA screen.
+         * Rebuilding is deferred so the command can safely run from the dev-console input path.
+         */
+        int refreshedScreens = 0;
+
+        for (int i = _openScreens.Count - 1; i >= 0; i--)
+        {
+            ChooseTheAncientSelectionScreen screen = _openScreens[i];
+            if (!GodotObject.IsInstanceValid(screen))
+            {
+                _openScreens.RemoveAt(i);
+                continue;
+            }
+
+            screen.CallDeferred(nameof(ApplyConsoleSuppressedContentOverrideDeferred));
+            refreshedScreens++;
+        }
+
+        return refreshedScreens;
+    }
+
+    public static bool TryGetCurrentSelectionTargetActIndex(out int targetActIndex)
+    {
+        ChooseTheAncientSelectionScreen[] screens = _openScreens.ToArray();
+
+        foreach (ChooseTheAncientSelectionScreen screen in screens.Reverse())
+        {
+            if (!GodotObject.IsInstanceValid(screen))
+            {
+                _openScreens.Remove(screen);
+                continue;
+            }
+
+            if (!screen._closing
+                && !screen._voteSubmitted.Task.IsCompleted
+                && screen._pool.Count > 0)
+            {
+                targetActIndex = screen._nextActIndex;
+                return true;
+            }
+        }
+
+        targetActIndex = -1;
+        return false;
+    }
+
+    public static bool HasUnclosedConsoleSelectionScreen()
+    {
+        for (int i = _openScreens.Count - 1; i >= 0; i--)
+        {
+            ChooseTheAncientSelectionScreen screen = _openScreens[i];
+            if (!GodotObject.IsInstanceValid(screen))
+            {
+                _openScreens.RemoveAt(i);
+                continue;
+            }
+
+            // A closing screen remains in NOverlayStack until _ExitTree. Wait for
+            // that removal before opening a replacement console ballot.
+            return true;
+        }
+
+        return false;
+    }
+
+    public static int CloseOpenScreensForConsoleReplacement()
+    {
+        int closedCount = 0;
+        ChooseTheAncientSelectionScreen[] screens = _openScreens.ToArray();
+
+        foreach (ChooseTheAncientSelectionScreen screen in screens)
+        {
+            if (!GodotObject.IsInstanceValid(screen))
+            {
+                _openScreens.Remove(screen);
+                continue;
+            }
+
+            if (screen._closing)
+            {
+                continue;
+            }
+
+            screen.CloseScreen();
+            closedCount++;
+        }
+
+        return closedCount;
+    }
+
+    public static bool TryResolveCurrentRoundForConsoleResolution(int targetActIndex)
+    {
+        /*
+         * Resolves each matching live local ballot with a harmless synchronization index.
+         * The coordinator consumes the matching skip or cancellation request before that
+         * index can replace the act's existing vanilla/default ancient.
+         */
+        bool resolvedAny = false;
+        ChooseTheAncientSelectionScreen[] screens = _openScreens.ToArray();
+
+        foreach (ChooseTheAncientSelectionScreen screen in screens)
+        {
+            if (!GodotObject.IsInstanceValid(screen))
+            {
+                _openScreens.Remove(screen);
+                continue;
+            }
+
+            resolvedAny |=
+                screen.TryResolveCurrentRoundForConsoleResolutionInternal(targetActIndex);
+        }
+
+        return resolvedAny;
+    }
+
+    private void ApplyConsoleSuppressedContentOverride()
+    {
+        bool forceShowSuppressedContent =
+            ChooseTheAncientConsoleDebugState.ShowSuppressedContent;
+
+        _hideSuppressedPreview =
+            _configuredHideSuppressedPreview && !forceShowSuppressedContent;
+        _hideSuppressedDialogue =
+            _configuredHideSuppressedDialogue && !forceShowSuppressedContent;
+    }
+
+    private void ApplyConsoleSuppressedContentOverrideDeferred()
+    {
+        if (_closing || !GodotObject.IsInstanceValid(this))
+        {
+            return;
+        }
+
+        bool previousHidePreview = _hideSuppressedPreview;
+        bool previousHideDialogue = _hideSuppressedDialogue;
+        ApplyConsoleSuppressedContentOverride();
+
+        if (!_uiReady
+            || !_hasLoadedRound
+            || _resolved
+            || _roundType != VoteRoundType.FinalRevealVote
+            || (previousHidePreview == _hideSuppressedPreview
+                && previousHideDialogue == _hideSuppressedDialogue))
+        {
+            return;
+        }
+
+        BuildUi();
+    }
+
+    private bool IsConsoleSelectionResolutionPendingForCurrentAct()
+    {
+        RunState? runState = _localPlayer?.RunState as RunState
+                             ?? ChooseTheAncientHelpers.GetRunState(RunManager.Instance);
+        if (runState == null)
+        {
+            return false;
+        }
+
+        ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);
+        return flow.IsConsoleSelectionResolutionRequestedFor(_nextActIndex);
+    }
+
+    private bool TryResolveCurrentRoundForConsoleResolutionInternal(int targetActIndex)
+    {
+        if (_nextActIndex != targetActIndex
+            || _closing
+            || _resolved
+            || _pool.Count == 0
+            || _voteSubmitted.Task.IsCompleted)
+        {
+            return false;
+        }
+
+        _resolved = true;
+        _manualSelectionLocked = true;
+        _pendingPoolIndex = null;
+        _hoveredSlot = null;
+        _lastHoveredPoolIndex = null;
+
+        ModLog.Info(
+            $"Console requested CTA ballot resolution for act {_nextActIndex + 1}; " +
+            "resolving the local synchronization task without selecting a replacement ancient.");
+
+        return _voteSubmitted.TrySetResult(0);
+    }
+    
     /*
      * SECTION: ModConfig state and live refresh behavior.
      * Reads config-backed values, applies them to the live screen, and refreshes open screens when settings change.
@@ -995,6 +1194,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             screen.RefreshModConfigValues();
         }
     }
+
 
     public void InitiateConfigValues()
     {
@@ -1056,7 +1256,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          * Resets all round-scoped state, applies the supplied round data, and waits for a vote to be submitted.
          */
         /* Handles each of the vote rounds for the selection screen */
-        _voteSubmitted = new TaskCompletionSource<int>();
+        _voteSubmitted = new TaskCompletionSource<int>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         _roundPresented = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         await _readyCompletion.Task;
@@ -1067,8 +1268,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             ?? new Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>();
         _suppressedPreviewAncientId = round.SuppressedPreviewAncientId;
         _suppressedPreviewAncient = round.SuppressedPreviewAncient;
-        _hideSuppressedPreview = round.HideSuppressedPreview;
-        _hideSuppressedDialogue = round.HideSuppressedDialogue;
+        _configuredHideSuppressedPreview = round.HideSuppressedPreview;
+        _configuredHideSuppressedDialogue = round.HideSuppressedDialogue;
+        ApplyConsoleSuppressedContentOverride();
         _reactionAncientId = round.ReactionAncientId;
         _reactionAncient = round.ReactionAncient;
         _initialFocusAncientId = round.InitialFocusAncientId;
@@ -1094,6 +1296,16 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         _initialSecondRoundWinnerEmphasisFadeTween?.Kill();
         _initialSecondRoundWinnerEmphasisFadeTween = null;
         _initialSecondRoundWinnerEmphasisAmount = 0f;
+
+        if (IsConsoleSelectionResolutionPendingForCurrentAct())
+        {
+            ModLog.Info(
+                $"Applying queued CTA console selection resolution as the act {_nextActIndex + 1} " +
+                "local ballot opens.");
+            _roundPresented.TrySetResult(true);
+            TryResolveCurrentRoundForConsoleResolutionInternal(_nextActIndex);
+            return await _voteSubmitted.Task;
+        }
 
         try
         {
@@ -5018,8 +5230,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private void TryGrabInitialFocus()
     {
         /*
-         * Calling GrabFocus directly on a hidden, detached, disabled, or stale control makes
-         * Godot emit "This control can't grab focus" during round rebuilds and overlay changes.
+         * Revalidates the preferred control at deferred-call time because BuildUi can replace
+         * the entire focus graph between scheduling and execution.
          */
         if (_closing || !Visible || !IsInsideTree())
         {
