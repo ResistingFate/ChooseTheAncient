@@ -18,6 +18,30 @@
   - spirecodex already does this, so API if spire codex already installed
 
 
+## [v1.3.2] - Steam Releae with console commands
+
+### Features
+- implemented console commands to get to selection screen quicker, and to exit screen quicker
+  - ctaact n
+    - acts like act n but allows you to select ancient first
+  - ctastay n
+    - brings up the selection screen of any act and moves to the start of the current act
+  - ctaskip
+    - exits the selection screen cleanly
+  - ctaffsay
+    - shows or hides the fair fight extra dialouge on any mode with a 2nd round
+
+### Fixes
+- dimming changed from alpha to color change so translucent ancients will stop showing your character behind
+- the vanilla Act console command was patched so it'd no longer block entry and progressing when trying to enter the next selection screen
+
+### Technical
+- Implemented a postfix patch for ActConsoleCmd so it integrates with changes to EnterNextAct patch and stops crashes it can cause.
+- Implemented 3 more patches for the custom console commands
+  - ChooseTheAncientConsoleBallotPreprocess  prefix on DevConsole.ProcessCommand to allow clean canceling of ballots from cmd. 
+  - ChooseTheAncientConsoleSelectionResolutionHandlerRegistration Postfix on RunManager.InitializeShared to register the skip cancel message handler that handles open cmds with peers.
+  - ChooseTheAncientConsoleMapOpen Postfix on NMapScreen.Open to load map properly after console command acctivates.
+
 ## [v1.3.1] - Steam Release with Zoomed in Vanilla Ancients
 
 ### Features

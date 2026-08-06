@@ -1,0 +1,67 @@
+﻿No longer do you stumble upon the Ancients, now they come to you. At the end of each act, vote for the Ancient you want at the start of the next. [b]For Main 0.1070.1 and Beta 0.110.0[/b]
+
+[img]https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/workshop/Choose_The_Ancients_Custom_Short_Decision.gif[/img]
+As you can see, you have three Ancients to vote for. After you select one, another Ancient has the chance to change your mind.  The custom Ancient shown is [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3748052621]Arq's Ancients – Phoenix[/url] by Arquebus.
+
+[h1]Features[/h1]
+[list]
+[*]After you start Act 1 or proceed to Act 2 or Act 3, a new screen asks you to choose the Ancient.
+[*]Ancients' scenes clash together and zoom in as you hover over them.
+[*]Multiplayer support. Votes are weighted, with randomized picks in multiplayer.
+[*]After the first round, a second round begins where the second-most-voted Ancient clashes with the chosen Ancient.
+[*]The second Ancient sweetens the deal by revealing their relic options, in case they have what you need.
+[*]Proceeds cleanly to the next act, building the same rewards for the second-most-voted Ancient if you pick them.
+[*]Ancient spawning is no longer determined by the base game.
+[*]Darv can appear in both Act 2 and Act 3 during the same run.
+[*]Works with custom Ancients.
+[*]Controller support.
+[*]Resizes for different resolutions.
+[*]Console Commands
+[list]
+[*][i]ctaact n[/i] to jump act with selection
+[*][i]ctastay n[/i] to do selection for any act on current act
+[*][i]ctaskip[/i] to cancel selection
+[*][i]ctaffsay[/i] fair fight dialouge on monty hall
+[/list]
+[*]Optional settings:
+[list]
+[*]Number of Ancients
+[*]Game modes:
+[list]
+[*]Monty Hall [i](default)[/i]
+[*]Fair Fight
+[*]I Want To Know Everything
+[*]Simple Picker
+[/list]
+[/list]
+[/list]
+
+[h1]Mod Compatibility[/h1]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3737335127]BaseLib[/url] custom Ancients.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3747602295]RitsuLib[/url] custom Ancients.
+[*]Use either BaseLib or RitsuLib for the full settings menu.
+[*]Limited settings are available through [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3749062616]Mod Config[/url].
+[*]Use [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3747493112]Ancient Configs Plus[/url] to filter Ancients. [i](BaseLib only)[/i]
+[*]Works in endless mode, including [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3771500862]New Game ++[/url]. [i](Ascension 10 breaks; ACP only filters Act 1–3 bosses.)[/i]
+[*]Act 4 mods do not have an Ancient node at the start, so no choice screen appears there.
+[*]Usable with [url=https://steamcommunity.com/workshop/filedetails/?id=3750930021]Ancient Affection[/url]. However, the preview displays the “beloved” rewards under the wrong reward options.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3761888849]Slay the Streamer 2[/url] support.
+[/list]
+
+[h1]Showcase[/h1]
+[img]https://raw.githubusercontent.com/ResistingFate/ChooseTheAncient/refs/heads/master/showcase/phoenix.gif[/img]
+The custom Ancient shown is [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3748052621]Arq's Ancients – Phoenix[/url] by Arquebus. Every Week, I'll show a new custom ancient I'm enjoying from the community. Your awesome mod could be next.
+[url=https://github.com/ResistingFate/ChooseTheAncient/blob/master/showcase/winners_showcase.md]View the entire showcase here[/url].
+
+[h1]For Custom Ancient Modders[/h1]
+[url=https://github.com/ResistingFate/ChooseTheAncient/blob/master/workshop/Gude_To_Perfectly_Fitting_Your_Ancient_In_ChooseTheAncient.md][b]Custom Ancient Integration Guide[/b][/url]
+
+[h1]Translation Volunteers[/h1]
+I'm thankful for anyone who volunteers to translate the mod. I will only accept translations from people willing to keep their localizations updated. Fixes are accepted too. Since this is a lot of work, machine translated files are on the github to ease the process. Send me the modified localization files, and I’ll consider adding them to the mod. Translate the eng localized [url=https://github.com/ResistingFate/ChooseTheAncient/tree/master/ChooseTheAncient/localization/eng] mod files[/url] and [url=https://github.com/ResistingFate/ChooseTheAncient/tree/master/localization] steam files[/url] here.
+Contributors will be credited here.
+[list]
+[*] zhs mod files are machine translated for now.
+[/list] 
+[h3]Note: I am NOT responsible or liable for translations provided by volunteers.[/h3]
+Translations are an accessibility feature provided by volunteers. The creators make no promises regarding translated content and are not responsible for updating, modifying, or verifying its accuracy or authenticity.

@@ -1,0 +1,15 @@
+﻿# For Translation Volunteers
+Hello everyone. I am soon to release #"Choose The Ancient". Is anyone interested in localization any of the following files to zhs?
+- The github includes a zhs folder with machine translated  files for reference and the link below has the eng versions to translate. A human translater will be better than a machine translation. https://github.com/ResistingFate/ChooseTheAncient/tree/master/ChooseTheAncient/localization/eng
+  - (I'll do a count then update these totals)
+  - ancients.json totals 244 words or 48 lines.
+    - if too much, fixing the machine translation zhs is only 3 lines total.
+  - gameplay_ui.json totals 29 words or 13 lines 
+  - settings_ui.json totals 598 words or 112 lines
+    - if too much, ignore. Machine translation should be fine for most.
+- I also have a steam page description that needs translated. This one is version specific to the Simplified Chinese page. **The English Steam Page will give credit too.**
+  - Totals 455 words and 49 lines. Also send me a translation of the mod name.
+- I will only accept translations from people willing to keep their localizations updated, although this mod does not expect to change the text very often.
+- Send me the modified localization files on discord or github, and I’ll consider adding them to the mod.
+- Total work is 1326 words or 222 lines.
+I'm thankful for anyone who volunteers to translate the mod.

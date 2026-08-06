@@ -5,9 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/localization/for_translators_bbcode_message.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/localization/steam_workshop_description_to_translate.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/workshop/steam_workshop_description_eng.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/export_presets.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/export_presets.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workshop/steam_workshop_description.txt" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,32 +70,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;.NET Executable. dotnet test ChooseTheAncient.Tests.executor&quot;: &quot;Run&quot;,
-    &quot;.NET Executable.SlayTheSpire2_Debug.executor&quot;: &quot;Debug&quot;,
-    &quot;.NET Executable.clean rebuild tests.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient Tests to folder.executor&quot;: &quot;Run&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient to folder.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.build.godotPlugin&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    ".NET Executable. dotnet test ChooseTheAncient.Tests.executor": "Run",
+    ".NET Executable.SlayTheSpire2_Debug.executor": "Debug",
+    ".NET Executable.clean rebuild tests.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
+    "Publish to folder.Publish ChooseTheAncient to folder.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "CodeLensConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
@@ -297,103 +303,8 @@
       <workItem from="1785718196334" duration="2565000" />
       <workItem from="1785761298365" duration="6243000" />
       <workItem from="1785867430809" duration="3572000" />
-      <workItem from="1785871730523" duration="20571000" />
-    </task>
-    <task id="LOCAL-00092" summary="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.">
-      <option name="closed" value="true" />
-      <created>1785213470425</created>
-      <option name="number" value="00092" />
-      <option name="presentableId" value="LOCAL-00092" />
-      <option name="project" value="LOCAL" />
-      <updated>1785213470425</updated>
-    </task>
-    <task id="LOCAL-00093" summary="Updated Modlog so all logging will route to the base game's logging system by default unless enabled in the legacy settings.&#10;&#10;Not sure if this was on the git, i removed the interop folder from ChoosTheAncient resources folder as I already had an Interop folder in ChooseTheAncient code and it got confusing. ritsulib_settings_schema.json is now in a settings folder.&#10;&#10;Trace looks like VeryDebug in the menus now.">
-      <option name="closed" value="true" />
-      <created>1785215235652</created>
-      <option name="number" value="00093" />
-      <option name="presentableId" value="LOCAL-00093" />
-      <option name="project" value="LOCAL" />
-      <updated>1785215235652</updated>
-    </task>
-    <task id="LOCAL-00094" summary="Add the slot templates to the github in preparation of the push, so a weblink of them can be developed for the guide.">
-      <option name="closed" value="true" />
-      <created>1785215340579</created>
-      <option name="number" value="00094" />
-      <option name="presentableId" value="LOCAL-00094" />
-      <option name="project" value="LOCAL" />
-      <updated>1785215340579</updated>
-    </task>
-    <task id="LOCAL-00095" summary="Added the selection screen template download links.">
-      <option name="closed" value="true" />
-      <created>1785216909709</created>
-      <option name="number" value="00095" />
-      <option name="presentableId" value="LOCAL-00095" />
-      <option name="project" value="LOCAL" />
-      <updated>1785216909709</updated>
-    </task>
-    <task id="LOCAL-00096" summary="Reorganised tutorials">
-      <option name="closed" value="true" />
-      <created>1785218038404</created>
-      <option name="number" value="00096" />
-      <option name="presentableId" value="LOCAL-00096" />
-      <option name="project" value="LOCAL" />
-      <updated>1785218038404</updated>
-    </task>
-    <task id="LOCAL-00097" summary="Updated Readme to link to custom ancient modder CTA tutorial.">
-      <option name="closed" value="true" />
-      <created>1785218224312</created>
-      <option name="number" value="00097" />
-      <option name="presentableId" value="LOCAL-00097" />
-      <option name="project" value="LOCAL" />
-      <updated>1785218224312</updated>
-    </task>
-    <task id="LOCAL-00098" summary="Stopped the redundant Neow and Darv override from filtering them out from act 4+ on endless modes.">
-      <option name="closed" value="true" />
-      <created>1785219977185</created>
-      <option name="number" value="00098" />
-      <option name="presentableId" value="LOCAL-00098" />
-      <option name="project" value="LOCAL" />
-      <updated>1785219977185</updated>
-    </task>
-    <task id="LOCAL-00099" summary="Change up SelectAncientsFromLimitedBallot. I was forcing custom ancients to appear in the ballot. I prefred it before ancient config plus came along. Now, hopefully this is getting to clean enough state so that only ancient config type mods will be needed for controlling the ancients that appear on the ballot.">
-      <option name="closed" value="true" />
-      <created>1785223492820</created>
-      <option name="number" value="00099" />
-      <option name="presentableId" value="LOCAL-00099" />
-      <option name="project" value="LOCAL" />
-      <updated>1785223492820</updated>
-    </task>
-    <task id="LOCAL-00100" summary="Change up SelectAncientsFromLimitedBallot. I was forcing custom ancients to appear in the ballot. I prefred it before ancient config plus came along. Now, hopefully this is getting to clean enough state so that only ancient config type mods will be needed for controlling the ancients that appear on the ballot.">
-      <option name="closed" value="true" />
-      <created>1785223497291</created>
-      <option name="number" value="00100" />
-      <option name="presentableId" value="LOCAL-00100" />
-      <option name="project" value="LOCAL" />
-      <updated>1785223497291</updated>
-    </task>
-    <task id="LOCAL-00101" summary="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code.">
-      <option name="closed" value="true" />
-      <created>1785264090327</created>
-      <option name="number" value="00101" />
-      <option name="presentableId" value="LOCAL-00101" />
-      <option name="project" value="LOCAL" />
-      <updated>1785264090328</updated>
-    </task>
-    <task id="LOCAL-00102" summary="Change the defaults of the Redundant vanilla ancient settings to be correct, and also added a reset settings code.">
-      <option name="closed" value="true" />
-      <created>1785264095440</created>
-      <option name="number" value="00102" />
-      <option name="presentableId" value="LOCAL-00102" />
-      <option name="project" value="LOCAL" />
-      <updated>1785264095440</updated>
-    </task>
-    <task id="LOCAL-00103" summary="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons.">
-      <option name="closed" value="true" />
-      <created>1785273348233</created>
-      <option name="number" value="00103" />
-      <option name="presentableId" value="LOCAL-00103" />
-      <option name="project" value="LOCAL" />
-      <updated>1785273348233</updated>
+      <workItem from="1785871730523" duration="29908000" />
+      <workItem from="1785938579751" duration="37936000" />
     </task>
     <task id="LOCAL-00104" summary="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons.">
       <option name="closed" value="true" />
@@ -691,7 +602,103 @@
       <option name="project" value="LOCAL" />
       <updated>1785892602456</updated>
     </task>
-    <option name="localTasksCounter" value="141" />
+    <task id="LOCAL-00141" summary="Instead of dimminhg by alpha which can make it transparant and show character if behind selection screen, darkened color instead.">
+      <option name="closed" value="true" />
+      <created>1785897229496</created>
+      <option name="number" value="00141" />
+      <option name="presentableId" value="LOCAL-00141" />
+      <option name="project" value="LOCAL" />
+      <updated>1785897229496</updated>
+    </task>
+    <task id="LOCAL-00142" summary="GrabFocus had some surface errors, so I guarded it to clean the log">
+      <option name="closed" value="true" />
+      <created>1785897879919</created>
+      <option name="number" value="00142" />
+      <option name="presentableId" value="LOCAL-00142" />
+      <option name="project" value="LOCAL" />
+      <updated>1785897879919</updated>
+    </task>
+    <task id="LOCAL-00143" summary="Fixed a bug with Act 1, 2, 3 console command that caused the game to softlock so made a postfix patch to the command">
+      <option name="closed" value="true" />
+      <created>1785901892183</created>
+      <option name="number" value="00143" />
+      <option name="presentableId" value="LOCAL-00143" />
+      <option name="project" value="LOCAL" />
+      <updated>1785901892183</updated>
+    </task>
+    <task id="LOCAL-00144" summary="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctaskip, ctaffspeak">
+      <option name="closed" value="true" />
+      <created>1785903029595</created>
+      <option name="number" value="00144" />
+      <option name="presentableId" value="LOCAL-00144" />
+      <option name="project" value="LOCAL" />
+      <updated>1785903029595</updated>
+    </task>
+    <task id="LOCAL-00145" summary="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay">
+      <option name="closed" value="true" />
+      <created>1785960585476</created>
+      <option name="number" value="00145" />
+      <option name="presentableId" value="LOCAL-00145" />
+      <option name="project" value="LOCAL" />
+      <updated>1785960585476</updated>
+    </task>
+    <task id="LOCAL-00146" summary="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay">
+      <option name="closed" value="true" />
+      <created>1785962067722</created>
+      <option name="number" value="00146" />
+      <option name="presentableId" value="LOCAL-00146" />
+      <option name="project" value="LOCAL" />
+      <updated>1785962067722</updated>
+    </task>
+    <task id="LOCAL-00147" summary="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay">
+      <option name="closed" value="true" />
+      <created>1785967101244</created>
+      <option name="number" value="00147" />
+      <option name="presentableId" value="LOCAL-00147" />
+      <option name="project" value="LOCAL" />
+      <updated>1785967101244</updated>
+    </task>
+    <task id="LOCAL-00148" summary="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay">
+      <option name="closed" value="true" />
+      <created>1785979034306</created>
+      <option name="number" value="00148" />
+      <option name="presentableId" value="LOCAL-00148" />
+      <option name="project" value="LOCAL" />
+      <updated>1785979034306</updated>
+    </task>
+    <task id="LOCAL-00149" summary="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay">
+      <option name="closed" value="true" />
+      <created>1785981201930</created>
+      <option name="number" value="00149" />
+      <option name="presentableId" value="LOCAL-00149" />
+      <option name="project" value="LOCAL" />
+      <updated>1785981201930</updated>
+    </task>
+    <task id="LOCAL-00150" summary="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in Coordinator consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;&#10;The new ChooseTheAncientConsoleCommands.cs  contains all the console commands. This adds an enum ConsoleSelectionResolutionMode that has SkipAndContinue and CancelFlow.&#10;SkipAndContinue is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;ConsoleCommands.cs also handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand.">
+      <option name="closed" value="true" />
+      <created>1785990437402</created>
+      <option name="number" value="00150" />
+      <option name="presentableId" value="LOCAL-00150" />
+      <option name="project" value="LOCAL" />
+      <updated>1785990437402</updated>
+    </task>
+    <task id="LOCAL-00151" summary="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open.">
+      <option name="closed" value="true" />
+      <created>1785995224767</created>
+      <option name="number" value="00151" />
+      <option name="presentableId" value="LOCAL-00151" />
+      <option name="project" value="LOCAL" />
+      <updated>1785995224767</updated>
+    </task>
+    <task id="LOCAL-00152" summary="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open.&#10;&#10;The custom message is necessary. ctaact and ctastay return a task that remains incomplete while the selection ballot is open. Therefore the networked console action remains active until the ballot resolves. When multiple are done, they'd normally be in a queue for all peers but won't resolve as the selection stops it from finishing. The custom message allows them to cancel and finish.">
+      <option name="closed" value="true" />
+      <created>1785997132628</created>
+      <option name="number" value="00152" />
+      <option name="presentableId" value="LOCAL-00152" />
+      <option name="project" value="LOCAL" />
+      <updated>1785997132628</updated>
+    </task>
+    <option name="localTasksCounter" value="153" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -727,16 +734,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="I have moved all localization into loc tables, so game ui and mod settings are in the tables along with the dialouge.&#10;Added Machine translated versions of the game ui and mod setting in the zhs tables.&#10;ChooseTheAncientLocalization.cs as a helper for the mod settings localization mostly and also allows the language to fallback to english is no translation for the current language exists.&#10;For Enums, optionIds were made and canonicalChoices so they would remain stable in ritsulib and other settings." />
-    <MESSAGE value="Adding the winners showcase to github so it can be linked on the steam workshop" />
-    <MESSAGE value="Slay The Streamer implementation. Haven't tested if this commit breaks as game just updates." />
-    <MESSAGE value="Made a compatability for input navigation due to 0.110.0 beta's keyboard only control mode addition.&#10;&#10;Basically changing:&#10;if (oldVersion)&#10;    manager.IsUsingController;&#10;else&#10;    manager.IsUsingDirectionalNavigation;" />
-    <MESSAGE value="0.110.0 Update:&#10;Made a compatability fix for input navigation due to 0.110.0 beta's keyboard only control mode addition.&#10;&#10;Basically changing:&#10;if (oldVersion)&#10;    manager.IsUsingController;&#10;else&#10;    manager.IsUsingDirectionalNavigation;&#10;    &#10;Also made sure the slay the streamer 2 support works." />
-    <MESSAGE value="0.110.0 Update:&#10;Made a compatability fix for input navigation due to 0.110.0 beta's keyboard only control mode addition.&#10;&#10;Basically changing:&#10;if (oldVersion)&#10;    manager.IsUsingController;&#10;else&#10;    manager.IsUsingDirectionalNavigation;&#10;&#10;Also made sure the slay the streamer 2 support works." />
-    <MESSAGE value="Darv no longer shows in act 1 unless redundant setting is on." />
-    <MESSAGE value="Localized the strings used in the slay the streamer compatability. Added Zhs machine translation." />
-    <MESSAGE value="Zoomed in ancient heads, and did a fix for Darv to work with Ancient config on not showing for act 1 but the legacy settings still working." />
-    <MESSAGE value="Merge remote-tracking branch 'origin/master'&#10;&#10;# Conflicts:&#10;#&#9;.idea/.idea.ChooseTheAncient/.idea/workspace.xml" />
     <MESSAGE value="Updated the links in the winners showcase to the github raw links" />
     <MESSAGE value="winners showcase raw gif links attempt 2" />
     <MESSAGE value="wener showcase now with html links to the raw github gifs." />
@@ -752,7 +749,17 @@
     <MESSAGE value="Keyborad tooltip set for keybeard, and controllers like xbox and playstation" />
     <MESSAGE value="controller and keybeard mode navigate up and down the preview options and vote button like a normal list" />
     <MESSAGE value="preview options highlight outline is now visible" />
-    <option name="LAST_COMMIT_MESSAGE" value="" />
+    <MESSAGE value="Instead of dimminhg by alpha which can make it transparant and show character if behind selection screen, darkened color instead." />
+    <MESSAGE value="GrabFocus had some surface errors, so I guarded it to clean the log" />
+    <MESSAGE value="Fixed a bug with Act 1, 2, 3 console command that caused the game to softlock so made a postfix patch to the command" />
+    <MESSAGE value="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctaskip, ctaffsay" />
+    <MESSAGE value="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctaskip, ctaffspeak" />
+    <MESSAGE value="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay" />
+    <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay" />
+    <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in Coordinator consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;&#10;The new ChooseTheAncientConsoleCommands.cs  contains all the console commands. This adds an enum ConsoleSelectionResolutionMode that has SkipAndContinue and CancelFlow.&#10;SkipAndContinue is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;ConsoleCommands.cs also handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand." />
+    <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open." />
+    <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open.&#10;&#10;The custom message is necessary. ctaact and ctastay return a task that remains incomplete while the selection ballot is open. Therefore the networked console action remains active until the ballot resolves. When multiple are done, they'd normally be in a queue for all peers but won't resolve as the selection stops it from finishing. The custom message allows them to cancel and finish." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open.&#10;&#10;The custom message is necessary. ctaact and ctastay return a task that remains incomplete while the selection ballot is open. Therefore the networked console action remains active until the ballot resolves. When multiple are done, they'd normally be in a queue for all peers but won't resolve as the selection stops it from finishing. The custom message allows them to cancel and finish." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
