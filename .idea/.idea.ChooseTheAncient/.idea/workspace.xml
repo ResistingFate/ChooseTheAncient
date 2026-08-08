@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/gameplay_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/gameplay_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/localization/for_translators_bbcode_message.txt" beforeDir="false" afterPath="$PROJECT_DIR$/localization/for_translators_bbcode_message.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -306,15 +303,7 @@
       <workItem from="1785938579751" duration="41993000" />
       <workItem from="1786033223879" duration="15064000" />
       <workItem from="1786106512329" duration="10098000" />
-      <workItem from="1786123733058" duration="38032000" />
-    </task>
-    <task id="LOCAL-00119" summary="Localized the strings used in the slay the streamer compatability. Added Zhs machine translation.">
-      <option name="closed" value="true" />
-      <created>1785478981529</created>
-      <option name="number" value="00119" />
-      <option name="presentableId" value="LOCAL-00119" />
-      <option name="project" value="LOCAL" />
-      <updated>1785478981529</updated>
+      <workItem from="1786123733058" duration="38671000" />
     </task>
     <task id="LOCAL-00120" summary="Localized the strings used in the slay the streamer compatability. Added Zhs machine translation.">
       <option name="closed" value="true" />
@@ -700,7 +689,15 @@
       <option name="project" value="LOCAL" />
       <updated>1786168832670</updated>
     </task>
-    <option name="localTasksCounter" value="168" />
+    <task id="LOCAL-00168" summary="Fix so no matter the act the Choose the Act n Ancient works without needing new keys.">
+      <option name="closed" value="true" />
+      <created>1786169587685</created>
+      <option name="number" value="00168" />
+      <option name="presentableId" value="LOCAL-00168" />
+      <option name="project" value="LOCAL" />
+      <updated>1786169587685</updated>
+    </task>
+    <option name="localTasksCounter" value="169" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -736,7 +733,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
     <MESSAGE value="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
     <MESSAGE value="improved card ancient name and title and raised it higher." />
     <MESSAGE value="Increased the size of the icon, name and title as there was more space due to increasing bottom padding" />
@@ -761,7 +757,8 @@
     <MESSAGE value="Performed Neow Patch sync simplifications and did some more fixing on multiplayer custom game state diverengece. Removed Eventsynchronzier patech.s&#10;replace Neow description modifier masking with a postfix result override&#10;remove custom Neow EventSynchronizer identity-sync patches&#10;remove legacy stable/beta EventSynchronizer compatibility probing&#10;remove the custom Neow identity network message and warning flow&#10;rely on vanilla EventSynchronizer for per-player Neow option choices&#10;&#10;Removed SetMouseFilterRecursive() and moved the static mouse_filter = 2 settings into the card scene.&#10;Removed the redundant .OrderBy(node =&gt; node.GetIndex()) from vote-icon layout.&#10; Hid remote cursors during shell transition." />
     <MESSAGE value="Fixed ActConsoleCmdNavigationPatch so that act n loads the selection screen of the next act even if a selection screen is currently open." />
     <MESSAGE value="Adjusted console commands to fit the new CTA flow with EnterActPatch and got rid of the ConsoleMapOpenPatch in favor with a defer instead." />
-    <option name="LAST_COMMIT_MESSAGE" value="Adjusted console commands to fit the new CTA flow with EnterActPatch and got rid of the ConsoleMapOpenPatch in favor with a defer instead." />
+    <MESSAGE value="Fix so no matter the act the Choose the Act n Ancient works without needing new keys." />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix so no matter the act the Choose the Act n Ancient works without needing new keys." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

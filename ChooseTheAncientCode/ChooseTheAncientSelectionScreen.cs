@@ -1593,7 +1593,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 ? Stopwatch.StartNew()
                 : null;
 
-        BuildUi();
+        bool reusedRetainedAncientVisuals =
+            BuildUi(startHiddenForTransition: true);
 
         if (rebuildStopwatch != null)
         {
@@ -1614,6 +1615,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 $"reactionAnchorValid={GodotObject.IsInstanceValid(refs.ReactionAnchor)}");
         }
         PrimeSlotsForTransitionIn();
+
+        if (reusedRetainedAncientVisuals && !IsInstantMode())
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
         ShowRoundIntro();
 
         if (_roundType == VoteRoundType.FinalRevealVote)
@@ -2663,7 +2670,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
      * Builds slot roots, vote controls, button presentation, and the shared UI pieces each ancient slot depends on.
      */
 
-    private void BuildUi()
+    private bool BuildUi(bool startHiddenForTransition = false)
     {
         /*
          * Clears the current slot canvas, recreates every slot, and refreshes all dependent layout and interaction state.
@@ -2706,6 +2713,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             }
 
             SlotRefs refs = CreateSlot(ancient, i, cardScene, retainedVisual);
+
+            if (startHiddenForTransition && !IsInstantMode())
+            {
+                refs.SlotRoot.Modulate = new Color(1f, 1f, 1f, 0f);
+            }
+
             _slotsCanvas.AddChild(refs.SlotRoot);
             _slots.Add(refs);
 
@@ -2812,6 +2825,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         UpdateVoteButtonPrompts();
         RefreshVoteDisplays(animate: false);
         GrabInitialFocus();
+
+        return retainedVisuals.Count > 0;
     }
 
     private SlotRefs CreateSlot(
