@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Godot;
 using MegaCrit.Sts2.Core.DevConsole;
 using MegaCrit.Sts2.Core.DevConsole.ConsoleCommands;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -314,7 +313,7 @@ public sealed class ChooseTheAncientActConsoleCmd : ChooseTheAncientBallotConsol
     public override string CmdName => "ctaact";
     public override string Args => "<int: act>";
     public override string Description =>
-        "Jumps to an act, opens its CTA ballot, then enters the chosen ancient room.";
+        "Jumps to an act and opens a fresh CTA ballot.";
 
     protected override string Usage => "ctaact <act>";
 
@@ -331,7 +330,7 @@ public sealed class ChooseTheAncientActConsoleCmd : ChooseTheAncientBallotConsol
 
     protected override string GetSuccessMessage(int actNumber)
     {
-        return $"Navigating to act {actNumber}, opening its CTA ballot, then entering the chosen ancient room.";
+        return $"Navigating to act {actNumber} and opening a fresh CTA ballot.";
     }
 }
 
@@ -380,11 +379,26 @@ internal static class ChooseTheAncientConsoleBallotRunner
             return;
         }
 
+        if (actIndex > 0
+            && !ChooseTheAncientHelpers.IsStartingAncientResolved(
+                runState,
+                flow,
+                actIndex))
+        {
+            await NavigateThroughNormalStartingRoomFlowAsync(
+                runState,
+                flow,
+                requestId,
+                actIndex);
+            return;
+        }
+
         BeginConsoleBallotOperation(flow, actIndex);
 
         bool act1WasResolved = false;
         bool act1WasTriggered = false;
         bool forceNeowBlessingModeBeforeAct1 = flow.ForceNeowBlessingMode;
+        bool enteredDebugAncientRoom = false;
 
         try
         {
@@ -477,7 +491,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
                     flow);
             }
 
-            await RunGenericConsoleBallotAsync(
+            enteredDebugAncientRoom = await RunGenericConsoleBallotAsync(
                 runState,
                 flow,
                 requestId,
@@ -497,8 +511,41 @@ internal static class ChooseTheAncientConsoleBallotRunner
         }
         finally
         {
-            FinishConsoleBallotOperation(runState, flow, "ctaact");
+            FinishConsoleBallotOperation(
+                runState,
+                flow,
+                "ctaact",
+                enteredDebugAncientRoom);
         }
+    }
+
+    private static async Task NavigateThroughNormalStartingRoomFlowAsync(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        int requestId,
+        int actIndex)
+    {
+        await ChooseTheAncientCoordinator.EnsureConsoleModifierBootstrapAsync(
+            runState,
+            flow);
+
+        if (ShouldCancelBeforeBallot(flow, requestId, actIndex))
+        {
+            ModLog.Info(
+                $"Canceled ctaact before navigating to unresolved act {actIndex + 1}.");
+            return;
+        }
+
+        ModLog.Info(
+            $"ctaact is delegating unresolved act {actIndex + 1} to the normal " +
+            "EnterAct CTA starting-room flow.");
+
+        NMapScreen.Instance?.SetTravelEnabled(enabled: true);
+        await RunManager.Instance.EnterAct(actIndex);
+        ActConsoleCmdNavigationPatch.ClearStaleTransitionState(
+            "ctaact normal EnterAct");
+
+        await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
     }
 
     public static async Task OpenInPlaceAsync(
@@ -522,6 +569,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
         // The requested act supplies the ballot; the current act receives the winner.
         int applyToActIndex = runState.CurrentActIndex;
         BeginConsoleBallotOperation(flow, ballotActIndex);
+        bool enteredDebugAncientRoom = false;
 
         try
         {
@@ -540,7 +588,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
                 return;
             }
 
-            await RunGenericConsoleBallotAsync(
+            enteredDebugAncientRoom = await RunGenericConsoleBallotAsync(
                 runState,
                 flow,
                 requestId,
@@ -550,7 +598,11 @@ internal static class ChooseTheAncientConsoleBallotRunner
         }
         finally
         {
-            FinishConsoleBallotOperation(runState, flow, commandName);
+            FinishConsoleBallotOperation(
+                runState,
+                flow,
+                commandName,
+                enteredDebugAncientRoom);
         }
     }
 
@@ -566,7 +618,8 @@ internal static class ChooseTheAncientConsoleBallotRunner
     private static void FinishConsoleBallotOperation(
         RunState runState,
         ChooseTheAncientFlowState flow,
-        string commandName)
+        string commandName,
+        bool enteredDebugAncientRoom)
     {
         flow.ClearSuppressNextAct1StartingRoomFlow();
         flow.ConsoleNavigationInProgress = false;
@@ -577,12 +630,60 @@ internal static class ChooseTheAncientConsoleBallotRunner
             flow.ActiveFlowTargetActIndex = null;
         }
 
+        if (!enteredDebugAncientRoom)
+        {
+            return;
+        }
+
         flow.ConsoleMapSelectionRebasePending = true;
-        TryApplyPendingMapSelectionRebase(
-            runState,
-            flow,
-            commandName);
-        RefreshCurrentAncientMapNodes(runState, commandName);
+        if (!TryApplyPendingMapSelectionRebase(
+                runState,
+                flow,
+                commandName))
+        {
+            ArmPendingMapSelectionRebaseOnNextOpen(
+                runState,
+                flow,
+                commandName);
+        }
+    }
+
+    private static void ArmPendingMapSelectionRebaseOnNextOpen(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        string commandName)
+    {
+        NMapScreen? mapScreen = NMapScreen.Instance;
+        if (mapScreen == null)
+        {
+            ModLog.Warn(
+                $"{commandName} could not arm its deferred map-selection rebase " +
+                "because the map screen does not exist.");
+            return;
+        }
+
+        void OnMapOpened()
+        {
+            mapScreen.Opened -= OnMapOpened;
+
+            RunState? activeRunState =
+                ChooseTheAncientConsoleDebugState.GetRunState(issuingPlayer: null);
+            if (!ReferenceEquals(activeRunState, runState)
+                || !RunManager.Instance.IsInProgress)
+            {
+                return;
+            }
+
+            TryApplyPendingMapSelectionRebase(
+                runState,
+                flow,
+                $"{commandName} deferred map-open",
+                mapScreen);
+        }
+
+        mapScreen.Opened += OnMapOpened;
+        ModLog.Debug(
+            $"{commandName} armed a one-shot map-open rebase after console Ancient entry.");
     }
 
     private static bool ShouldCancelBeforeBallot(
@@ -596,7 +697,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
                        ConsoleSelectionResolution.CancelFlow);
     }
 
-    private static async Task RunGenericConsoleBallotAsync(
+    private static async Task<bool> RunGenericConsoleBallotAsync(
         RunState runState,
         ChooseTheAncientFlowState flow,
         int requestId,
@@ -606,7 +707,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
     {
         if (ShouldCancelBeforeBallot(flow, requestId, ballotActIndex))
         {
-            return;
+            return false;
         }
 
         await CloseMapBeforeConsoleBallotAsync(commandName);
@@ -654,7 +755,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
                     applyToActIndex,
                     targetWasResolved,
                     previousForceNeowBlessingMode);
-                return;
+                return false;
             }
 
             await EnterChosenAncientRoomDebugAsync(
@@ -673,6 +774,8 @@ internal static class ChooseTheAncientConsoleBallotRunner
                     commandName);
             }
         }
+
+        return enteredAncientRoom;
     }
 
     private static async Task EnterChosenAncientRoomDebugAsync(
@@ -766,7 +869,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
             $"{commandName} restored the map screen after the CTA ballot closed.");
     }
 
-    internal static bool TryApplyPendingMapSelectionRebase(
+    private static bool TryApplyPendingMapSelectionRebase(
         RunState runState,
         ChooseTheAncientFlowState flow,
         string commandName,
@@ -793,78 +896,6 @@ internal static class ChooseTheAncientConsoleBallotRunner
             $"{commandName} rebased map selection synchronization to " +
             $"{runState.MapLocation}.");
         return true;
-    }
-
-    private static void RefreshCurrentAncientMapNodes(
-        RunState runState,
-        string commandName)
-    {
-        NMapScreen? mapScreen = NMapScreen.Instance;
-        if (mapScreen == null)
-        {
-            return;
-        }
-
-        AncientEventModel chosenAncient =
-            ChooseTheAncientHelpers.GetChosenAncient(runState.Act);
-        int refreshedCount = RefreshAncientMapNodesRecursive(
-            mapScreen,
-            chosenAncient,
-            runState);
-
-        if (refreshedCount == 0)
-        {
-            return;
-        }
-
-        if (mapScreen.IsOpen)
-        {
-            mapScreen.RefreshAllPointVisuals();
-        }
-
-        ModLog.Info(
-            $"{commandName} refreshed {refreshedCount} ancient map node(s) " +
-            $"for {chosenAncient.Id.Entry} in act " +
-            $"{runState.CurrentActIndex + 1}.");
-    }
-
-    private static int RefreshAncientMapNodesRecursive(
-        Node parent,
-        AncientEventModel chosenAncient,
-        RunState runState)
-    {
-        int refreshedCount = 0;
-
-        foreach (Node child in parent.GetChildren())
-        {
-            if (child is NAncientMapPoint ancientMapPoint)
-            {
-                TextureRect? icon =
-                    ancientMapPoint.GetNodeOrNull<TextureRect>("Icon");
-                TextureRect? outline =
-                    ancientMapPoint.GetNodeOrNull<TextureRect>("Icon/Outline");
-
-                if (icon != null)
-                {
-                    icon.Texture = chosenAncient.MapIcon;
-                }
-
-                if (outline != null)
-                {
-                    outline.Texture = chosenAncient.MapIconOutline;
-                    outline.Modulate = runState.Act.MapBgColor;
-                }
-
-                refreshedCount++;
-            }
-
-            refreshedCount += RefreshAncientMapNodesRecursive(
-                child,
-                chosenAncient,
-                runState);
-        }
-
-        return refreshedCount;
     }
 
     private static void RestoreGenericBallotState(

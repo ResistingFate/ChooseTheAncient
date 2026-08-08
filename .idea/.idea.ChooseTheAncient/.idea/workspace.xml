@@ -5,9 +5,25 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientDialogueLocalizationRules.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientLocalization.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSettingsStore.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/InputNavigationCompatibility.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/SeedCompatibility.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/SlayTheStreamerInterop.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Messages/ChooseTheAncientConsoleSelectionResolutionMessage.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ActConsoleCmdNavigationPatch.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleBallotPreprocessPatch.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleSelectionResolutionHandlerRegistrationPatch.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/EnterActStartingAncientPatch.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NMapScreenStartingAncientPatch.cs.uid" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ActConsoleCmdNavigationPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ActConsoleCmdNavigationPatch.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleMapOpenPatch.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -305,15 +321,7 @@
       <workItem from="1785938579751" duration="41993000" />
       <workItem from="1786033223879" duration="15064000" />
       <workItem from="1786106512329" duration="10098000" />
-      <workItem from="1786123733058" duration="35592000" />
-    </task>
-    <task id="LOCAL-00117" summary="0.110.0 Update:&#10;Made a compatability fix for input navigation due to 0.110.0 beta's keyboard only control mode addition.&#10;&#10;Basically changing:&#10;if (oldVersion)&#10;    manager.IsUsingController;&#10;else&#10;    manager.IsUsingDirectionalNavigation;&#10;&#10;Also made sure the slay the streamer 2 support works.">
-      <option name="closed" value="true" />
-      <created>1785474646861</created>
-      <option name="number" value="00117" />
-      <option name="presentableId" value="LOCAL-00117" />
-      <option name="project" value="LOCAL" />
-      <updated>1785474646861</updated>
+      <workItem from="1786123733058" duration="37317000" />
     </task>
     <task id="LOCAL-00118" summary="Darv no longer shows in act 1 unless redundant setting is on.">
       <option name="closed" value="true" />
@@ -699,7 +707,15 @@
       <option name="project" value="LOCAL" />
       <updated>1786162369441</updated>
     </task>
-    <option name="localTasksCounter" value="166" />
+    <task id="LOCAL-00166" summary="Fixed ActConsoleCmdNavigationPatch so that act n loads the selection screen of the next act even if a selection screen is currently open.">
+      <option name="closed" value="true" />
+      <created>1786167094601</created>
+      <option name="number" value="00166" />
+      <option name="presentableId" value="LOCAL-00166" />
+      <option name="project" value="LOCAL" />
+      <updated>1786167094601</updated>
+    </task>
+    <option name="localTasksCounter" value="167" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -735,7 +751,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="added excludes to export_presets.cfg so that pck goes down from 42mb to 1.4mb." />
     <MESSAGE value="Increased ancient name and title size." />
     <MESSAGE value="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
     <MESSAGE value="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
@@ -760,7 +775,8 @@
     <MESSAGE value="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching." />
     <MESSAGE value="Improved NeowBlessingModePatch.cs patch with a PostFix." />
     <MESSAGE value="Performed Neow Patch sync simplifications and did some more fixing on multiplayer custom game state diverengece. Removed Eventsynchronzier patech.s&#10;replace Neow description modifier masking with a postfix result override&#10;remove custom Neow EventSynchronizer identity-sync patches&#10;remove legacy stable/beta EventSynchronizer compatibility probing&#10;remove the custom Neow identity network message and warning flow&#10;rely on vanilla EventSynchronizer for per-player Neow option choices&#10;&#10;Removed SetMouseFilterRecursive() and moved the static mouse_filter = 2 settings into the card scene.&#10;Removed the redundant .OrderBy(node =&gt; node.GetIndex()) from vote-icon layout.&#10; Hid remote cursors during shell transition." />
-    <option name="LAST_COMMIT_MESSAGE" value="Performed Neow Patch sync simplifications and did some more fixing on multiplayer custom game state diverengece. Removed Eventsynchronzier patech.s&#10;replace Neow description modifier masking with a postfix result override&#10;remove custom Neow EventSynchronizer identity-sync patches&#10;remove legacy stable/beta EventSynchronizer compatibility probing&#10;remove the custom Neow identity network message and warning flow&#10;rely on vanilla EventSynchronizer for per-player Neow option choices&#10;&#10;Removed SetMouseFilterRecursive() and moved the static mouse_filter = 2 settings into the card scene.&#10;Removed the redundant .OrderBy(node =&gt; node.GetIndex()) from vote-icon layout.&#10; Hid remote cursors during shell transition." />
+    <MESSAGE value="Fixed ActConsoleCmdNavigationPatch so that act n loads the selection screen of the next act even if a selection screen is currently open." />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed ActConsoleCmdNavigationPatch so that act n loads the selection screen of the next act even if a selection screen is currently open." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
