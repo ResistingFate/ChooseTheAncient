@@ -9,7 +9,9 @@
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/settings_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/settings_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -307,31 +309,7 @@
       <workItem from="1785938579751" duration="41993000" />
       <workItem from="1786033223879" duration="15064000" />
       <workItem from="1786106512329" duration="10098000" />
-      <workItem from="1786123733058" duration="40998000" />
-    </task>
-    <task id="LOCAL-00121" summary="Zoomed in ancient heads, and did a fix for Darv to work with Ancient config on not showing for act 1 but the legacy settings still working.">
-      <option name="closed" value="true" />
-      <created>1785524047602</created>
-      <option name="number" value="00121" />
-      <option name="presentableId" value="LOCAL-00121" />
-      <option name="project" value="LOCAL" />
-      <updated>1785524047602</updated>
-    </task>
-    <task id="LOCAL-00122" summary="Zoomed in ancient heads, and did a fix for Darv to work with Ancient config on not showing for act 1 but the legacy settings still working.">
-      <option name="closed" value="true" />
-      <created>1785524172199</created>
-      <option name="number" value="00122" />
-      <option name="presentableId" value="LOCAL-00122" />
-      <option name="project" value="LOCAL" />
-      <updated>1785524172199</updated>
-    </task>
-    <task id="LOCAL-00123" summary="Merge remote-tracking branch 'origin/master'&#10;&#10;# Conflicts:&#10;#&#9;.idea/.idea.ChooseTheAncient/.idea/workspace.xml">
-      <option name="closed" value="true" />
-      <created>1785697513652</created>
-      <option name="number" value="00123" />
-      <option name="presentableId" value="LOCAL-00123" />
-      <option name="project" value="LOCAL" />
-      <updated>1785697513652</updated>
+      <workItem from="1786123733058" duration="41766000" />
     </task>
     <task id="LOCAL-00124" summary="Updated the links in the winners showcase to the github raw links">
       <option name="closed" value="true" />
@@ -701,7 +679,31 @@
       <option name="project" value="LOCAL" />
       <updated>1786170575249</updated>
     </task>
-    <option name="localTasksCounter" value="170" />
+    <task id="LOCAL-00170" summary="Fix retained Ancient transition positioning by cancelling stale scene tweens">
+      <option name="closed" value="true" />
+      <created>1786173863886</created>
+      <option name="number" value="00170" />
+      <option name="presentableId" value="LOCAL-00170" />
+      <option name="project" value="LOCAL" />
+      <updated>1786173863886</updated>
+    </task>
+    <task id="LOCAL-00171" summary="Fix retained Ancient transition positioning by cancelling stale scene tweens">
+      <option name="closed" value="true" />
+      <created>1786174134406</created>
+      <option name="number" value="00171" />
+      <option name="presentableId" value="LOCAL-00171" />
+      <option name="project" value="LOCAL" />
+      <updated>1786174134406</updated>
+    </task>
+    <task id="LOCAL-00172" summary="Fix retained Ancient transition positioning by cancelling stale scene tweens">
+      <option name="closed" value="true" />
+      <created>1786174183325</created>
+      <option name="number" value="00172" />
+      <option name="presentableId" value="LOCAL-00172" />
+      <option name="project" value="LOCAL" />
+      <updated>1786174183325</updated>
+    </task>
+    <option name="localTasksCounter" value="173" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -737,8 +739,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="improved card ancient name and title and raised it higher." />
-    <MESSAGE value="Increased the size of the icon, name and title as there was more space due to increasing bottom padding" />
     <MESSAGE value="Keyborad tooltip set for keybeard, and controllers like xbox and playstation" />
     <MESSAGE value="controller and keybeard mode navigate up and down the preview options and vote button like a normal list" />
     <MESSAGE value="preview options highlight outline is now visible" />
@@ -762,7 +762,9 @@
     <MESSAGE value="Adjusted console commands to fit the new CTA flow with EnterActPatch and got rid of the ConsoleMapOpenPatch in favor with a defer instead." />
     <MESSAGE value="Fix so no matter the act the Choose the Act n Ancient works without needing new keys." />
     <MESSAGE value="fixed the animation from ancients on opposite sides switching between rounds by hiding them until the animation again." />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed the animation from ancients on opposite sides switching between rounds by hiding them until the animation again." />
+    <MESSAGE value="Changed defaults and added gamemode explanations and hovertips.&#10;whole card, controller tooltip, modlog level trace on," />
+    <MESSAGE value="Fix retained Ancient transition positioning by cancelling stale scene tweens" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix retained Ancient transition positioning by cancelling stale scene tweens" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

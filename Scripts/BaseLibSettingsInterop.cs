@@ -562,6 +562,15 @@ public static class BaseLibSettingsPage
 
             AddSectionBreak(
                 optionContainer,
+                ChooseTheAncientLocalization.GetSettingsText(
+                    "CHOOSETHEANCIENT.settings.section.game_mode_details.title"));
+
+            optionContainer.AddChild(CreateDescription(
+                ChooseTheAncientLocalization.GetSettingsText(
+                    "CHOOSETHEANCIENT.settings.description.game_mode.details")));
+
+            AddSectionBreak(
+                optionContainer,
                 ChooseTheAncientLocalization.GetSettingsText("CHOOSETHEANCIENT.settings.section.advanced.title"));
 
             AddToggle(
@@ -1155,7 +1164,8 @@ public static class BaseLibSettingsPage
         string[] canonicalOptions,
         string[] displayOptions,
         string currentValue,
-        Action<string> onChanged)
+        Action<string> onChanged,
+        bool addHoverTip = false)
     {
         Control? baseLibDropdown = TryCreateBaseLibPropertyControl(
             "CreateRawDropdownControl",
@@ -1163,7 +1173,10 @@ public static class BaseLibSettingsPage
 
         if (baseLibDropdown != null)
         {
-            parent.AddChild(CreateRow(label, baseLibDropdown));
+            Control row = CreateRow(label, baseLibDropdown, propertyName);
+            if (addHoverTip)
+                TryAddBaseLibHoverTip(row);
+            parent.AddChild(row);
             return;
         }
 
@@ -1193,7 +1206,10 @@ public static class BaseLibSettingsPage
                 onChanged(canonicalOptions[i]);
         };
 
-        parent.AddChild(CreateRow(label, optionButton));
+        Control fallbackRow = CreateRow(label, optionButton, propertyName);
+        if (addHoverTip)
+            TryAddBaseLibHoverTip(fallbackRow);
+        parent.AddChild(fallbackRow);
     }
 
     private static void ApplyFallbackDropdownTheme(OptionButton optionButton)
@@ -1249,7 +1265,10 @@ public static class BaseLibSettingsPage
         parent.AddChild(CreateRow(label, button));
     }
 
-    private static Control CreateRow(string labelText, Control settingControl)
+    private static Control CreateRow(
+        string labelText,
+        Control settingControl,
+        string? baseLibPropertyName = null)
     {
         Control label = CreateBaseLibLabel(labelText, 30) ?? new Godot.Label
         {
@@ -1262,7 +1281,10 @@ public static class BaseLibSettingsPage
         if (label is Godot.Label rowLabel)
             rowLabel.AddThemeFontSizeOverride("font_size", 30);
 
-        Control? baseLibRow = TryCreateBaseLibOptionRow(labelText, label, settingControl);
+        Control? baseLibRow = TryCreateBaseLibOptionRow(
+            baseLibPropertyName ?? labelText,
+            label,
+            settingControl);
         if (baseLibRow != null)
             return baseLibRow;
 
@@ -1344,21 +1366,29 @@ public static class BaseLibSettingsPage
 
     private static Control CreateDescription(string text)
     {
+        int lineCount = text.Count(c => c == '\n') + 1;
+        float minimumHeight = Math.Max(72, 38 * lineCount + 24);
+
         var margin = new MarginContainer
         {
-            CustomMinimumSize = new Vector2(0, 72),
+            CustomMinimumSize = new Vector2(0, minimumHeight),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         margin.AddThemeConstantOverride("margin_left", 12);
         margin.AddThemeConstantOverride("margin_right", 12);
         margin.AddThemeConstantOverride("margin_bottom", 8);
-        margin.AddChild(CreateBaseLibLabel(text, 24) ?? new Godot.Label
+
+        Control description = CreateBaseLibLabel(text, 24) ?? new Godot.Label
         {
             Text = text,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             VerticalAlignment = VerticalAlignment.Center,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        });
+        };
+        description.CustomMinimumSize = new Vector2(
+            description.CustomMinimumSize.X,
+            Math.Max(description.CustomMinimumSize.Y, minimumHeight - 8));
+        margin.AddChild(description);
         return margin;
     }
 
@@ -1435,7 +1465,7 @@ public static class BaseLibSettingsPage
         }
     }
 
-    private static Control? TryCreateBaseLibOptionRow(string labelText, Control label, Control settingControl)
+    private static Control? TryCreateBaseLibOptionRow(string propertyName, Control label, Control settingControl)
     {
         try
         {
@@ -1444,13 +1474,32 @@ public static class BaseLibSettingsPage
             if (ctor == null)
                 return null;
 
-            string rowName = MakeSafeNodeName(labelText);
+            string rowName = MakeSafeNodeName(propertyName);
             return ctor.Invoke(new object[] { ModPrefix, rowName, label, settingControl }) as Control;
         }
         catch (Exception e)
         {
             ModLog.Debug($"Could not create BaseLib option row; using fallback row. Error: {e.Message}");
             return null;
+        }
+    }
+
+    private static void TryAddBaseLibHoverTip(Control row)
+    {
+        try
+        {
+            MethodInfo? addHoverTip = FindInstanceMethod(row.GetType(), "AddHoverTip");
+            if (addHoverTip == null)
+            {
+                ModLog.Debug("BaseLib NConfigOptionRow.AddHoverTip() was not found; skipping hover tip.");
+                return;
+            }
+
+            addHoverTip.Invoke(addHoverTip.IsStatic ? null : row, Array.Empty<object>());
+        }
+        catch (Exception e)
+        {
+            ModLog.Debug($"Could not add BaseLib hover tip; continuing without it. Error: {e.Message}");
         }
     }
 

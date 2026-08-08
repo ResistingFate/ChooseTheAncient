@@ -184,7 +184,7 @@
                 }
               },
               "presentation": "stepper",
-              "defaultValue": "info",
+              "defaultValue": "very_debug",
               "scope": "global",
               "options": [
                 {
@@ -251,7 +251,7 @@
                 }
               },
               "presentation": "dropdown",
-              "defaultValue": "button_only",
+              "defaultValue": "whole_ancient_slot",
               "scope": "global",
               "options": [
                 {
@@ -318,7 +318,7 @@
                   "key": "CHOOSETHEANCIENT.settings.description.controller_hotkeys"
                 }
               },
-              "defaultValue": false,
+              "defaultValue": true,
               "scope": "global"
             },
             {

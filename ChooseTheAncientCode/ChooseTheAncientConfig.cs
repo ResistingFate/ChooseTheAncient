@@ -31,7 +31,7 @@ internal static class ModLog
     private const string ConfigFileName = "ChooseTheAncient.logconfig.cfg";
     private const string EnvVarName = "CHOOSETHEANCIENT_LOG_LEVEL";
 
-    public static LogLevel CurrentLevel { get; private set; } = LogLevel.Info;
+    public static LogLevel CurrentLevel { get; private set; } = LogLevel.VeryDebug;
     public static LogBackend CurrentBackend { get; private set; } = LogBackend.BaseGame;
     public static string CurrentLevelSource { get; private set; } = "default";
 
@@ -256,11 +256,11 @@ internal static class ChooseTheAncientConfig
 
     public const bool DefaultEnableRedundantSettings = false;
     public const int DefaultAncientCount = 3;
-    public const bool DefaultShowControllerHotkeys = false;
+    public const bool DefaultShowControllerHotkeys = true;
     public const bool DefaultShowOnlyButtonOutline = true;
-    public const VoteClickTargetMode DefaultVoteClickTarget = VoteClickTargetMode.WholeCard;
+    public const VoteClickTargetMode DefaultVoteClickTarget = VoteClickTargetMode.WholeSlot;
     public const SelectionGameMode DefaultSelectionGameMode = SelectionGameMode.MontyHall;
-    public const LogLevel DefaultLogLevel = LogLevel.Info;
+    public const LogLevel DefaultLogLevel = LogLevel.VeryDebug;
     public const LogBackend DefaultLogBackend = LogBackend.BaseGame;
 
     public static readonly string[] VoteClickTargetOptions =
