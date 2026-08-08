@@ -238,6 +238,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public List<PreviewWidgetRefs> PreviewWidgets { get; } = new();
         public NinePatchRect ChooseButtonOutline { get; set; } = null!;
         public Tween? VoteButtonPromptTween { get; set; }
+        public Tween? SceneTransformTween { get; set; }
         public float LastResponsiveCardWidth { get; set; } = float.NaN;
     }
 
@@ -2824,7 +2825,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ConfigureControllerNavigation();
         UpdateVoteButtonPrompts();
         RefreshVoteDisplays(animate: false);
-        GrabInitialFocus();
+
+        if (!startHiddenForTransition)
+        {
+            GrabInitialFocus();
+        }
 
         return retainedVisuals.Count > 0;
     }
@@ -5268,6 +5273,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return;
         }
 
+        refs.SceneTransformTween?.Kill();
+        refs.SceneTransformTween = null;
+
         SceneTransform target = GetSceneTransform(refs, hovered);
         refs.SceneMount.Size = target.Size;
         refs.SceneMount.PivotOffset = Vector2.Zero;
@@ -5276,9 +5284,17 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         if (animate)
         {
             Tween tween = CreateTween();
+            refs.SceneTransformTween = tween;
             tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
             tween.TweenProperty(refs.SceneMount, "position", target.Position, 0.12f);
             tween.Parallel().TweenProperty(refs.SceneMount, "scale", target.Scale, 0.12f);
+            tween.TweenCallback(Callable.From(() =>
+            {
+                if (ReferenceEquals(refs.SceneTransformTween, tween))
+                {
+                    refs.SceneTransformTween = null;
+                }
+            }));
         }
         else
         {
@@ -7006,6 +7022,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         foreach (SlotRefs refs in _slots)
         {
             string ancientId = refs.Ancient.Id.Entry;
+
+            refs.SceneTransformTween?.Kill();
+            refs.SceneTransformTween = null;
+
             if (!GodotObject.IsInstanceValid(refs.SceneViewport)
                 || !GodotObject.IsInstanceValid(refs.SceneMount))
             {
