@@ -18,7 +18,7 @@
   - spirecodex already does this, so API if spire codex already installed
 
 
-## [v1.3.2] - Steam Releae with console commands
+## [v1.3.2] - Steam Releae with console commands and Seemless Selection
 
 ### Features
 - implemented console commands to get to selection screen quicker, and to exit screen quicker
@@ -30,6 +30,8 @@
     - exits the selection screen cleanly
   - ctaffsay
     - shows or hides the fair fight extra dialouge on any mode with a 2nd round
+- Map screen should now be avaible in Act 2 and 3
+- Seemless Selection: Flow staight from end of act to seletion screen to the picked ancient
 
 ### Fixes
 - dimming changed from alpha to color change so translucent ancients will stop showing your character behind
@@ -41,6 +43,23 @@
   - ChooseTheAncientConsoleBallotPreprocess  prefix on DevConsole.ProcessCommand to allow clean canceling of ballots from cmd. 
   - ChooseTheAncientConsoleSelectionResolutionHandlerRegistration Postfix on RunManager.InitializeShared to register the skip cancel message handler that handles open cmds with peers.
   - ChooseTheAncientConsoleMapOpen Postfix on NMapScreen.Open to load map properly after console command acctivates.
+- Changing the selection screen opening from EnterNextAct to EnterAct required many patch changes:
+  -EnterActStartingAncientPatch.cs
+    - Postfix and Prefix on EnterAct to mark the Patch for EnterAct.Internal to handle the screen.
+  - NMapScreenStartingAncientPatch.cs 
+  - SelectonScreenMainMenuCleanupPatch.cs 
+  - -UnresolvedAcctStartMapIconPatch.cs
+-The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.
+- Adding Perfomance Probing and timestop counting.
+- The following performance improvements were made:
+  -tween transition is smooth. The full list is here:
+  -retained finalist Ancient viewports;
+  -pre-layout before preview creation;
+  -autosize-once preview setup;
+  -skipping redundant layout/theme writes;
+  -inline-image prewarming;
+  -reduced config polling. 
+- The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.
 
 ## [v1.3.1] - Steam Release with Zoomed in Vanilla Ancients
 

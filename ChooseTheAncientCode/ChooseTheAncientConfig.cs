@@ -90,6 +90,24 @@ internal static class ModLog
 
     public static bool IsVeryDebugEnabled => IsTraceEnabled;
 
+    public static bool IsPerformanceTracingEnabled
+    {
+        get
+        {
+            if (CurrentBackend == LogBackend.ModLog)
+                return CurrentLevel >= LogLevel.VeryDebug;
+
+            try
+            {
+                return MainFile.Logger.WillLog(GameLogLevel.VeryDebug);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
     public static void Error(string message) => Write(LogLevel.Error, message, isError: true);
     public static void Warn(string message) => Write(LogLevel.Warn, message);
     public static void Info(string message) => Write(LogLevel.Info, message);

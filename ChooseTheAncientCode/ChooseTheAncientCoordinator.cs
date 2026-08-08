@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -11,6 +12,7 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
@@ -20,6 +22,7 @@ using MegaCrit.Sts2.Core.Runs;
 using ChooseTheAncient.ChooseTheAncientCode.Rooms;
 using ChooseTheAncient.ChooseTheAncientCode.Messages;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
+using MegaCrit.Sts2.Core.Assets;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -245,8 +248,21 @@ public static class ChooseTheAncientCoordinator
                 if (localPlayer != null)
                 {
                     ModLog.Info("Warming Act 1 ancient ballot visuals before opening the starting-room selection screen.");
+                    Stopwatch? warmStopwatch =
+                        ModLog.IsPerformanceTracingEnabled
+                            ? Stopwatch.StartNew()
+                            : null;
                     await ChooseTheAncientHelpers.WarmAncientVisualAssetsAsync(pool);
                     await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+
+                    if (warmStopwatch != null)
+                    {
+                        warmStopwatch.Stop();
+                        ModLog.Trace(
+                            $"[Perf] Act 1 CTA ancient visual warmup took " +
+                            $"{warmStopwatch.Elapsed.TotalMilliseconds:F1} ms for " +
+                            $"{pool.Count} candidate(s).");
+                    }
                 }
 
                 (chosen, localScreen) = await RunAncientSelectionBallotAsync(
@@ -322,11 +338,256 @@ public static class ChooseTheAncientCoordinator
             if (!flow.ResolvedActs.Contains(0))
             {
                 flow.Act1StartingRoomFlowTriggered = false;
+                flow.StartingRoomFlowTriggeredActs.Remove(0);
             }
             ModLog.Info(
                 $"Act 1 starting-room flow cleanup. " +
                 $"InProgress={flow.FlowInProgress}, Triggered={flow.Act1StartingRoomFlowTriggered}, " +
                 $"ModifierBootstrapCompleted={flow.ModifierBootstrapCompleted}");
+        }
+    }
+
+    public static async Task RunLaterActStartingRoomFlowAsync(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        int actIndex)
+    /*
+     * Runs an Acts 2+ ballot from the same custom shell-room lifecycle used by Act 1.
+     */
+    {
+        ChooseTheAncientSelectionScreen? localScreen = null;
+        AncientEventModel? ancientBeforeFlow = null;
+        bool forceNeowBlessingModeBeforeFlow =
+            flow.ForceNeowBlessingMode;
+        flow.ActiveFlowTargetActIndex = actIndex;
+
+        try
+        {
+            if (actIndex <= 0
+                || actIndex >= runState.Acts.Count
+                || runState.CurrentActIndex != actIndex)
+            {
+                ModLog.Warn(
+                    $"Later-act starting-room flow received invalid act index {actIndex + 1}. " +
+                    $"CurrentAct={runState.CurrentActIndex + 1}, ActCount={runState.Acts.Count}.");
+                return;
+            }
+
+            if (!ChooseTheAncientHelpers.IsCurrentActStartingMapPoint(runState))
+            {
+                ModLog.Debug(
+                    $"Act {actIndex + 1} starting-room flow aborted because the run " +
+                    "was no longer at the starting map point.");
+                return;
+            }
+
+            if (runState.CurrentRoom is not ChooseTheAncientStartRoom)
+            {
+                ModLog.Warn(
+                    $"Act {actIndex + 1} starting-room flow expected CTA's custom shell room.");
+                return;
+            }
+
+            ChooseTheAncientConfig.RefreshFromNativeSettings();
+
+            List<Player> orderedPlayers = runState.Players
+                .OrderBy(runState.GetPlayerSlotIndex)
+                .ToList();
+
+            int ancientCount =
+                await GetEffectiveAncientCountAsync(orderedPlayers);
+            ChooseTheAncientConfig.SelectionGameMode gameMode =
+                await GetEffectiveGameModeAsync(orderedPlayers);
+            bool enableRedundantSettings =
+                await GetEffectiveEnableRedundantSettingsAsync(orderedPlayers);
+            IReadOnlyList<int>? effectiveAncientPoolSourceActs =
+                enableRedundantSettings
+                    ? await GetEffectiveAncientPoolSourceActsAsync(
+                        orderedPlayers,
+                        actIndex)
+                    : null;
+            IReadOnlyDictionary<string, bool>? effectiveSpecialAncientOverrides =
+                enableRedundantSettings
+                    ? await GetEffectiveSpecialAncientOverridesAsync(
+                        orderedPlayers,
+                        actIndex)
+                    : null;
+
+            ActModel targetAct = runState.Acts[actIndex];
+            AncientEventModel existingAncient =
+                ChooseTheAncientHelpers.GetChosenAncient(targetAct);
+            ancientBeforeFlow = existingAncient;
+
+            List<AncientEventModel> pool =
+                ChooseTheAncientHelpers.BuildCandidatePool(
+                    targetAct,
+                    runState,
+                    actIndex,
+                    effectiveAncientPoolSourceActs,
+                    effectiveSpecialAncientOverrides,
+                    enableRedundantSettings);
+
+            pool = await GetEffectiveBallotAsync(
+                runState,
+                actIndex,
+                orderedPlayers,
+                pool,
+                ancientCount);
+
+            ChooseTheAncientHelpers.LogPool(
+                $"Act {actIndex + 1} starting-room ballot",
+                pool);
+            ModLog.Info(
+                $"Using game mode {gameMode} for act {actIndex + 1}'s room-owned CTA flow.");
+
+            AncientEventModel? chosen;
+            if (pool.Count == 0)
+            {
+                chosen = existingAncient;
+                ModLog.Warn(
+                    $"Act {actIndex + 1}'s starting-room ballot was empty. " +
+                    $"Preserving vanilla Ancient {chosen.Id.Entry}.");
+            }
+            else if (pool.Count == 1)
+            {
+                chosen = pool[0];
+                ModLog.Info(
+                    $"Only one starting Ancient is available for act {actIndex + 1}: " +
+                    $"{chosen.Id.Entry}. Applying it directly from the shell room.");
+
+                Player? localPlayer =
+                    orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+                if (localPlayer != null)
+                {
+                    await ChooseTheAncientSelectionScreen
+                        .WaitForOverlayReadyWithoutInteractionAsync(
+                            actIndex,
+                            orderedPlayers,
+                            extraFrames: 2);
+                }
+            }
+            else
+            {
+                Player? localPlayer =
+                    orderedPlayers.FirstOrDefault(ShouldSelectLocally);
+                if (localPlayer != null)
+                {
+                    ModLog.Info(
+                        $"Warming act {actIndex + 1} Ancient ballot visuals " +
+                        "before opening the shell-room selection screen.");
+                    Stopwatch? warmStopwatch =
+                        ModLog.IsPerformanceTracingEnabled
+                            ? Stopwatch.StartNew()
+                            : null;
+                    await ChooseTheAncientHelpers
+                        .WarmAncientVisualAssetsAsync(pool);
+                    await ChooseTheAncientHelpers
+                        .WaitForProcessFramesAsync(1);
+
+                    if (warmStopwatch != null)
+                    {
+                        warmStopwatch.Stop();
+                        ModLog.Trace(
+                            $"[Perf] Act {actIndex + 1} CTA ancient visual warmup " +
+                            $"took {warmStopwatch.Elapsed.TotalMilliseconds:F1} ms " +
+                            $"for {pool.Count} candidate(s).");
+                    }
+                }
+
+                (chosen, localScreen) =
+                    await RunAncientSelectionBallotAsync(
+                        runState,
+                        actIndex,
+                        orderedPlayers,
+                        pool,
+                        gameMode,
+                        flow);
+            }
+
+            ThrowIfConsoleSelectionCanceled(flow, actIndex);
+
+            if (chosen == null)
+            {
+                chosen = existingAncient;
+                ModLog.Info(
+                    $"CTA selection was skipped for act {actIndex + 1}. " +
+                    $"Preserving vanilla Ancient {chosen.Id.Entry}.");
+            }
+
+            ChooseTheAncientHelpers.SetChosenAncient(
+                targetAct,
+                chosen);
+            SetForceNeowBlessingModeIfNeeded(
+                flow,
+                chosen,
+                $"Act {actIndex + 1} starting shell resolved");
+
+            flow.ResolvedActs.Add(actIndex);
+            ChooseTheAncientHelpers.ConvertStartingShellToChosenAncient(
+                runState,
+                chosen);
+
+            localScreen?.CloseScreen();
+            localScreen = null;
+
+            DispatchAncientRoomTransition(
+                chosen,
+                actIndex,
+                $"Act {actIndex + 1} starting shell resolved");
+
+            ModLog.Info(
+                $"Act {actIndex + 1} starting-room flow dispatched the chosen " +
+                $"Ancient room transition for {chosen.Id.Entry}.");
+        }
+        catch (OperationCanceledException ex)
+        {
+            flow.ResolvedActs.Remove(actIndex);
+            flow.ForceNeowBlessingMode =
+                forceNeowBlessingModeBeforeFlow;
+
+            if (ancientBeforeFlow != null)
+            {
+                ChooseTheAncientHelpers.SetChosenAncient(
+                    runState.Acts[actIndex],
+                    ancientBeforeFlow);
+            }
+
+            ModLog.Warn(
+                $"Act {actIndex + 1} starting-room flow canceled: " +
+                $"{ex.GetType().Name}. Leaving the shell room in place.");
+        }
+        catch (Exception ex)
+        {
+            flow.ResolvedActs.Remove(actIndex);
+            flow.ForceNeowBlessingMode =
+                forceNeowBlessingModeBeforeFlow;
+
+            if (ancientBeforeFlow != null)
+            {
+                ChooseTheAncientHelpers.SetChosenAncient(
+                    runState.Acts[actIndex],
+                    ancientBeforeFlow);
+            }
+
+            ModLog.Error(
+                $"Act {actIndex + 1} starting-room flow failed: {ex}");
+        }
+        finally
+        {
+            localScreen?.CloseScreen();
+            flow.ClearConsoleSelectionResolution();
+            flow.ActiveFlowTargetActIndex = null;
+            flow.FlowInProgress = false;
+
+            if (!flow.ResolvedActs.Contains(actIndex))
+            {
+                flow.StartingRoomFlowTriggeredActs.Remove(actIndex);
+            }
+
+            ModLog.Info(
+                $"Act {actIndex + 1} starting-room flow cleanup. " +
+                $"InProgress={flow.FlowInProgress}, " +
+                $"Resolved={flow.ResolvedActs.Contains(actIndex)}.");
         }
     }
 
@@ -359,73 +620,137 @@ public static class ChooseTheAncientCoordinator
             $"Reason={reason}");
     }
 
-    private static void DispatchAncientRoomTransition(AncientEventModel chosenAncient, string reason)
+    private static void DispatchAncientRoomTransition(
+        AncientEventModel chosenAncient,
+        string reason)
     {
-        ModLog.Info(
-            $"Dispatching Act 1 ancient room transition for {chosenAncient.Id.Entry}. Reason={reason}");
-
-        _ = TransitionToAncientRoomAsync(chosenAncient);
+        DispatchAncientRoomTransition(
+            chosenAncient,
+            actIndex: 0,
+            reason);
     }
 
-    private static async Task TransitionToAncientRoomAsync(AncientEventModel chosenAncient)
+    private static void DispatchAncientRoomTransition(
+        AncientEventModel chosenAncient,
+        int actIndex,
+        string reason)
     {
+        ModLog.Info(
+            $"Dispatching act {actIndex + 1} shell-to-Ancient transition for " +
+            $"{chosenAncient.Id.Entry}. Reason={reason}");
+
+        _ = TransitionToAncientRoomAsync(
+            chosenAncient,
+            actIndex);
+    }
+
+    private static async Task TransitionToAncientRoomAsync(
+        AncientEventModel chosenAncient,
+        int actIndex)
+    {
+        Stopwatch? transitionStopwatch =
+            ModLog.IsPerformanceTracingEnabled
+                ? Stopwatch.StartNew()
+                : null;
+
         try
         {
             RunManager runManager = RunManager.Instance;
-            RunState? runState = ChooseTheAncientHelpers.GetRunState(runManager);
-            bool isShellRoomTransition = runState?.CurrentRoom is ChooseTheAncientStartRoom;
+            RunState? runState =
+                ChooseTheAncientHelpers.GetRunState(runManager);
+            bool isShellRoomTransition =
+                runState?.CurrentRoom is ChooseTheAncientStartRoom;
 
             ModLog.Info(
-                $"Beginning Act 1 ancient room transition for {chosenAncient.Id.Entry}. " +
-                $"ShellRoomTransition={isShellRoomTransition}.");
+                $"Beginning act {actIndex + 1} Ancient room transition for " +
+                $"{chosenAncient.Id.Entry}. ShellRoomTransition={isShellRoomTransition}.");
 
             if (isShellRoomTransition)
             {
                 ModLog.Debug(
-                    "Bypassing normal room exit/fade for the ChooseTheAncient start shell room and entering the chosen ancient room without exiting the current room first.");
+                    "Bypassing a second room fade while replacing CTA's " +
+                    "lightweight starting shell with the chosen Ancient room.");
 
                 InvokeRunManagerVoid(ClearScreensMethod, runManager);
                 await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
 
                 ModLog.Info(
-                    $"Entering Act 1 chosen ancient room for {chosenAncient.Id.Entry} without exiting the custom shell room first.");
-                await runManager.EnterRoomWithoutExitingCurrentRoom(new EventRoom(chosenAncient), fadeToBlack: false);
+                    $"Replacing act {actIndex + 1}'s CTA shell with the chosen " +
+                    $"Ancient room for {chosenAncient.Id.Entry}.");
+
+                await runManager.EnterRoom(
+                    new EventRoom(chosenAncient));
 
                 if (runState != null)
                 {
-                    ChooseTheAncientHelpers.ConvertAct1StartShellToChosenAncient(runState, chosenAncient);
+                    ChooseTheAncientHelpers.ConvertStartingShellToChosenAncient(
+                        runState,
+                        chosenAncient);
                 }
 
-                ModLog.Info(
-                    $"Completed Act 1 shell-room bypass transition for {chosenAncient.Id.Entry}.");
+                if (transitionStopwatch != null)
+                {
+                    transitionStopwatch.Stop();
+                    ModLog.Trace(
+                        $"[Perf] Completed act {actIndex + 1}'s shell replacement " +
+                        $"for {chosenAncient.Id.Entry} in " +
+                        $"{transitionStopwatch.Elapsed.TotalMilliseconds:F1} ms.");
+                }
                 return;
             }
 
             if (NGame.Instance?.Transition != null)
             {
-                ModLog.Debug("Running Act 1 room fade out before entering the chosen ancient room.");
+                ModLog.Debug(
+                    $"Running act {actIndex + 1} room fade out before entering " +
+                    "the chosen Ancient room.");
                 await NGame.Instance.Transition.RoomFadeOut();
             }
 
             InvokeRunManagerVoid(ClearScreensMethod, runManager);
             await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
 
-            ModLog.Info($"Entering Act 1 chosen ancient room for {chosenAncient.Id.Entry}.");
-            await runManager.EnterRoom(new EventRoom(chosenAncient));
+            ModLog.Info(
+                $"Entering act {actIndex + 1}'s chosen Ancient room for " +
+                $"{chosenAncient.Id.Entry}.");
+            await runManager.EnterRoom(
+                new EventRoom(chosenAncient));
 
-            await InvokeRunManagerTaskAsync(FadeInMethod, runManager, true);
+            await InvokeRunManagerTaskAsync(
+                FadeInMethod,
+                runManager,
+                true);
 
-            ModLog.Info($"Completed Act 1 ancient room transition for {chosenAncient.Id.Entry}.");
+            if (transitionStopwatch != null)
+            {
+                transitionStopwatch.Stop();
+                ModLog.Trace(
+                    $"[Perf] Completed act {actIndex + 1} Ancient room transition " +
+                    $"for {chosenAncient.Id.Entry} in " +
+                    $"{transitionStopwatch.Elapsed.TotalMilliseconds:F1} ms.");
+            }
         }
         catch (OperationCanceledException ex)
         {
+            transitionStopwatch?.Stop();
+            string elapsedSuffix = transitionStopwatch != null
+                ? $" after {transitionStopwatch.Elapsed.TotalMilliseconds:F1} ms"
+                : string.Empty;
             ModLog.Warn(
-                $"Act 1 ancient room transition for {chosenAncient.Id.Entry} was canceled: {ex.GetType().Name}.");
+                $"Act {actIndex + 1} Ancient room transition for " +
+                $"{chosenAncient.Id.Entry} was canceled{elapsedSuffix}: " +
+                $"{ex.GetType().Name}.");
             throw;
         }
         catch (Exception ex)
         {
-            ModLog.Error($"Act 1 ancient room transition for {chosenAncient.Id.Entry} failed: {ex}");
+            transitionStopwatch?.Stop();
+            string elapsedSuffix = transitionStopwatch != null
+                ? $" after {transitionStopwatch.Elapsed.TotalMilliseconds:F1} ms"
+                : string.Empty;
+            ModLog.Error(
+                $"Act {actIndex + 1} Ancient room transition for " +
+                $"{chosenAncient.Id.Entry} failed{elapsedSuffix}: {ex}");
             throw;
         }
     }
@@ -817,10 +1142,28 @@ public static class ChooseTheAncientCoordinator
             Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
             if (enablePreviews && localPlayer != null)
             {
+                Stopwatch? previewStopwatch =
+                    ModLog.IsPerformanceTracingEnabled
+                        ? Stopwatch.StartNew()
+                        : null;
+
                 localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
                     localPlayer,
                     pool,
                     targetActIndex);
+
+                if (previewStopwatch != null)
+                {
+                    previewStopwatch.Stop();
+                    LogPreviewGenerationPerformance(
+                        targetActIndex,
+                        pool.Count,
+                        previewStopwatch);
+                }
+
+                PrewarmPreviewInlineImages(
+                    targetActIndex,
+                    localPreviewData);
             }
 
             var singleRound = new ChooseTheAncientSelectionScreen.RoundDefinition(
@@ -879,10 +1222,46 @@ public static class ChooseTheAncientCoordinator
                 null,
                 null);
 
-            List<int> firstVotes = await CollectVotes(
+            Task<List<int>> firstVotesTask = CollectVotes(
                 orderedPlayers,
                 firstRound,
                 localScreen);
+
+            Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? earlyPreviewData = null;
+            if (localPlayer != null && localScreen != null)
+            {
+                await localScreen.WaitUntilRoundPresentedAsync();
+
+                if (!firstVotesTask.IsCompleted)
+                {
+                    Stopwatch? previewStopwatch =
+                        ModLog.IsPerformanceTracingEnabled
+                            ? Stopwatch.StartNew()
+                            : null;
+
+                    earlyPreviewData =
+                        ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
+                            localPlayer,
+                            pool,
+                            targetActIndex);
+
+                    if (previewStopwatch != null)
+                    {
+                        previewStopwatch.Stop();
+                        LogPreviewGenerationPerformance(
+                            targetActIndex,
+                            pool.Count,
+                            previewStopwatch,
+                            "round-one idle precompute");
+                    }
+
+                    PrewarmPreviewInlineImages(
+                        targetActIndex,
+                        earlyPreviewData);
+                }
+            }
+
+            List<int> firstVotes = await firstVotesTask;
 
             ThrowIfConsoleSelectionCanceled(flow, targetActIndex);
 
@@ -940,10 +1319,47 @@ public static class ChooseTheAncientCoordinator
             Dictionary<string, ChooseTheAncientHelpers.AncientPreviewData>? localPreviewData = null;
             if (localPlayer != null)
             {
-                localPreviewData = ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
-                    localPlayer,
-                    finalists,
-                    targetActIndex);
+                if (earlyPreviewData != null)
+                {
+                    localPreviewData = finalists
+                        .Where(ancient => earlyPreviewData.ContainsKey(ancient.Id.Entry))
+                        .ToDictionary(
+                            ancient => ancient.Id.Entry,
+                            ancient => earlyPreviewData[ancient.Id.Entry],
+                            StringComparer.Ordinal);
+                }
+                else
+                {
+                    /*
+                     * Console/instant resolution can finish round one before the
+                     * idle precompute gets a chance to run. Preserve the old
+                     * post-vote generation path as a correctness fallback.
+                     */
+                    Stopwatch? previewStopwatch =
+                        ModLog.IsPerformanceTracingEnabled
+                            ? Stopwatch.StartNew()
+                            : null;
+
+                    localPreviewData =
+                        ChooseTheAncientHelpers.BuildPreviewDataByAncientId(
+                            localPlayer,
+                            finalists,
+                            targetActIndex);
+
+                    if (previewStopwatch != null)
+                    {
+                        previewStopwatch.Stop();
+                        LogPreviewGenerationPerformance(
+                            targetActIndex,
+                            finalists.Count,
+                            previewStopwatch,
+                            "post-vote fallback");
+                    }
+
+                    PrewarmPreviewInlineImages(
+                        targetActIndex,
+                        localPreviewData);
+                }
             }
 
             (AncientEventModel? suppressedPreviewAncient, AncientEventModel? reactionAncient, string? suppressedPreviewAncientId, string? reactionAncientId) = ResolveSecondRoundPresentation(
@@ -996,7 +1412,149 @@ public static class ChooseTheAncientCoordinator
         return (chosen, localScreen);
     }
 
-    
+
+
+    private static void LogPreviewGenerationPerformance(
+        int targetActIndex,
+        int ancientCount,
+        Stopwatch stopwatch,
+        string? context = null)
+    {
+        if (!ModLog.IsPerformanceTracingEnabled)
+            return;
+
+        string contextSuffix = string.IsNullOrWhiteSpace(context)
+            ? string.Empty
+            : $", context={context}";
+
+        ModLog.Trace(
+            $"[Perf] CTA act {targetActIndex + 1} preview generation took " +
+            $"{stopwatch.Elapsed.TotalMilliseconds:F1} ms for " +
+            $"{ancientCount} Ancient(s){contextSuffix}.");
+    }
+
+    private static void PrewarmPreviewInlineImages(
+        int targetActIndex,
+        IReadOnlyDictionary<string, ChooseTheAncientHelpers.AncientPreviewData> previewData)
+    {
+        /*
+         * NEventOptionButton assigns the formatted title/description to MegaRichTextLabel in _Ready().
+         * MegaRichTextLabel resolves [img] tags lazily, so the first visible frame can otherwise pay
+         * PreloadManager.Cache.GetTexture2D(...) for an image embedded in preview text.
+         */
+        if (previewData.Count == 0)
+            return;
+
+        bool perfTracing = ModLog.IsPerformanceTracingEnabled;
+        Stopwatch? stopwatch =
+            perfTracing
+                ? Stopwatch.StartNew()
+                : null;
+        int cacheMissesBefore =
+            perfTracing
+                ? PreloadManager.Cache.MissedCacheAssetCount
+                : 0;
+        int cachedAssetsBefore =
+            perfTracing
+                ? PreloadManager.Cache.GetCacheKeys().Count()
+                : 0;
+
+        HashSet<string> imagePaths =
+            new(StringComparer.Ordinal);
+
+        foreach (ChooseTheAncientHelpers.AncientPreviewData preview in previewData.Values)
+        {
+            foreach (EventOption option in preview.Options)
+            {
+                CollectInlinePreviewImagePaths(
+                    option.Title.GetFormattedText(),
+                    imagePaths);
+                CollectInlinePreviewImagePaths(
+                    option.Description.GetFormattedText(),
+                    imagePaths);
+            }
+        }
+
+        int failedPaths = 0;
+        foreach (string imagePath in imagePaths)
+        {
+            try
+            {
+                _ = PreloadManager.Cache.GetTexture2D(imagePath);
+            }
+            catch (Exception ex)
+            {
+                failedPaths++;
+                ModLog.Warn(
+                    $"Could not prewarm CTA preview inline image '{imagePath}' " +
+                    $"for act {targetActIndex + 1}: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        if (stopwatch != null)
+        {
+            stopwatch.Stop();
+
+            int cacheMissDelta =
+                PreloadManager.Cache.MissedCacheAssetCount -
+                cacheMissesBefore;
+            int cachedAssetDelta =
+                PreloadManager.Cache.GetCacheKeys().Count() -
+                cachedAssetsBefore;
+
+            ModLog.Trace(
+                $"[Perf] CTA act {targetActIndex + 1} preview inline-image prewarm: " +
+                $"{stopwatch.Elapsed.TotalMilliseconds:F1} ms, " +
+                $"uniqueImages={imagePaths.Count}, " +
+                $"cacheMissDelta={cacheMissDelta:+#;-#;0}, " +
+                $"cachedAssetDelta={cachedAssetDelta:+#;-#;0}, " +
+                $"failures={failedPaths}.");
+        }
+    }
+
+    private static void CollectInlinePreviewImagePaths(
+        string? formattedText,
+        ISet<string> imagePaths)
+    {
+        const string openTag = "[img]";
+        const string closeTag = "[/img]";
+
+        if (string.IsNullOrEmpty(formattedText))
+            return;
+
+        int searchIndex = 0;
+        while (searchIndex < formattedText.Length)
+        {
+            int openIndex = formattedText.IndexOf(
+                openTag,
+                searchIndex,
+                StringComparison.OrdinalIgnoreCase);
+            if (openIndex < 0)
+                return;
+
+            int pathStart = openIndex + openTag.Length;
+            int closeIndex = formattedText.IndexOf(
+                closeTag,
+                pathStart,
+                StringComparison.OrdinalIgnoreCase);
+            if (closeIndex < 0)
+                return;
+
+            string imagePath =
+                formattedText[pathStart..closeIndex].Trim();
+
+            if (imagePath.StartsWith(
+                    "res://",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                imagePaths.Add(imagePath);
+            }
+
+            searchIndex = closeIndex + closeTag.Length;
+        }
+    }
+
+
     private static void RestoreAncientAfterCanceledFlow(
         ActModel? targetAct,
         AncientEventModel? previousAncient)

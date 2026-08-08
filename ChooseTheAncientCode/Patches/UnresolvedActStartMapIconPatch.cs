@@ -7,11 +7,11 @@ using MegaCrit.Sts2.Core.Runs;
 namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 
 /// <summary>
-/// Replaces the textures on Choose The Aancient's unresolved Act 1 NAncientMapPoint with the
-/// ancient_node_random icon
+/// Replaces the native starting Ancient node textures with CTA's unresolved
+/// random-Ancient icon until the current act's ballot has been applied.
 /// </summary>
 [HarmonyPatch(typeof(NAncientMapPoint), nameof(NAncientMapPoint._Ready))]
-public static class Act1StartMapIconPatch
+public static class UnresolvedActStartMapIconPatch
 {
     private const string IconPath =
         "res://scenes/mod/choose_the_ancient/map/ancient_node_random.png";
@@ -38,7 +38,7 @@ public static class Act1StartMapIconPatch
         {
             WarnOnce(
                 "Could not load the Random Ancient map icon assets. " +
-                "The unresolved Act 1 starting point will keep the currently rolled question icon.");
+                "The unresolved starting point will keep the currently rolled Ancient icon.");
             return;
         }
 
@@ -49,7 +49,7 @@ public static class Act1StartMapIconPatch
         {
             WarnOnce(
                 "Could not access the native NAncientMapPoint icon nodes. " +
-                "The unresolved Act 1 starting point will keep the currently rolled question icon.");
+                "The unresolved starting point will keep the currently rolled Ancient icon.");
             return;
         }
 
@@ -60,7 +60,7 @@ public static class Act1StartMapIconPatch
         {
             _loggedFirstApplication = true;
             ModLog.Info(
-                "Applied the Random Ancient textures to the unresolved Act 1 native Ancient map point.");
+                "Applied the Random Ancient textures to an unresolved native starting Ancient map point.");
         }
     }
 
@@ -68,15 +68,17 @@ public static class Act1StartMapIconPatch
         NAncientMapPoint mapPointNode,
         RunState runState)
     {
-        if (runState.CurrentActIndex != 0)
-            return false;
+        int actIndex = runState.CurrentActIndex;
+        ChooseTheAncientFlowState flow =
+            ChooseTheAncientStateStore.Get(runState);
 
-        if (!runState.ExtraFields.StartedWithNeow)
+        if (!ChooseTheAncientHelpers.ShouldPrepareUnresolvedStartingAncientNode(
+                runState,
+                flow,
+                actIndex))
+        {
             return false;
-
-        ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(runState);
-        if (!ChooseTheAncientHelpers.ShouldUseAct1StartShell(runState, flow))
-            return false;
+        }
 
         MapPoint startingPoint = runState.Map.StartingMapPoint;
         MapPoint point = mapPointNode.Point;

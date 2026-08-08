@@ -5,15 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/localization/for_translators_bbcode_message.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/localization/steam_workshop_description_to_translate.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/workshop/steam_workshop_description_eng.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/export_presets.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/export_presets.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/workshop/steam_workshop_description.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,6 +48,10 @@
     <setting file="file://$PROJECT_DIR$/../StS2ModEnergizedSpire2-main/EnergizedSpire2Code/Ancients/EnergizedSpire2Ancient.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../StS2ModEnergizedSpire2-main/EnergizedSpire2Code/EnergizedSpire2MainFile.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
@@ -70,32 +68,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    ".NET Executable. dotnet test ChooseTheAncient.Tests.executor": "Run",
-    ".NET Executable.SlayTheSpire2_Debug.executor": "Debug",
-    ".NET Executable.clean rebuild tests.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
-    "Publish to folder.Publish ChooseTheAncient to folder.executor": "Run",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "CodeLensConfigurable",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;.NET Executable. dotnet test ChooseTheAncient.Tests.executor&quot;: &quot;Run&quot;,
+    &quot;.NET Executable.SlayTheSpire2_Debug.executor&quot;: &quot;Debug&quot;,
+    &quot;.NET Executable.clean rebuild tests.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Publish to folder.Publish ChooseTheAncient Tests to folder.executor&quot;: &quot;Run&quot;,
+    &quot;Publish to folder.Publish ChooseTheAncient to folder.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;CodeLensConfigurable&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
@@ -304,79 +302,10 @@
       <workItem from="1785761298365" duration="6243000" />
       <workItem from="1785867430809" duration="3572000" />
       <workItem from="1785871730523" duration="29908000" />
-      <workItem from="1785938579751" duration="37936000" />
-    </task>
-    <task id="LOCAL-00104" summary="Removed AncientHpBaseline Patch because even though it fixed health issues. The only case they came up was with the redundant settings. Since other mods tried to patch this issue conflict arose. It's beter to declare this patch out of scope for these reasons.">
-      <option name="closed" value="true" />
-      <created>1785273355684</created>
-      <option name="number" value="00104" />
-      <option name="presentableId" value="LOCAL-00104" />
-      <option name="project" value="LOCAL" />
-      <updated>1785273355684</updated>
-    </task>
-    <task id="LOCAL-00105" summary="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension.">
-      <option name="closed" value="true" />
-      <created>1785422747149</created>
-      <option name="number" value="00105" />
-      <option name="presentableId" value="LOCAL-00105" />
-      <option name="project" value="LOCAL" />
-      <updated>1785422747149</updated>
-    </task>
-    <task id="LOCAL-00106" summary="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension.">
-      <option name="closed" value="true" />
-      <created>1785424616347</created>
-      <option name="number" value="00106" />
-      <option name="presentableId" value="LOCAL-00106" />
-      <option name="project" value="LOCAL" />
-      <updated>1785424616347</updated>
-    </task>
-    <task id="LOCAL-00107" summary="Redundant settings now don't rely on defaults to stay the same as vanilla but actively need to be enabled and shown. The logic is guarded so it doesn't run unless selected. Multiplayer host priority is also added. I do wonder when i should cut my losses and delete this feature, that part felt like a bit of an extension.">
-      <option name="closed" value="true" />
-      <created>1785424686381</created>
-      <option name="number" value="00107" />
-      <option name="presentableId" value="LOCAL-00107" />
-      <option name="project" value="LOCAL" />
-      <updated>1785424686381</updated>
-    </task>
-    <task id="LOCAL-00108" summary="I have moved all localization into loc tables.">
-      <option name="closed" value="true" />
-      <created>1785435046490</created>
-      <option name="number" value="00108" />
-      <option name="presentableId" value="LOCAL-00108" />
-      <option name="project" value="LOCAL" />
-      <updated>1785435046490</updated>
-    </task>
-    <task id="LOCAL-00109" summary="I have moved all localization into loc tables.">
-      <option name="closed" value="true" />
-      <created>1785454031573</created>
-      <option name="number" value="00109" />
-      <option name="presentableId" value="LOCAL-00109" />
-      <option name="project" value="LOCAL" />
-      <updated>1785454031573</updated>
-    </task>
-    <task id="LOCAL-00110" summary="I have moved all localization into loc tables.">
-      <option name="closed" value="true" />
-      <created>1785455550462</created>
-      <option name="number" value="00110" />
-      <option name="presentableId" value="LOCAL-00110" />
-      <option name="project" value="LOCAL" />
-      <updated>1785455550462</updated>
-    </task>
-    <task id="LOCAL-00111" summary="I have moved all localization into loc tables, so game ui and mod settings are in the tables along with the dialouge.&#10;Added Machine translated versions of the game ui and mod setting in the zhs tables.&#10;ChooseTheAncientLocalization.cs as a helper for the mod settings localization mostly and also allows the language to fallback to english is no translation for the current language exists.&#10;For Enums, optionIds were made and canonicalChoices so they would remain stable in ritsulib and other settings.">
-      <option name="closed" value="true" />
-      <created>1785457212519</created>
-      <option name="number" value="00111" />
-      <option name="presentableId" value="LOCAL-00111" />
-      <option name="project" value="LOCAL" />
-      <updated>1785457212520</updated>
-    </task>
-    <task id="LOCAL-00112" summary="Adding the winners showcase to github so it can be linked on the steam workshop">
-      <option name="closed" value="true" />
-      <created>1785467541240</created>
-      <option name="number" value="00112" />
-      <option name="presentableId" value="LOCAL-00112" />
-      <option name="project" value="LOCAL" />
-      <updated>1785467541240</updated>
+      <workItem from="1785938579751" duration="41993000" />
+      <workItem from="1786033223879" duration="15064000" />
+      <workItem from="1786106512329" duration="10098000" />
+      <workItem from="1786123733058" duration="24493000" />
     </task>
     <task id="LOCAL-00113" summary="Slay The Streamer implementation. Haven't tested if this commit breaks as game just updates.">
       <option name="closed" value="true" />
@@ -698,7 +627,79 @@
       <option name="project" value="LOCAL" />
       <updated>1785997132628</updated>
     </task>
-    <option name="localTasksCounter" value="153" />
+    <task id="LOCAL-00153" summary="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open.&#10;&#10;The custom message is necessary. ctaact and ctastay return a task that remains incomplete while the selection ballot is open. Therefore the networked console action remains active until the ballot resolves. When multiple are done, they'd normally be in a queue for all peers but won't resolve as the selection stops it from finishing. The custom message allows them to cancel and finish.">
+      <option name="closed" value="true" />
+      <created>1785999838694</created>
+      <option name="number" value="00153" />
+      <option name="presentableId" value="LOCAL-00153" />
+      <option name="project" value="LOCAL" />
+      <updated>1785999838694</updated>
+    </task>
+    <task id="LOCAL-00154" summary="Added localization folder with translation references.">
+      <option name="closed" value="true" />
+      <created>1785999879724</created>
+      <option name="number" value="00154" />
+      <option name="presentableId" value="LOCAL-00154" />
+      <option name="project" value="LOCAL" />
+      <updated>1785999879724</updated>
+    </task>
+    <task id="LOCAL-00155" summary="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.s&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.">
+      <option name="closed" value="true" />
+      <created>1786150137975</created>
+      <option name="number" value="00155" />
+      <option name="presentableId" value="LOCAL-00155" />
+      <option name="project" value="LOCAL" />
+      <updated>1786150137975</updated>
+    </task>
+    <task id="LOCAL-00156" summary="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.">
+      <option name="closed" value="true" />
+      <created>1786150626056</created>
+      <option name="number" value="00156" />
+      <option name="presentableId" value="LOCAL-00156" />
+      <option name="project" value="LOCAL" />
+      <updated>1786150626056</updated>
+    </task>
+    <task id="LOCAL-00157" summary="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.">
+      <option name="closed" value="true" />
+      <created>1786152642905</created>
+      <option name="number" value="00157" />
+      <option name="presentableId" value="LOCAL-00157" />
+      <option name="project" value="LOCAL" />
+      <updated>1786152642905</updated>
+    </task>
+    <task id="LOCAL-00158" summary="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.">
+      <option name="closed" value="true" />
+      <created>1786153054914</created>
+      <option name="number" value="00158" />
+      <option name="presentableId" value="LOCAL-00158" />
+      <option name="project" value="LOCAL" />
+      <updated>1786153054914</updated>
+    </task>
+    <task id="LOCAL-00159" summary="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.">
+      <option name="closed" value="true" />
+      <created>1786153065005</created>
+      <option name="number" value="00159" />
+      <option name="presentableId" value="LOCAL-00159" />
+      <option name="project" value="LOCAL" />
+      <updated>1786153065005</updated>
+    </task>
+    <task id="LOCAL-00160" summary="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.">
+      <option name="closed" value="true" />
+      <created>1786153073052</created>
+      <option name="number" value="00160" />
+      <option name="presentableId" value="LOCAL-00160" />
+      <option name="project" value="LOCAL" />
+      <updated>1786153073052</updated>
+    </task>
+    <task id="LOCAL-00161" summary="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.">
+      <option name="closed" value="true" />
+      <created>1786153376131</created>
+      <option name="number" value="00161" />
+      <option name="presentableId" value="LOCAL-00161" />
+      <option name="project" value="LOCAL" />
+      <updated>1786153376131</updated>
+    </task>
+    <option name="localTasksCounter" value="162" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -734,10 +735,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Updated the links in the winners showcase to the github raw links" />
-    <MESSAGE value="winners showcase raw gif links attempt 2" />
-    <MESSAGE value="wener showcase now with html links to the raw github gifs." />
-    <MESSAGE value="moved the winners_showcase to the showcase folder" />
     <MESSAGE value="Removed description from workshop file as when I updated it, it replaced the edited description on the steam store." />
     <MESSAGE value="winners showcase fixed grammer errors&#10;fixed README.md&#10;added steam discription to a file" />
     <MESSAGE value="added excludes to export_presets.cfg so that pck goes down from 42mb to 1.4mb." />
@@ -758,8 +755,12 @@
     <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay" />
     <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in Coordinator consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;&#10;The new ChooseTheAncientConsoleCommands.cs  contains all the console commands. This adds an enum ConsoleSelectionResolutionMode that has SkipAndContinue and CancelFlow.&#10;SkipAndContinue is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;ConsoleCommands.cs also handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand." />
     <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open." />
+    <MESSAGE value="Added localization files for translators to use as reference." />
     <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open.&#10;&#10;The custom message is necessary. ctaact and ctastay return a task that remains incomplete while the selection ballot is open. Therefore the networked console action remains active until the ballot resolves. When multiple are done, they'd normally be in a queue for all peers but won't resolve as the selection stops it from finishing. The custom message allows them to cancel and finish." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open.&#10;&#10;The custom message is necessary. ctaact and ctastay return a task that remains incomplete while the selection ballot is open. Therefore the networked console action remains active until the ballot resolves. When multiple are done, they'd normally be in a queue for all peers but won't resolve as the selection stops it from finishing. The custom message allows them to cancel and finish." />
+    <MESSAGE value="Added localization folder with translation references." />
+    <MESSAGE value="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.s&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching." />
+    <MESSAGE value="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching." />
+    <option name="LAST_COMMIT_MESSAGE" value="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

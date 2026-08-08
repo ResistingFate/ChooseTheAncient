@@ -41,6 +41,8 @@ public sealed class ChooseTheAncientFlowState
     public int? ActiveFlowTargetActIndex { get; set; }
     public bool ConsoleNavigationInProgress { get; set; }
     public bool ConsoleMapSelectionRebasePending { get; set; }
+    public HashSet<int> StartingRoomFlowTriggeredActs { get; } = new();
+    public int? PendingVanillaMapRoomReplacementActIndex { get; set; }
     private bool SuppressNextAct1StartingRoomFlow { get; set; }
 
     public bool ForceAct1NeowBlessingMode

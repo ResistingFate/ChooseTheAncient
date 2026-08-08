@@ -1999,50 +1999,276 @@ public static class ChooseTheAncientHelpers
 
 
 
-    public static bool IsAct1StartingMapPoint(RunState runState)
-    /*
-     * Checks whether the current map point is CTA's Act 1 starting shell location.
-     */
+    public static bool IsStartingAncientResolved(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        int actIndex)
     {
-        if (runState.CurrentActIndex != 0)
+        if (actIndex < 0 || actIndex >= runState.Acts.Count)
             return false;
 
-        if (!runState.ExtraFields.StartedWithNeow)
+        if (flow.ResolvedActs.Contains(actIndex))
+            return true;
+
+        if (actIndex >= runState.MapPointHistory.Count)
+            return false;
+
+        IReadOnlyList<MapPointHistoryEntry> actHistory =
+            runState.MapPointHistory[actIndex];
+
+        if (actHistory.Count == 0)
+            return false;
+
+        MapPointHistoryEntry startingEntry = actHistory[0];
+        if (startingEntry.MapPointType != MapPointType.Ancient
+            || startingEntry.Rooms.Count == 0)
+        {
+            return false;
+        }
+
+        MapPointRoomHistoryEntry startingRoom = startingEntry.Rooms[0];
+        if (startingRoom.RoomType != RoomType.Event
+            || startingRoom.ModelId == null)
+        {
+            return false;
+        }
+
+        AncientEventModel chosenAncient;
+        try
+        {
+            chosenAncient = GetChosenAncient(runState.Acts[actIndex]);
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (startingRoom.ModelId != chosenAncient.Id)
+        {
+            if (!TryRecoverConsoleReplacedStartingAncient(
+                    runState,
+                    actIndex,
+                    actHistory,
+                    startingEntry,
+                    chosenAncient))
+            {
+                return false;
+            }
+
+        }
+
+        flow.ResolvedActs.Add(actIndex);
+        ModLog.Debug(
+            $"Recovered Act {actIndex + 1}'s resolved CTA starting Ancient " +
+            $"{chosenAncient.Id.Entry} from saved map-point history.");
+
+        return true;
+    }
+
+    private static bool TryRecoverConsoleReplacedStartingAncient(
+        RunState runState,
+        int actIndex,
+        IReadOnlyList<MapPointHistoryEntry> actHistory,
+        MapPointHistoryEntry startingEntry,
+        AncientEventModel chosenAncient)
+    {
+        if (startingEntry.MapPointType != MapPointType.Ancient
+            || startingEntry.Rooms.Count == 0
+            || startingEntry.Rooms[0].RoomType != RoomType.Event
+            || startingEntry.Rooms[0].ModelId == null)
+        {
+            return false;
+        }
+
+        bool hasMatchingConsoleAncientEntry = actHistory
+            .Skip(1)
+            .Any(entry =>
+                entry.MapPointType == MapPointType.Ancient
+                && entry.Rooms.Any(room =>
+                    room.RoomType == RoomType.Event
+                    && room.ModelId == chosenAncient.Id));
+
+        if (!hasMatchingConsoleAncientEntry)
+            return false;
+
+        if (!RewriteStartingMapPointHistoryToAncient(
+                runState,
+                actIndex,
+                chosenAncient))
+        {
+            return false;
+        }
+
+        ModLog.Debug(
+            $"Recovered Act {actIndex + 1}'s CTA starting Ancient after a " +
+            $"console Ancient replacement. Canonical row-0 history now uses " +
+            $"{chosenAncient.Id.Entry}.");
+        return true;
+    }
+
+
+    public static bool ShouldPrepareUnresolvedStartingAncientNode(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        int actIndex)
+    /*
+     * Keeps the Ancient node unresolved until that act's ballot
+     * has been applied. ctaact. 
+     */
+    {
+        if (actIndex < 0 || actIndex >= runState.Acts.Count)
+            return false;
+
+        bool resolved =
+            IsStartingAncientResolved(runState, flow, actIndex);
+
+        if (actIndex == 0)
+            return !resolved
+                   && runState.ExtraFields.StartedWithNeow;
+
+        if (!resolved)
+            return true;
+
+        return flow.ConsoleNavigationInProgress
+               && flow.ActiveFlowTargetActIndex == actIndex;
+    }
+
+
+    public static bool ApplyChosenAncientIconToStartingMapPoint(
+        RunState runState,
+        AncientEventModel chosenAncient)
+    /*
+     * Replaces CTA's unresolved random Ancient textures on the already-created
+     * native map node without rebuilding the map screen.
+     */
+    {
+        NMapScreen? mapScreen = NMapScreen.Instance;
+        if (mapScreen == null)
+            return false;
+
+        MapCoord startingCoord = runState.Map.StartingMapPoint.coord;
+        bool updated = ApplyChosenAncientIconRecursive(
+            mapScreen,
+            startingCoord,
+            chosenAncient,
+            runState.Act.MapBgColor);
+
+        if (updated)
+        {
+            mapScreen.RefreshAllPointVisuals();
+        }
+
+        return updated;
+    }
+
+
+    private static bool ApplyChosenAncientIconRecursive(
+        Node parent,
+        MapCoord startingCoord,
+        AncientEventModel chosenAncient,
+        Color mapBackgroundColor)
+    {
+        bool updated = false;
+
+        foreach (Node child in parent.GetChildren())
+        {
+            if (child is NAncientMapPoint ancientMapPoint
+                && ancientMapPoint.Point.coord == startingCoord)
+            {
+                TextureRect? icon =
+                    ancientMapPoint.GetNodeOrNull<TextureRect>("Icon");
+                TextureRect? outline =
+                    ancientMapPoint.GetNodeOrNull<TextureRect>("Icon/Outline");
+
+                if (icon != null)
+                {
+                    icon.Texture = chosenAncient.MapIcon;
+                }
+
+                if (outline != null)
+                {
+                    outline.Texture = chosenAncient.MapIconOutline;
+                    outline.Modulate = mapBackgroundColor;
+                }
+
+                updated = icon != null || outline != null;
+            }
+
+            updated |= ApplyChosenAncientIconRecursive(
+                child,
+                startingCoord,
+                chosenAncient,
+                mapBackgroundColor);
+        }
+
+        return updated;
+    }
+
+
+    public static bool IsCurrentActStartingMapPoint(RunState runState)
+    /*
+     * Checks whether the run is currently inside the active act's starting map point.
+     * Act 1 additionally requires the vanilla Neow-start route that CTA replaces.
+     */
+    {
+        int actIndex = runState.CurrentActIndex;
+        if (actIndex < 0 || actIndex >= runState.Acts.Count)
+            return false;
+
+        if (actIndex == 0 && !runState.ExtraFields.StartedWithNeow)
             return false;
 
         MapCoord? currentCoord = runState.CurrentMapCoord;
-        if (!currentCoord.HasValue)
-            return false;
-
-        return currentCoord.Value == runState.Map.StartingMapPoint.coord;
+        return currentCoord.HasValue
+               && currentCoord.Value == runState.Map.StartingMapPoint.coord;
     }
 
-    public static bool ShouldUseAct1StartShell(RunState runState, ChooseTheAncientFlowState flow)
+    public static bool IsAct1StartingMapPoint(RunState runState)
+    {
+        return runState.CurrentActIndex == 0
+               && IsCurrentActStartingMapPoint(runState);
+    }
+
+    public static bool ShouldUseStartingAncientShell(
+        RunState runState,
+        ChooseTheAncientFlowState flow)
     /*
-     * Determines whether CTA should replace the vanilla Act 1 start with its custom starting shell room.
+     * Determines whether CTA should replace the current act's unresolved. Act 1 keeps its Neow-start guard;
+     * Acts 2+ use the same shell after the generated map auto-enters its first node.
      */
     {
-        if (flow.ResolvedActs.Contains(0))
+        int actIndex = runState.CurrentActIndex;
+        if (actIndex < 0 || actIndex >= runState.Acts.Count)
             return false;
 
-        if (runState.CurrentActIndex != 0)
+        if (IsStartingAncientResolved(runState, flow, actIndex))
             return false;
 
-        if (!runState.ExtraFields.StartedWithNeow)
+        if (actIndex == 0 && !runState.ExtraFields.StartedWithNeow)
             return false;
 
         return true;
     }
 
-    public static void ConvertAct1StartShellToChosenAncient(
+    public static bool ShouldUseAct1StartShell(
+        RunState runState,
+        ChooseTheAncientFlowState flow)
+    {
+        return runState.CurrentActIndex == 0
+               && ShouldUseStartingAncientShell(runState, flow);
+    }
+
+    public static void ConvertStartingShellToChosenAncient(
         RunState runState,
         AncientEventModel chosenAncient)
     /*
-     * Rewrites the Act 1 shell room into the chosen ancient room after CTA resolves the starting-room vote.
+     * Rewrites the current act's shell-room history and native starting map node
+     * into the chosen Ancient after CTA resolves the room-owned ballot.
      */
     {
         runState.Map.StartingMapPoint.PointType = MapPointType.Ancient;
         RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
+
         NMapScreen? mapScreen = NMapScreen.Instance;
         if (mapScreen != null)
         {
@@ -2051,7 +2277,27 @@ public static class ChooseTheAncientHelpers
                 runState.Map,
                 SeedCompatibility.GetRunSeed(runState),
                 clearDrawings: true);
+
+            bool iconUpdated =
+                ApplyChosenAncientIconToStartingMapPoint(
+                    runState,
+                    chosenAncient);
+
+            if (!iconUpdated)
+            {
+                ModLog.Debug(
+                    $"Could not immediately refresh the resolved starting Ancient " +
+                    $"map icon to {chosenAncient.Id.Entry}. The next map rebuild " +
+                    $"will use the chosen Ancient's native textures.");
+            }
         }
+    }
+
+    public static void ConvertAct1StartShellToChosenAncient(
+        RunState runState,
+        AncientEventModel chosenAncient)
+    {
+        ConvertStartingShellToChosenAncient(runState, chosenAncient);
     }
 
     public static void RewriteCurrentMapPointHistoryToAncient(
@@ -2065,6 +2311,41 @@ public static class ChooseTheAncientHelpers
         if (entry == null)
             return;
 
+        RewriteMapPointHistoryEntryToAncient(entry, chosenAncient);
+    }
+
+    public static bool RewriteStartingMapPointHistoryToAncient(
+        RunState runState,
+        int actIndex,
+        AncientEventModel chosenAncient)
+    /*
+     * Keeps the ancient node icon chosen if the game is reloaded.
+     */
+    {
+        if (actIndex < 0 || actIndex >= runState.MapPointHistory.Count)
+            return false;
+
+        IReadOnlyList<MapPointHistoryEntry> actHistory =
+            runState.MapPointHistory[actIndex];
+
+        if (actHistory.Count == 0)
+            return false;
+
+        MapPointHistoryEntry startingEntry = actHistory[0];
+
+        if (startingEntry.MapPointType != MapPointType.Ancient)
+            return false;
+
+        RewriteMapPointHistoryEntryToAncient(
+            startingEntry,
+            chosenAncient);
+        return true;
+    }
+
+    private static void RewriteMapPointHistoryEntryToAncient(
+        MapPointHistoryEntry entry,
+        AncientEventModel chosenAncient)
+    {
         entry.MapPointType = MapPointType.Ancient;
 
         if (entry.Rooms.Count == 0)

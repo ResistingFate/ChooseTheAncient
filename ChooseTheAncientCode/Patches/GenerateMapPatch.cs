@@ -9,22 +9,31 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 public static class GenerateMapPatch
 {
     [HarmonyPriority(Priority.Low)]
-    private static void Postfix(IRunState runState, ref ActMap __result, int actIndex)
+    private static void Postfix(
+        IRunState runState,
+        ref ActMap __result,
+        int actIndex)
     {
         if (runState is not RunState mutableRunState)
             return;
 
-        if (actIndex != 0)
-            return;
+        ChooseTheAncientFlowState flow =
+            ChooseTheAncientStateStore.Get(mutableRunState);
 
-        ChooseTheAncientFlowState flow = ChooseTheAncientStateStore.Get(mutableRunState);
-        if (!ChooseTheAncientHelpers.ShouldUseAct1StartShell(mutableRunState, flow))
+        if (!ChooseTheAncientHelpers.ShouldPrepareUnresolvedStartingAncientNode(
+                mutableRunState,
+                flow,
+                actIndex))
+        {
             return;
+        }
 
         if (__result.StartingMapPoint.PointType != MapPointType.Ancient)
         {
             __result.StartingMapPoint.PointType = MapPointType.Ancient;
-            ModLog.Info("GenerateMapPatch converted the Act 1 starting map point into the ChooseTheAncient shell node before map display.");
+            ModLog.Info(
+                $"GenerateMapPatch converted act {actIndex + 1}'s starting map point " +
+                "into CTA's unresolved Ancient node before map display.");
         }
     }
 }

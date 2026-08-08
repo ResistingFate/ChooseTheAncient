@@ -58,25 +58,24 @@ will not be responsible to update/modify/verify the authenticity of any content 
 to translated content.
 
 ## Technical
-- I patch the `EnterNextAct` method in `RunManager.cs` so that this mod loads before the next act starts
-- I loop through all ancients and check if they have a `ValidForAct` method (this is what Baselib uses for Custom Ancients). If the ancient uses`ShouldForceSpawn` this mod  should pick it up even if `ValidForAct` returns false. Ritsulib also works as those ancients also define `ValidForAct`.
+- I patch `EnterAct`/`EnterRoomInternal` in `RunManager.cs` so that this mod can enter the Ancient selection room before the next act's map opens, while still letting vanilla handle the rest of the act transition.
+- I loop through all ancients and check if they have a `ValidForAct` / `IsValidForAct` method (this is what BaseLib and other custom Ancient libraries use). If the ancient uses `ShouldForceSpawn`, this mod should pick it up even if normal act validity returns false. RitsuLib also works because those ancients expose act-validity support as well.
 
 ### Patch Table
-* **Act1StartMapIcon**: Low Priority Postfix. Replaces the unresolved Act 1 starting map point with the Random Ancient icon.
-* **AncientRewardRng**: Prefix. Applies act-offset reward RNG when an ancient appears earlier or later than its normal minimum act.
-* **CreateRoom**: False returning Prefix. Replaces Neow’s room with the custom selection room in Act 1. Still needed when using the Subscriber method.
-* **EnterNextAct**: False returning Prefix. Shows the selection screen between acts.
-  * For the Simplest version of this mod, it's the only patch needed. _(selection screen for act 2 and 3 only, no fixes)_
-* **GenerateMap:** Low Priority Postfix. Changes the Act 1 starting map point for the original room-based trigger. Not needed with the Subscriber method.
-* **NeowBlessingMode**: Prefixes and finalizers. Temporarily hides run modifiers while Neow builds its description and options so a later-act Neow still offers blessings, then restores them.
-* **NeowOptionIdentitySync**: Optional `EventSynchronizer` compatibility patches. False returning Prefixes. Syncs Neow choices by option identity instead of raw list index when other mods reorder the options. It safely disables itself if the required multiplayer APIs are unavailable.
-  * ( Was needed for extreme edge cases in multiplayer syncing pre patch 1.05. `Event Synchronizer` has updated since then so it might not be needed anymore.)
-* **SetCurrentRoom:** Postfix. Launches the Act 1 selection screen after entering the custom room. Not needed when the Subscriber method handles this instead.
-* **ActConsoleCmdNavigation:** Postfix. Edits the Act console command so it's compatable with ChooseTheAncient changes so going back acts and progressing selection screen doesn't crash.
 * **ActConsoleCmdNavigation**: Postfix on `ActConsoleCmd.Process`. Clears vanilla's stale act-transition votes and duplicate-transition guard after a successful `act` command. This allows debug navigation back to an earlier act without blocking the next legitimate act transition.
-* **ChooseTheAncientConsoleBallotPreprocess**: Non-skipping prefix on local `DevConsole.ProcessCommand(string)`. For valid `ctaact` and `ctastay` commands only, it cancels an older CTA ballot before vanilla queues the replacement command and hides the local console. It does not replace vanilla command processing or affect other command names.
-* **ChooseTheAncientConsoleSelectionResolutionHandlerRegistration**: Postfix on `RunManager.InitializeShared`. Registers CTA's immediate skip/cancel message handler after the run receives its network service. Registration is idempotent.
+* **AncientRewardRng**: Prefix. Applies act-offset reward RNG when an ancient appears earlier or later than its normal minimum act.
+* **ChooseTheAncientConsoleBallotPreprocess**: Non-skipping Prefix on local `DevConsole.ProcessCommand(string)`. For valid `ctaact` and `ctastay` commands only, it cancels an older CTA ballot before vanilla queues the replacement command and hides the local console. It does not replace vanilla command processing or affect other command names.
 * **ChooseTheAncientConsoleMapOpen**: Postfix on `NMapScreen.Open`. Applies a deferred map-selection synchronization rebase after a console-entered Ancient room, then clears the pending rebase.
+* **ChooseTheAncientConsoleSelectionResolutionHandlerRegistration**: Postfix on `RunManager.InitializeShared`. Registers CTA's immediate skip/cancel message handler after the run receives its network service. Registration is idempotent.
+* **CreateRoom**: Low Priority Postfix. Lets vanilla create its normal Ancient `EventRoom`, then replaces the result with the custom selection room for the unresolved starting Ancient node.
+* **EnterActStartingAncient**: Non-skipping Prefix and Postfix on `RunManager.EnterAct` and a narrow Prefix on `EnterRoomInternal`. Marks unresolved Act 2+ transitions and replaces only vanilla's upcoming `MapRoom` entry with the starting Ancient room.
+* **GenerateMap**: Low Priority Postfix. Changes the unresolved starting map point into an Ancient node.
+* **NeowBlessingMode**: Prefixes and Finalizers. Temporarily hides run modifiers while Neow builds its description and options so a later-act Neow still offers blessings, then restores them.
+* **NeowOptionIdentitySync**: Optional `EventSynchronizer` compatibility patches. False returning Prefixes. Syncs Neow choices by option identity instead of raw list index when other mods reorder the options. It safely disables itself if the required multiplayer APIs are unavailable.
+  * Was needed for extreme edge cases in multiplayer syncing pre patch 1.05. `EventSynchronizer` has updated since then so it might not be needed anymore.
+* **NMapScreenStartingAncient**: Prefixes on `NMapScreen.OnMapPointSelectedLocally` and `NMapScreen.TravelToMapCoord`. Guards the already-resolved starting Ancient node from being selected or traveled to a second time, including multiplayer and debug-travel cases.
+* **SelectionScreenMainMenuCleanup**: Last Priority Postfix. Closes any leftover CTA selection screen when returning to the main menu after an interrupted or abandoned run.
+* **UnresolvedActStartMapIcon**: Low Priority Postfix. Replaces the unresolved starting Ancient map point with the Random Ancient icon.
 
 
 ### Things to watch out for when implementing an Act 1 Ancient

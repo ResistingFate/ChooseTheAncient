@@ -504,7 +504,8 @@ internal static class ChooseTheAncientConsoleBallotRunner
     public static async Task OpenInPlaceAsync(
         RunState runState,
         int requestId,
-        int ballotActIndex)
+        int ballotActIndex,
+        string commandName = "ctastay")
     {
         ChooseTheAncientFlowState flow =
             ChooseTheAncientStateStore.Get(runState);
@@ -513,7 +514,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
                 runState,
                 flow,
                 requestId,
-                "ctastay"))
+                commandName))
         {
             return;
         }
@@ -528,13 +529,14 @@ internal static class ChooseTheAncientConsoleBallotRunner
                 runState,
                 flow);
 
-            // Let the console hide before pushing the ballot overlay.
+            // Let the console hide before the shared path closes the map and
+            // pushes the ballot overlay.
             await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
 
             if (ShouldCancelBeforeBallot(flow, requestId, ballotActIndex))
             {
                 ModLog.Info(
-                    $"Canceled ctastay before opening the act {ballotActIndex + 1} ballot.");
+                    $"Canceled {commandName} before opening the act {ballotActIndex + 1} ballot.");
                 return;
             }
 
@@ -544,11 +546,11 @@ internal static class ChooseTheAncientConsoleBallotRunner
                 requestId,
                 ballotActIndex,
                 applyToActIndex,
-                commandName: "ctastay");
+                commandName: commandName);
         }
         finally
         {
-            FinishConsoleBallotOperation(runState, flow, "ctastay");
+            FinishConsoleBallotOperation(runState, flow, commandName);
         }
     }
 
@@ -689,6 +691,34 @@ internal static class ChooseTheAncientConsoleBallotRunner
         AncientEventModel chosenAncient =
             ChooseTheAncientHelpers.GetChosenAncient(runState.Act);
         MapCoord ancientCoord = runState.Map.StartingMapPoint.coord;
+
+        bool startingHistoryUpdated =
+            ChooseTheAncientHelpers.RewriteStartingMapPointHistoryToAncient(
+                runState,
+                applyToActIndex,
+                chosenAncient);
+
+        if (startingHistoryUpdated)
+        {
+            ModLog.Debug(
+                $"{commandName} updated act {applyToActIndex + 1}'s canonical " +
+                $"starting Ancient history to {chosenAncient.Id.Entry}.");
+        }
+
+        bool iconUpdated =
+            ChooseTheAncientHelpers.ApplyChosenAncientIconToStartingMapPoint(
+                runState,
+                chosenAncient);
+
+        if (!iconUpdated)
+        {
+            ModLog.Warn(
+                $"{commandName} could not update the starting Ancient node icon " +
+                $"to {chosenAncient.Id.Entry} before entering the room.");
+        }
+
+        await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+
         bool ancientNodeWasUnvisited =
             !runState.VisitedMapCoords.Contains(ancientCoord);
 

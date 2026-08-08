@@ -1,11 +1,13 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Audio.Debug;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Context;
 using Godot;
 using HarmonyLib;
@@ -236,8 +238,16 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public List<PreviewWidgetRefs> PreviewWidgets { get; } = new();
         public NinePatchRect ChooseButtonOutline { get; set; } = null!;
         public Tween? VoteButtonPromptTween { get; set; }
+        public float LastResponsiveCardWidth { get; set; } = float.NaN;
     }
 
+
+    private sealed class RetainedAncientVisual
+    {
+        public required SubViewport SceneViewport { get; init; }
+        public required Control SceneMount { get; init; }
+        public Node? SceneRoot { get; init; }
+    }
 
     private sealed class PreviewWidgetRefs
     {
@@ -501,6 +511,83 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private static Texture2D? _fallbackAncientIcon;
     private static bool _fallbackAncientIconLoadAttempted;
 
+    private readonly record struct PerformanceCounterSnapshot(
+        int MissedCacheAssets,
+        int CachedAssets,
+        int Gen0Collections,
+        int Gen1Collections,
+        int Gen2Collections,
+        long ManagedMemoryBytes);
+
+    private sealed class TransitionPerformanceProbe
+    {
+        private const int WorstFrameSampleCount = 5;
+
+        public TransitionPerformanceProbe(
+            string name,
+            double expectedMilliseconds)
+        {
+            Name = name;
+            ExpectedMilliseconds = expectedMilliseconds;
+            CounterStart = CapturePerformanceCounters();
+            Stopwatch = Stopwatch.StartNew();
+        }
+
+        public string Name { get; }
+        public double ExpectedMilliseconds { get; }
+        public Stopwatch Stopwatch { get; }
+        public PerformanceCounterSnapshot CounterStart { get; }
+        public int ProcessFrames { get; private set; }
+        public double SampledFrameMilliseconds { get; private set; }
+        public double MaxFrameMilliseconds { get; private set; }
+        public int FramesOver25Milliseconds { get; private set; }
+        public int FramesOver33Milliseconds { get; private set; }
+        public int FramesOver50Milliseconds { get; private set; }
+        public int FramesOver100Milliseconds { get; private set; }
+        public double[] WorstFrameMilliseconds { get; } =
+            new double[WorstFrameSampleCount];
+
+        public void RecordFrame(double frameMilliseconds)
+        {
+            ProcessFrames++;
+            SampledFrameMilliseconds += frameMilliseconds;
+            MaxFrameMilliseconds =
+                Math.Max(MaxFrameMilliseconds, frameMilliseconds);
+
+            if (frameMilliseconds >= 25.0)
+                FramesOver25Milliseconds++;
+
+            if (frameMilliseconds >= 33.0)
+                FramesOver33Milliseconds++;
+
+            if (frameMilliseconds >= 50.0)
+                FramesOver50Milliseconds++;
+
+            if (frameMilliseconds >= 100.0)
+                FramesOver100Milliseconds++;
+
+            for (int index = 0;
+                 index < WorstFrameMilliseconds.Length;
+                 index++)
+            {
+                if (frameMilliseconds <= WorstFrameMilliseconds[index])
+                    continue;
+
+                for (int shift = WorstFrameMilliseconds.Length - 1;
+                     shift > index;
+                     shift--)
+                {
+                    WorstFrameMilliseconds[shift] =
+                        WorstFrameMilliseconds[shift - 1];
+                }
+
+                WorstFrameMilliseconds[index] = frameMilliseconds;
+                break;
+            }
+        }
+    }
+
+    private TransitionPerformanceProbe? _activeTransitionPerformanceProbe;
     private PackedScene _hotkeyIconScene = null!;
 
     private readonly List<SlotRefs> _slots = new();
@@ -535,6 +622,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private SlotRefs? _hoveredSlot;
     private int? _remoteCursorOldZIndex;
     private int? _remoteCursorOldSiblingIndex;
+    private int? _runTopBarOldZIndex;
     private int? _lastHoveredPoolIndex;
     private PreviewWidgetRefs? _hoveredPreviewWidget;
     private Player? _currentlyHighlightedVotePlayer;
@@ -564,11 +652,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     public double RoundIntroDuration { get; set; } = RoundIntroHoldDurationNormal;
     private Control? _stageArea;
     private Control? _slotsCanvas;
+    private Node? _sceneViewportHost;
     private AudioStreamPlayer? _hoverSfx;
     private AudioStreamPlayer? _clickSfx;
     private bool _lastShowOnlyButtonOutline;
     private bool _lastShowControllerHotkeys;
     private ChooseTheAncientConfig.VoteClickTargetMode _lastVoteClickTarget;
+    private const double NativeSettingsPollIntervalSeconds = 0.25;
+    private double _nativeSettingsPollElapsed;
     private AncientEventModel? _suppressedPreviewAncient;
     private AncientEventModel? _reactionAncient;
 
@@ -601,6 +692,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ProcessMode = ProcessModeEnum.Always;
         MouseFilter = MouseFilterEnum.Ignore;
         FocusMode = FocusModeEnum.All;
+        TopLevel = false;
+        ZAsRelative = true;
+        ZIndex = 0;
         SetFullRect(this);
     }
 
@@ -687,6 +781,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         SetFullRect(_layoutRoot);
         AddChild(_layoutRoot);
 
+        _sceneViewportHost = new Node
+        {
+            Name = "AncientSceneViewportHost",
+        };
+        AddChild(_sceneViewportHost);
+
         _roundIntroAnchor = _layoutRoot.GetNode<Control>("RoundIntroOverlay/RoundIntroAnchor");
         _roundIntroBasePosition = _roundIntroAnchor.Position;
 
@@ -772,11 +872,24 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Polls for live config changes while visible and updates whole-slot hover state every frame.
          */
+        SampleTransitionPerformance(delta);
+
+        if (!RunManager.Instance.IsInProgress || NRun.Instance == null)
+        {
+            CloseScreen();
+            return;
+        }
+
         if (!_uiReady || !Visible)
             return;
 
-        ChooseTheAncientConfig.RefreshFromNativeSettings();
-        RefreshModConfigValues();
+        _nativeSettingsPollElapsed += delta;
+        if (_nativeSettingsPollElapsed >= NativeSettingsPollIntervalSeconds)
+        {
+            _nativeSettingsPollElapsed = 0.0;
+            ChooseTheAncientConfig.RefreshFromNativeSettings();
+            RefreshModConfigValues();
+        }
 
         if (_lastShowControllerHotkeys != ShowControllerHotkeys ||
             _lastShowOnlyButtonOutline != ShowOnlyButtonOutline ||
@@ -831,11 +944,16 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         _closing = true;
+        Visible = false;
+        RestoreRemoteCursors(restoreSiblingOrder: false);
+        RestoreRunTopBar();
 
         try
         {
             NOverlayStack? overlayStack = NOverlayStack.Instance;
-            if (IsInsideTree() && overlayStack != null)
+            if (IsInsideTree()
+                && overlayStack != null
+                && overlayStack.IsAncestorOf(this))
             {
                 overlayStack.Remove(this);
             }
@@ -854,7 +972,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Unregisters the screen, tears down signal hooks, and cancels any unfinished vote task.
          */
-        RestoreRemoteCursors();
+        RestoreRemoteCursors(restoreSiblingOrder: false);
+        RestoreRunTopBar();
         _openScreens.Remove(this);
         _roundIntroTween?.Kill();
         DisconnectControllerPromptSignals();
@@ -871,6 +990,34 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         base._ExitTree();
     }
 
+
+    private void RaiseRunTopBar()
+    {
+        Control? topBar = NRun.Instance?.GlobalUi?.TopBar;
+        if (topBar == null || !GodotObject.IsInstanceValid(topBar))
+            return;
+
+        _runTopBarOldZIndex ??= topBar.ZIndex;
+        topBar.ZIndex = Math.Max(topBar.ZIndex, 100);
+
+        ModLog.Debug(
+            $"[Layer] CTA act {_nextActIndex + 1}: selection overlay Z={ZIndex}, " +
+            $"TopLevel={TopLevel}; run top bar Z={topBar.ZIndex}.");
+    }
+
+    private void RestoreRunTopBar()
+    {
+        Control? topBar = NRun.Instance?.GlobalUi?.TopBar;
+        if (topBar != null
+            && GodotObject.IsInstanceValid(topBar)
+            && _runTopBarOldZIndex.HasValue)
+        {
+            topBar.ZIndex = _runTopBarOldZIndex.Value;
+        }
+
+        _runTopBarOldZIndex = null;
+    }
+
     private void RaiseRemoteCursors()
     {
         var container = NGame.Instance?.RemoteCursorContainer;
@@ -883,7 +1030,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         if (_remoteCursorOldSiblingIndex == null)
             _remoteCursorOldSiblingIndex = container.GetIndex();
 
-        container.ZIndex = 12;
+        container.ZIndex = 1100;
 
         Node? parent = container.GetParent();
         if (parent != null)
@@ -892,11 +1039,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         foreach (var child in container.GetChildren())
         {
             if (child is NRemoteMouseCursor cursor)
-                cursor.ZIndex = 12;
+                cursor.ZIndex = 1100;
         }
     }
 
-    private void RestoreRemoteCursors()
+    private void RestoreRemoteCursors(bool restoreSiblingOrder = true)
     {
         var container = NGame.Instance?.RemoteCursorContainer;
         if (container == null || !GodotObject.IsInstanceValid(container))
@@ -906,7 +1053,9 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             container.ZIndex = _remoteCursorOldZIndex.Value;
 
         Node? parent = container.GetParent();
-        if (parent != null && _remoteCursorOldSiblingIndex != null)
+        if (restoreSiblingOrder
+            && parent != null
+            && _remoteCursorOldSiblingIndex != null)
         {
             int maxIndex = Math.Max(0, parent.GetChildCount() - 1);
             int restoreIndex = Math.Clamp(_remoteCursorOldSiblingIndex.Value, 0, maxIndex);
@@ -932,10 +1081,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             Visible = false;
             RestoreRemoteCursors();
+            RestoreRunTopBar();
             return;
         }
 
         Visible = true;
+        RaiseRunTopBar();
         RaiseRemoteCursors();
         GrabInitialFocus();
     }
@@ -957,10 +1108,12 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             Visible = false;
             RestoreRemoteCursors();
+            RestoreRunTopBar();
             return;
         }
 
         Visible = true;
+        RaiseRunTopBar();
         RaiseRemoteCursors();
         GrabInitialFocus();
     }
@@ -972,6 +1125,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         Visible = false;
         RestoreRemoteCursors();
+        RestoreRunTopBar();
     }
 
     #endregion
@@ -1028,6 +1182,29 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         targetActIndex = -1;
+        return false;
+    }
+
+    public static bool IsRoundPresentedForAct(int actIndex)
+    {
+        for (int i = _openScreens.Count - 1; i >= 0; i--)
+        {
+            ChooseTheAncientSelectionScreen screen = _openScreens[i];
+            if (!GodotObject.IsInstanceValid(screen))
+            {
+                _openScreens.RemoveAt(i);
+                continue;
+            }
+
+            if (!screen._closing
+                && screen._nextActIndex == actIndex
+                && screen.Visible
+                && screen._roundPresented.Task.IsCompletedSuccessfully)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -1307,13 +1484,35 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             return await _voteSubmitted.Task;
         }
 
+        Stopwatch? presentationStopwatch =
+            ModLog.IsPerformanceTracingEnabled
+                ? Stopwatch.StartNew()
+                : null;
         try
         {
             await ApplyRoundAsync();
+
+            if (presentationStopwatch != null)
+            {
+                presentationStopwatch.Stop();
+                ModLog.Trace(
+                    $"[Perf] CTA act {_nextActIndex + 1} {_roundType} presentation " +
+                    $"became interactive in " +
+                    $"{presentationStopwatch.Elapsed.TotalMilliseconds:F1} ms.");
+            }
+
             _roundPresented.TrySetResult(true);
         }
         catch (Exception ex)
         {
+            if (presentationStopwatch != null)
+            {
+                presentationStopwatch.Stop();
+                ModLog.Trace(
+                    $"[Perf] CTA act {_nextActIndex + 1} {_roundType} presentation " +
+                    $"failed after {presentationStopwatch.Elapsed.TotalMilliseconds:F1} ms.");
+            }
+
             _roundPresented.TrySetException(ex);
             throw;
         }
@@ -1347,7 +1546,28 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         
         if (!_hasLoadedRound)
         {
+            bool perfTracing = ModLog.IsPerformanceTracingEnabled;
+            PerformanceCounterSnapshot buildCounterStart =
+                perfTracing
+                    ? CapturePerformanceCounters()
+                    : default;
+            Stopwatch? buildStopwatch =
+                perfTracing
+                    ? Stopwatch.StartNew()
+                    : null;
+
             BuildUi();
+
+            if (buildStopwatch != null)
+            {
+                buildStopwatch.Stop();
+                LogBuildPerformance(
+                    "initial round",
+                    buildStopwatch,
+                    _slots.Count,
+                    buildCounterStart);
+            }
+
             ModLog.Debug($"ApplyRoundAsync initial build complete: roundType={_roundType}, slotCount={_slots.Count}, previewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}");
             _hasLoadedRound = true;
             ShowRoundIntro();
@@ -1362,7 +1582,28 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         await AnimateOutSlotsAsync();
+
+        bool rebuildPerfTracing = ModLog.IsPerformanceTracingEnabled;
+        PerformanceCounterSnapshot rebuildCounterStart =
+            rebuildPerfTracing
+                ? CapturePerformanceCounters()
+                : default;
+        Stopwatch? rebuildStopwatch =
+            rebuildPerfTracing
+                ? Stopwatch.StartNew()
+                : null;
+
         BuildUi();
+
+        if (rebuildStopwatch != null)
+        {
+            rebuildStopwatch.Stop();
+            LogBuildPerformance(
+                "round transition rebuild",
+                rebuildStopwatch,
+                _slots.Count,
+                rebuildCounterStart);
+        }
         ModLog.Debug($"ApplyRoundAsync rebuilt UI after animate-out: roundType={_roundType}, slotCount={_slots.Count}, previewKeys={(_previewDataByAncientId.Count == 0 ? "<empty>" : string.Join(", ", _previewDataByAncientId.Keys))}");
         for (int i = 0; i < _slots.Count; i++)
         {
@@ -1395,6 +1636,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         double duration = GetPresentationDuration(SlotTransitionOutDurationNormal, SlotTransitionOutDurationFast);
 
+        TransitionPerformanceProbe? probe =
+            BeginTransitionPerformance(
+                "slot transition out",
+                duration);
+
         Tween tween = CreateTween();
         tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
 
@@ -1408,7 +1654,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 0f, duration);
         }
 
-        await ToSignal(tween, Tween.SignalName.Finished);
+        try
+        {
+            await ToSignal(tween, Tween.SignalName.Finished);
+        }
+        finally
+        {
+            if (probe != null)
+                EndTransitionPerformance(probe);
+        }
     }
 
     private void PrimeSlotsForTransitionIn()
@@ -1459,6 +1713,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         double duration = GetPresentationDuration(SlotTransitionInDurationNormal, SlotTransitionInDurationFast);
 
+        TransitionPerformanceProbe? probe =
+            BeginTransitionPerformance(
+                "slot transition in",
+                duration);
+
         Tween tween = CreateTween();
         tween.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
 
@@ -1468,7 +1727,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             tween.Parallel().TweenProperty(refs.SlotRoot, "modulate:a", 1f, duration);
         }
 
-        await ToSignal(tween, Tween.SignalName.Finished);
+        try
+        {
+            await ToSignal(tween, Tween.SignalName.Finished);
+        }
+        finally
+        {
+            if (probe != null)
+                EndTransitionPerformance(probe);
+        }
 
         if (_roundType == VoteRoundType.FinalRevealVote)
         {
@@ -1476,6 +1743,214 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }
 
         GrabInitialFocus();
+    }
+    
+    #endregion
+
+    #region Perfomance monitoring
+    
+    /*
+     * SECTION: Contians command PerfDetail methods,
+     * CounterSnapshot methods, timestaamp when the tracing has
+     * ended and the logging.
+     */
+
+    private const double PerfDetailSlowCallThresholdMs = 1.0;
+
+    private static long BeginPerfDetailTimestamp()
+    {
+        return ModLog.IsPerformanceTracingEnabled
+            ? Stopwatch.GetTimestamp()
+            : 0L;
+    }
+
+    private static double LogPerfDetail(
+        string label,
+        long startTimestamp,
+        double logThresholdMs = PerfDetailSlowCallThresholdMs)
+    {
+        if (startTimestamp == 0L || !ModLog.IsPerformanceTracingEnabled)
+            return 0.0;
+
+        double elapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+        if (elapsedMs >= logThresholdMs)
+        {
+            ModLog.Trace($"[PerfDetail] {label}: {elapsedMs:F2} ms");
+        }
+
+        return elapsedMs;
+    }
+
+    private TransitionPerformanceProbe? BeginTransitionPerformance(
+        string name,
+        double expectedSeconds)
+    {
+        if (!ModLog.IsPerformanceTracingEnabled)
+            return null;
+
+        TransitionPerformanceProbe probe =
+            new(name, expectedSeconds * 1000.0);
+        _activeTransitionPerformanceProbe = probe;
+        return probe;
+    }
+
+    private static PerformanceCounterSnapshot CapturePerformanceCounters()
+    {
+        return new PerformanceCounterSnapshot(
+            PreloadManager.Cache.MissedCacheAssetCount,
+            PreloadManager.Cache.GetCacheKeys().Count(),
+            GC.CollectionCount(0),
+            GC.CollectionCount(1),
+            GC.CollectionCount(2),
+            GC.GetTotalMemory(forceFullCollection: false));
+    }
+
+    private void SampleTransitionPerformance(double delta)
+    {
+        TransitionPerformanceProbe? probe =
+            _activeTransitionPerformanceProbe;
+        if (probe == null)
+            return;
+
+        probe.RecordFrame(delta * 1000.0);
+    }
+
+    private void EndTransitionPerformance(
+        TransitionPerformanceProbe probe)
+    {
+        probe.Stopwatch.Stop();
+
+        if (ReferenceEquals(
+                _activeTransitionPerformanceProbe,
+                probe))
+        {
+            _activeTransitionPerformanceProbe = null;
+        }
+
+        double actualMilliseconds =
+            probe.Stopwatch.Elapsed.TotalMilliseconds;
+        double overheadMilliseconds =
+            actualMilliseconds - probe.ExpectedMilliseconds;
+        double averageSampledFrameMilliseconds =
+            probe.ProcessFrames > 0
+                ? probe.SampledFrameMilliseconds / probe.ProcessFrames
+                : 0.0;
+
+        PerformanceCounterSnapshot counterEnd =
+            CapturePerformanceCounters();
+        string counterDeltas =
+            FormatPerformanceCounterDeltas(
+                probe.CounterStart,
+                counterEnd);
+
+        string worstFrames =
+            FormatWorstFrameSamples(probe.WorstFrameMilliseconds);
+
+        string message =
+            $"[Perf] CTA act {_nextActIndex + 1} {probe.Name}: " +
+            $"actual={actualMilliseconds:F1} ms, " +
+            $"expected={probe.ExpectedMilliseconds:F1} ms, " +
+            $"overhead={overheadMilliseconds:F1} ms, " +
+            $"frames={probe.ProcessFrames}, " +
+            $"sampledFrameTime={probe.SampledFrameMilliseconds:F1} ms, " +
+            $"avgSampledFrame={averageSampledFrameMilliseconds:F1} ms, " +
+            $"maxFrame={probe.MaxFrameMilliseconds:F1} ms, " +
+            $"worstFrames=[{worstFrames}], " +
+            $">25ms={probe.FramesOver25Milliseconds}, " +
+            $">33ms={probe.FramesOver33Milliseconds}, " +
+            $">50ms={probe.FramesOver50Milliseconds}, " +
+            $">100ms={probe.FramesOver100Milliseconds}, " +
+            $"{counterDeltas}.";
+
+        if (probe.MaxFrameMilliseconds >= 33.0
+            || overheadMilliseconds >= 75.0
+            || counterEnd.MissedCacheAssets
+                > probe.CounterStart.MissedCacheAssets
+            || counterEnd.Gen1Collections
+                > probe.CounterStart.Gen1Collections
+            || counterEnd.Gen2Collections
+                > probe.CounterStart.Gen2Collections)
+        {
+            ModLog.Trace(message);
+        }
+        else
+        {
+            ModLog.Trace(message);
+        }
+    }
+
+    private void LogBuildPerformance(
+        string stage,
+        Stopwatch stopwatch,
+        int slotCount,
+        PerformanceCounterSnapshot counterStart)
+    {
+        PerformanceCounterSnapshot counterEnd =
+            CapturePerformanceCounters();
+
+        string message =
+            $"[Perf] CTA act {_nextActIndex + 1} {stage} BuildUi: " +
+            $"{stopwatch.Elapsed.TotalMilliseconds:F1} ms for " +
+            $"{slotCount} slot(s), round={_roundType}, " +
+            $"{FormatPerformanceCounterDeltas(counterStart, counterEnd)}.";
+
+        if (stopwatch.Elapsed.TotalMilliseconds >= 33.0
+            || counterEnd.MissedCacheAssets
+                > counterStart.MissedCacheAssets
+            || counterEnd.Gen1Collections
+                > counterStart.Gen1Collections
+            || counterEnd.Gen2Collections
+                > counterStart.Gen2Collections)
+        {
+            ModLog.Trace(message);
+        }
+        else
+        {
+            ModLog.Trace(message);
+        }
+    }
+
+    private static string FormatWorstFrameSamples(
+        IReadOnlyList<double> worstFrameMilliseconds)
+    {
+        return string.Join(
+            ", ",
+            worstFrameMilliseconds
+                .Where(milliseconds => milliseconds > 0.0)
+                .Select(milliseconds => $"{milliseconds:F1}"));
+    }
+
+    private static string FormatPerformanceCounterDeltas(
+        PerformanceCounterSnapshot start,
+        PerformanceCounterSnapshot end)
+    {
+        return
+            $"cacheMissDelta={end.MissedCacheAssets - start.MissedCacheAssets:+#;-#;0}, " +
+            $"cachedAssetDelta={end.CachedAssets - start.CachedAssets:+#;-#;0}, " +
+            $"GC0={end.Gen0Collections - start.Gen0Collections:+#;-#;0}, " +
+            $"GC1={end.Gen1Collections - start.Gen1Collections:+#;-#;0}, " +
+            $"GC2={end.Gen2Collections - start.Gen2Collections:+#;-#;0}, " +
+            $"managedMemoryDelta={FormatSignedBytes(end.ManagedMemoryBytes - start.ManagedMemoryBytes)}";
+    }
+
+    private static string FormatSignedBytes(long bytes)
+    {
+        string sign = bytes > 0 ? "+" : bytes < 0 ? "-" : string.Empty;
+        double absoluteBytes = Math.Abs((double)bytes);
+
+        if (absoluteBytes >= 1024.0 * 1024.0)
+        {
+            return
+                $"{sign}{absoluteBytes / (1024.0 * 1024.0):F2} MiB";
+        }
+
+        if (absoluteBytes >= 1024.0)
+        {
+            return
+                $"{sign}{absoluteBytes / 1024.0:F1} KiB";
+        }
+
+        return $"{sign}{absoluteBytes:F0} B";
     }
 
     #endregion
@@ -2210,26 +2685,80 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             _hoveredPreviewWidget = null;
         }
 
+        Dictionary<string, RetainedAncientVisual> retainedVisuals =
+            TakeRetainedAncientVisualsForCurrentPool();
+
         ClearChildren(_slotsCanvas);
         _slots.Clear();
         DefaultFocusedControl = null;
-        
+
         SlotRefs? preferredFocusRefs = null;
 
         for (int i = 0; i < _pool.Count; i++)
         {
             AncientEventModel ancient = _pool[i];
-            SlotRefs refs = CreateSlot(ancient, i, cardScene);
+            RetainedAncientVisual? retainedVisual = null;
+            if (retainedVisuals.TryGetValue(ancient.Id.Entry, out RetainedAncientVisual? candidateRetainedVisual)
+                && GodotObject.IsInstanceValid(candidateRetainedVisual.SceneViewport)
+                && GodotObject.IsInstanceValid(candidateRetainedVisual.SceneMount))
+            {
+                retainedVisual = candidateRetainedVisual;
+            }
+
+            SlotRefs refs = CreateSlot(ancient, i, cardScene, retainedVisual);
             _slotsCanvas.AddChild(refs.SlotRoot);
             _slots.Add(refs);
+
             if (_roundType == VoteRoundType.FinalRevealVote
                 && !string.IsNullOrEmpty(_initialFocusAncientId)
                 && _initialFocusAncientId == refs.Ancient.Id.Entry)
             {
                 preferredFocusRefs = refs;
             }
+
             DefaultFocusedControl ??= refs.ChooseButtonWrap;
-            LoadAncientScene(refs);
+
+            if (retainedVisual == null)
+            {
+                LoadAncientScene(refs);
+            }
+            else
+            {
+                if (ModLog.IsPerformanceTracingEnabled)
+                {
+                    ModLog.Trace(
+                        $"[PerfDetail] CTA act {_nextActIndex + 1} reused rendered Ancient viewport for {ancient.Id.Entry}.");
+                }
+            }
+        }
+
+        if (preferredFocusRefs != null && _roundType == VoteRoundType.FinalRevealVote)
+        {
+            DefaultFocusedControl = preferredFocusRefs.ChooseButtonWrap;
+
+            // Optional: start the second screen visually "on" that card too.
+            _hoveredSlot = preferredFocusRefs;
+            _lastHoveredPoolIndex = preferredFocusRefs.PoolIndex;
+            _initialSecondRoundFocusPoolIndex = preferredFocusRefs.PoolIndex;
+            SetInitialSecondRoundWinnerEmphasisAmount(1f);
+        }
+
+        if (_roundType == VoteRoundType.FinalRevealVote)
+        {
+            long prePreviewLayoutStart = BeginPerfDetailTimestamp();
+            RefreshLayout();
+            if (prePreviewLayoutStart != 0L)
+            {
+                LogPerfDetail(
+                    $"CTA act {_nextActIndex + 1} BuildUi pre-preview geometry layout",
+                    prePreviewLayoutStart,
+                    logThresholdMs: 0.0);
+            }
+        }
+
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            SlotRefs refs = _slots[i];
             string populatePreviewAncientId = refs.Ancient?.Id?.Entry ?? "<null>";
             bool populatePreviewHasKey = refs.Ancient != null && _previewDataByAncientId.ContainsKey(populatePreviewAncientId);
             bool populatePreviewIsSuppressed = _hideSuppressedPreview
@@ -2247,20 +2776,36 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             PopulatePreview(refs);
         }
 
-        if (preferredFocusRefs != null && _roundType == VoteRoundType.FinalRevealVote)
+        long refreshLayoutPass1Start = BeginPerfDetailTimestamp();
+        RefreshLayout();
+        if (refreshLayoutPass1Start != 0L)
         {
-            DefaultFocusedControl = preferredFocusRefs.ChooseButtonWrap;
-
-            // Optional: start the second screen visually "on" that card too.
-            _hoveredSlot = preferredFocusRefs;
-            _lastHoveredPoolIndex = preferredFocusRefs.PoolIndex;
-            _initialSecondRoundFocusPoolIndex = preferredFocusRefs.PoolIndex;
-            SetInitialSecondRoundWinnerEmphasisAmount(1f);
+            LogPerfDetail(
+                $"CTA act {_nextActIndex + 1} BuildUi RefreshLayout pass 1",
+                refreshLayoutPass1Start,
+                logThresholdMs: 0.0);
         }
-        
-        RefreshLayout();
+
+        long secondVotePresentationStart = BeginPerfDetailTimestamp();
         ApplySecondVotePresentation(animate: false);
+        if (secondVotePresentationStart != 0L)
+        {
+            LogPerfDetail(
+                $"CTA act {_nextActIndex + 1} BuildUi ApplySecondVotePresentation",
+                secondVotePresentationStart,
+                logThresholdMs: 0.0);
+        }
+
+        long refreshLayoutPass2Start = BeginPerfDetailTimestamp();
         RefreshLayout();
+        if (refreshLayoutPass2Start != 0L)
+        {
+            LogPerfDetail(
+                $"CTA act {_nextActIndex + 1} BuildUi RefreshLayout pass 2",
+                refreshLayoutPass2Start,
+                logThresholdMs: 0.0);
+        }
+
         RefreshSlotVisuals(animate: false);
         RefreshButtonTexts();
         ConfigureControllerNavigation();
@@ -2269,7 +2814,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         GrabInitialFocus();
     }
 
-    private SlotRefs CreateSlot(AncientEventModel ancient, int poolIndex, PackedScene cardScene)
+    private SlotRefs CreateSlot(
+        AncientEventModel ancient,
+        int poolIndex,
+        PackedScene cardScene,
+        RetainedAncientVisual? retainedVisual = null)
     {
         /*
          * Creates one complete slot with its viewport, polygons, card UI, vote controls, and preview anchors.
@@ -2284,26 +2833,53 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             FocusMode = FocusModeEnum.None,
         };
 
-        SubViewport sceneViewport = new()
-        {
-            Name = "SceneViewport",
-            Disable3D = true,
-            TransparentBg = false,
-            HandleInputLocally = false,
-            RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
-            RenderTargetClearMode = SubViewport.ClearMode.Always,
-        };
-        slotRoot.AddChild(sceneViewport);
+        SubViewport sceneViewport;
+        Control sceneMount;
+        Node? retainedSceneRoot = null;
 
-        Control sceneMount = new()
+        if (retainedVisual != null
+            && GodotObject.IsInstanceValid(retainedVisual.SceneViewport)
+            && GodotObject.IsInstanceValid(retainedVisual.SceneMount))
         {
-            Name = "SceneMount",
-            MouseFilter = MouseFilterEnum.Ignore,
-            FocusMode = FocusModeEnum.None,
-            ZIndex = 0,
-        };
-        SetFullRect(sceneMount);
-        sceneViewport.AddChild(sceneMount);
+            sceneViewport = retainedVisual.SceneViewport;
+            sceneMount = retainedVisual.SceneMount;
+            retainedSceneRoot = retainedVisual.SceneRoot;
+
+            sceneViewport.Disable3D = true;
+            sceneViewport.TransparentBg = false;
+            sceneViewport.HandleInputLocally = false;
+            sceneViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
+            sceneViewport.RenderTargetClearMode = SubViewport.ClearMode.Always;
+        }
+        else
+        {
+            if (_sceneViewportHost == null)
+            {
+                throw new InvalidOperationException(
+                    "Ancient scene viewport host was not initialized before slot creation.");
+            }
+
+            sceneViewport = new SubViewport
+            {
+                Disable3D = true,
+                TransparentBg = false,
+                HandleInputLocally = false,
+                RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+                RenderTargetClearMode = SubViewport.ClearMode.Always,
+            };
+            sceneViewport.Name = $"SceneViewport_{sceneViewport.GetInstanceId()}";
+            _sceneViewportHost.AddChild(sceneViewport);
+
+            sceneMount = new Control
+            {
+                Name = "SceneMount",
+                MouseFilter = MouseFilterEnum.Ignore,
+                FocusMode = FocusModeEnum.None,
+                ZIndex = 0,
+            };
+            SetFullRect(sceneMount);
+            sceneViewport.AddChild(sceneMount);
+        }
 
         Polygon2D scenePolygon = new()
         {
@@ -2471,6 +3047,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             SlotRoot = slotRoot,
             SceneViewport = sceneViewport,
             SceneMount = sceneMount,
+            SceneRoot = retainedSceneRoot,
             ScenePolygon = scenePolygon,
             GlowPolygon = glowPolygon,
             HoverFlashPolygon = hoverFlashPolygon,
@@ -2831,9 +3408,25 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         refs.PreviewAnchor.Visible = true;
 
+        Vector2 previewAnchorSize = refs.PreviewAnchor.Size;
+        if (previewAnchorSize.X <= 1f || previewAnchorSize.Y <= 1f)
+        {
+            previewAnchorSize = new Vector2(Math.Max(1f, refs.CardRoot.Size.X - 24f), 280f);
+        }
+
+        PreviewLayoutMetrics initialMetrics =
+            GetPreviewLayoutMetrics(refs, previewAnchorSize, preview.Options.Count);
+
         for (int i = 0; i < preview.Options.Count; i++)
         {
             EventOption option = preview.Options[i];
+            Vector2 wrapperPosition = new(
+                initialMetrics.StartX,
+                initialMetrics.StartY + (i * (initialMetrics.DisplayHeight + initialMetrics.Gap)));
+            Vector2 wrapperSize = new(
+                initialMetrics.DisplayWidth / initialMetrics.ScaleX,
+                initialMetrics.DisplayHeight / initialMetrics.ScaleY);
+            Vector2 wrapperScale = new(initialMetrics.ScaleX, initialMetrics.ScaleY);
 
             Control previewWrapper = new()
             {
@@ -2843,6 +3436,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 ClipContents = false,
                 ZIndex = 3,
                 CustomMinimumSize = new Vector2(0f, 76f),
+                LayoutMode = 1,
+                AnchorLeft = 0f,
+                AnchorTop = 0f,
+                AnchorRight = 0f,
+                AnchorBottom = 0f,
+                Position = wrapperPosition,
+                Size = wrapperSize,
+                Scale = wrapperScale,
+                PivotOffset = Vector2.Zero,
             };
             refs.PreviewAnchor.AddChild(previewWrapper);
 
@@ -2853,7 +3455,38 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             previewButton.ZIndex = 3;
             SetFullRect(previewButton);
 
-            previewWrapper.AddChild(previewButton);
+            MegaRichTextLabel? previewLabel = FindFirstMegaRichTextLabel(previewButton);
+            bool restoreAutoSize = previewLabel?.AutoSizeEnabled == true;
+            if (restoreAutoSize)
+            {
+                previewLabel!.AutoSizeEnabled = false;
+            }
+
+            try
+            {
+                previewWrapper.AddChild(previewButton);
+            }
+            finally
+            {
+                if (restoreAutoSize && previewLabel != null && GodotObject.IsInstanceValid(previewLabel))
+                {
+                    previewLabel.AutoSizeEnabled = true;
+                }
+            }
+
+            if (restoreAutoSize && previewLabel != null && GodotObject.IsInstanceValid(previewLabel))
+            {
+                long autoSizeStart = BeginPerfDetailTimestamp();
+                previewLabel.Call(MegaRichTextLabel.MethodName.AdjustFontSize);
+                if (autoSizeStart != 0L)
+                {
+                    LogPerfDetail(
+                        $"CTA act {_nextActIndex + 1} preview autosize prime slot={refs.PoolIndex} " +
+                        $"ancient={requestedAncientId} option={i} size={previewLabel.Size}",
+                        autoSizeStart,
+                        logThresholdMs: 0.0);
+                }
+            }
 
             Control? voteContainer = previewButton.GetNodeOrNull<Control>("PlayerVoteContainer");
             if (voteContainer != null)
@@ -2883,6 +3516,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 HoverAlignment = refs.PoolIndex == 0 ? HoverTipAlignment.Right : HoverTipAlignment.Left,
                 Outline = previewOutline,
                 HsvMaterial = previewHsvMaterial,
+                BasePosition = wrapperPosition,
+                BaseScale = wrapperScale,
             });
 
             ModLog.Trace($"Added preview widget {i} for {refs.Ancient.Id.Entry}: relic={(option.Relic?.Id.Entry ?? "<none>")}, textKey={option.TextKey}");
@@ -3541,9 +4176,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     private PreviewLayoutMetrics GetPreviewLayoutMetrics(SlotRefs refs, Vector2 anchorSize)
     {
+        return GetPreviewLayoutMetrics(refs, anchorSize, refs.PreviewWidgets.Count);
+    }
+
+    private PreviewLayoutMetrics GetPreviewLayoutMetrics(SlotRefs refs, Vector2 anchorSize, int previewCount)
+    {
         /*
          * Computes the option row size, scale, and spacing for the current ballot layout.
-         * Final reveal allows the dialogue bubble to sit outside the option list's vertical budget.
+         * The explicit previewCount overload lets final-reveal wrappers receive their final dimensions before the
+         * NEventOptionButton children enter the scene tree and run MegaRichTextLabel autosizing.
          */
         float bubbleReserve = refs.ReactionBubble != null && _roundType != VoteRoundType.FinalRevealVote
             ? GetReactionBubbleHeight() + ScaleFrom1080(ReactionBubbleGap)
@@ -3594,7 +4235,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
                 break;
         }
 
-        if (refs.PreviewWidgets.Count >= 4)
+        if (previewCount >= 4)
         {
             /*
              * Applies compact row metrics when a preview list has more options than the standard layout.
@@ -3610,8 +4251,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         displayWidth = MathF.Max(1f, displayWidth - (horizontalPadding * 2f));
         displayWidth = MathF.Min(displayWidth, anchorSize.X);
 
-        float totalHeight = (refs.PreviewWidgets.Count * displayHeight)
-            + (Math.Max(0, refs.PreviewWidgets.Count - 1) * gap);
+        float totalHeight = (previewCount * displayHeight)
+            + (Math.Max(0, previewCount - 1) * gap);
 
         if (totalHeight > availableHeight && totalHeight > 0f)
         {
@@ -3830,9 +4471,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             refs.SlotRoot.PivotOffset = area * 0.5f;
             refs.SlotRoot.ZIndex = 2;
 
-            refs.SceneViewport.Size = new Vector2I(
+            Vector2I desiredViewportSize = new(
                 Math.Max(1, (int)MathF.Ceiling(area.X)),
                 Math.Max(1, (int)MathF.Ceiling(area.Y)));
+            if (refs.SceneViewport.Size != desiredViewportSize)
+            {
+                refs.SceneViewport.Size = desiredViewportSize;
+            }
 
             refs.CardRoot.Position = refs.CardBasePosition;
             refs.CardRoot.Size = shape.CardRect.Size;
@@ -3859,6 +4504,23 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         const float narrowCardWidth = 210f;
         const float fullCardWidth = 430f;
 
+        bool perfTracing = ModLog.IsPerformanceTracingEnabled;
+        string? perfPrefix = perfTracing
+            ? $"slot {refs.PoolIndex} {refs.Ancient.Id.Entry} ApplyResponsiveCardLayout"
+            : null;
+        long totalStart = perfTracing
+            ? Stopwatch.GetTimestamp()
+            : 0L;
+
+        float currentCardWidth = refs.CardRoot.Size.X;
+        if (!float.IsNaN(refs.LastResponsiveCardWidth)
+            && Mathf.IsEqualApprox(refs.LastResponsiveCardWidth, currentCardWidth))
+        {
+            return;
+        }
+
+        refs.LastResponsiveCardWidth = currentCardWidth;
+
         float widthFactor = Mathf.Clamp(
             (refs.CardRoot.Size.X - narrowCardWidth) / (fullCardWidth - narrowCardWidth),
             0f,
@@ -3878,39 +4540,87 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         int buttonFontSize = (int)MathF.Round(Mathf.Lerp(15f, 24f, widthFactor));
         int buttonOutlineSize = (int)MathF.Round(Mathf.Lerp(4f, 6f, widthFactor));
 
+        long callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.CardPadding.OffsetLeft = horizontalPadding;
         refs.CardPadding.OffsetTop = topPadding;
         refs.CardPadding.OffsetRight = -horizontalPadding;
         refs.CardPadding.OffsetBottom = -bottomPadding;
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: CardPadding offsets", callStart);
 
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.CardVBox.AddThemeConstantOverride("separation", cardGap);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: CardVBox separation override", callStart);
+
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.CardHeader.AddThemeConstantOverride("separation", headerGap);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: CardHeader separation override", callStart);
+
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.CardHeader.ClipContents = true;
         refs.CardTextBox.CustomMinimumSize = Vector2.Zero;
         refs.CardTextBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: header/text-box layout", callStart);
 
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.Icon.CustomMinimumSize = new Vector2(iconSize, iconSize);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: icon minimum size", callStart);
 
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.NameLabel.ClipText = true;
         refs.NameLabel.AutowrapMode = TextServer.AutowrapMode.Off;
         refs.NameLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        refs.NameLabel.AddThemeFontSizeOverride("font_size", nameFontSize);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: name label properties", callStart);
 
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
+        refs.NameLabel.AddThemeFontSizeOverride("font_size", nameFontSize);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: name font-size override", callStart);
+
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.EpithetLabel.ClipText = true;
         refs.EpithetLabel.AutowrapMode = TextServer.AutowrapMode.Off;
         refs.EpithetLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        refs.EpithetLabel.AddThemeFontSizeOverride("font_size", epithetFontSize);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: epithet label properties", callStart);
 
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
+        refs.EpithetLabel.AddThemeFontSizeOverride("font_size", epithetFontSize);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: epithet font-size override", callStart);
+
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.ChooseButtonWrap.CustomMinimumSize = new Vector2(0f, buttonHeight);
         refs.ChooseButton.CustomMinimumSize = new Vector2(0f, buttonHeight);
         refs.ChooseButton.ClipText = true;
         refs.ChooseButton.AutowrapMode = TextServer.AutowrapMode.Off;
         refs.ChooseButton.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        refs.ChooseButton.AddThemeFontSizeOverride("font_size", buttonFontSize);
-        refs.ChooseButton.AddThemeConstantOverride("outline_size", buttonOutlineSize);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: choose-button layout/properties", callStart);
 
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
+        refs.ChooseButton.AddThemeFontSizeOverride("font_size", buttonFontSize);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: choose-button font-size override", callStart);
+
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
+        refs.ChooseButton.AddThemeConstantOverride("outline_size", buttonOutlineSize);
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: choose-button outline override", callStart);
+
+        callStart = perfTracing ? Stopwatch.GetTimestamp() : 0L;
         refs.TopAccent.OffsetLeft = accentInset;
         refs.TopAccent.OffsetRight = -accentInset;
+        if (callStart != 0L)
+            LogPerfDetail($"{perfPrefix}: top-accent offsets", callStart);
+
+        if (totalStart != 0L)
+            LogPerfDetail($"{perfPrefix}: TOTAL", totalStart);
     }
 
     private void LayoutVoteButtonPrompt(SlotRefs refs)
@@ -3976,24 +4686,44 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             PreviewWidgetRefs widget = refs.PreviewWidgets[i];
             Control wrapper = widget.Wrapper;
-            wrapper.LayoutMode = 1;
-            wrapper.AnchorLeft = 0f;
-            wrapper.AnchorTop = 0f;
-            wrapper.AnchorRight = 0f;
-            wrapper.AnchorBottom = 0f;
-            wrapper.Position = new Vector2(metrics.StartX, metrics.StartY + (i * (metrics.DisplayHeight + metrics.Gap)));
-            wrapper.PivotOffset = Vector2.Zero;
-            wrapper.ClipContents = false;
-            wrapper.Size = new Vector2(metrics.DisplayWidth / metrics.ScaleX, metrics.DisplayHeight / metrics.ScaleY);
-            wrapper.Scale = new Vector2(metrics.ScaleX, metrics.ScaleY);
+            Vector2 targetPosition = new(
+                metrics.StartX,
+                metrics.StartY + (i * (metrics.DisplayHeight + metrics.Gap)));
+            Vector2 targetSize = new(
+                metrics.DisplayWidth / metrics.ScaleX,
+                metrics.DisplayHeight / metrics.ScaleY);
+            Vector2 targetScale = new(metrics.ScaleX, metrics.ScaleY);
+
+            if (wrapper.LayoutMode != 1)
+                wrapper.LayoutMode = 1;
+            if (wrapper.AnchorLeft != 0f)
+                wrapper.AnchorLeft = 0f;
+            if (wrapper.AnchorTop != 0f)
+                wrapper.AnchorTop = 0f;
+            if (wrapper.AnchorRight != 0f)
+                wrapper.AnchorRight = 0f;
+            if (wrapper.AnchorBottom != 0f)
+                wrapper.AnchorBottom = 0f;
+            if (wrapper.Position != targetPosition)
+                wrapper.Position = targetPosition;
+            if (wrapper.PivotOffset != Vector2.Zero)
+                wrapper.PivotOffset = Vector2.Zero;
+            if (wrapper.ClipContents)
+                wrapper.ClipContents = false;
+            if (wrapper.Size != targetSize)
+                wrapper.Size = targetSize;
+            if (wrapper.Scale != targetScale)
+                wrapper.Scale = targetScale;
 
             Control button = widget.Button;
-            SetFullRect(button);
-            button.Scale = Vector2.One;
-            button.PivotOffset = Vector2.Zero;
+            SetFullRectIfNeeded(button);
+            if (button.Scale != Vector2.One)
+                button.Scale = Vector2.One;
+            if (button.PivotOffset != Vector2.Zero)
+                button.PivotOffset = Vector2.Zero;
 
-            widget.BasePosition = wrapper.Position;
-            widget.BaseScale = wrapper.Scale;
+            widget.BasePosition = targetPosition;
+            widget.BaseScale = targetScale;
         }
     }
 
@@ -6218,13 +6948,114 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         control.GrowVertical = Control.GrowDirection.Both;
     }
 
+    private static void SetFullRectIfNeeded(Control control)
+    {
+        /*
+         * Avoids emitting another full set of layout-property changes when the control is already full-rect.
+         */
+        if (control.LayoutMode == 1
+            && control.AnchorLeft == 0f
+            && control.AnchorTop == 0f
+            && control.AnchorRight == 1f
+            && control.AnchorBottom == 1f
+            && control.OffsetLeft == 0f
+            && control.OffsetTop == 0f
+            && control.OffsetRight == 0f
+            && control.OffsetBottom == 0f
+            && control.GrowHorizontal == Control.GrowDirection.Both
+            && control.GrowVertical == Control.GrowDirection.Both)
+        {
+            return;
+        }
+
+        SetFullRect(control);
+    }
+
+    private static MegaRichTextLabel? FindFirstMegaRichTextLabel(Node root)
+    {
+        /*
+         * NEventOptionButton owns one MegaRichTextLabel for its option text. Find it before the button enters the
+         * scene tree so we can suppress the scene-authored _Ready autosize pass without relying on unique-name lookup.
+         */
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is MegaRichTextLabel label)
+            {
+                return label;
+            }
+
+            MegaRichTextLabel? nested = FindFirstMegaRichTextLabel(child);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
+    private Dictionary<string, RetainedAncientVisual> TakeRetainedAncientVisualsForCurrentPool()
+    {
+        /*
+         * The initial and final ballots show the same Ancient background scenes. Retain only the finalists'
+         * already-rendered SubViewport trees across the rebuild so Godot does not allocate fresh render targets
+         * and instantiate the same Ancient scene immediately before the incoming tween.
+         *
+         * Card controls are still rebuilt, so final-round pool indices/input closures remain correct and all six
+         * preview option widgets are created exactly as before.
+         */
+        Dictionary<string, RetainedAncientVisual> retained = new(StringComparer.Ordinal);
+
+        if (_slots.Count == 0 || _pool.Count == 0)
+        {
+            return retained;
+        }
+
+        HashSet<string> targetIds = _pool
+            .Select(ancient => ancient.Id.Entry)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (SlotRefs refs in _slots)
+        {
+            string ancientId = refs.Ancient.Id.Entry;
+            if (!GodotObject.IsInstanceValid(refs.SceneViewport)
+                || !GodotObject.IsInstanceValid(refs.SceneMount))
+            {
+                continue;
+            }
+
+            if (!targetIds.Contains(ancientId))
+            {
+                refs.SceneViewport.QueueFree();
+                continue;
+            }
+
+            retained[ancientId] = new RetainedAncientVisual
+            {
+                SceneViewport = refs.SceneViewport,
+                SceneMount = refs.SceneMount,
+                SceneRoot = refs.SceneRoot,
+            };
+        }
+
+        if (retained.Count > 0 && ModLog.IsPerformanceTracingEnabled)
+        {
+            ModLog.Trace(
+                $"[PerfDetail] CTA act {_nextActIndex + 1} retained {retained.Count} rendered Ancient viewport(s) " +
+                "under the stable viewport host for slot rebuild reuse.");
+        }
+
+        return retained;
+    }
+
     private static void ClearChildren(Node parent)
     {
         /*
-         * Queues every existing child of a node for removal.
+         * Detaches old controls immediately, then queues them for safe deferred destruction.
          */
         foreach (Node child in parent.GetChildren())
         {
+            parent.RemoveChild(child);
             child.QueueFree();
         }
     }
