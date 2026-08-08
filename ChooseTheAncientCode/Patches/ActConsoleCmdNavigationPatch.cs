@@ -19,15 +19,14 @@ namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 [HarmonyPatch(typeof(ActConsoleCmd), nameof(ActConsoleCmd.Process))]
 public static class ActConsoleCmdNavigationPatch
 {
-    private static readonly FieldInfo LastTransitioningActIndexField =
-        AccessTools.Field(typeof(ActChangeSynchronizer), "_lastTransitioningActIndex")
-        ?? throw new InvalidOperationException(
-            "Could not locate ActChangeSynchronizer._lastTransitioningActIndex.");
+    // _lastTransitioningActIndex was added after the sts2 0.107.1 main.
+    private static readonly FieldInfo? LastTransitioningActIndexField =
+        AccessTools.Field(typeof(ActChangeSynchronizer), "_lastTransitioningActIndex");
 
-    private static readonly FieldInfo ReadyPlayersField =
-        AccessTools.Field(typeof(ActChangeSynchronizer), "_readyPlayers")
-        ?? throw new InvalidOperationException(
-            "Could not locate ActChangeSynchronizer._readyPlayers.");
+    private static readonly FieldInfo? ReadyPlayersField =
+        AccessTools.Field(typeof(ActChangeSynchronizer), "_readyPlayers");
+
+    private static bool _reportedMissingReadyPlayers;
 
     [HarmonyPrefix]
     private static bool Prefix(
@@ -126,17 +125,26 @@ public static class ActConsoleCmdNavigationPatch
         ActChangeSynchronizer synchronizer =
             RunManager.Instance.ActChangeSynchronizer;
 
-        LastTransitioningActIndexField.SetValue(synchronizer, -1);
+        // Newer builds track the transitioning act explicitly. Older main does not
+        // have this field, so there is nothing equivalent to clear there.
+        LastTransitioningActIndexField?.SetValue(synchronizer, -1);
 
-        List<bool> readyPlayers =
-            (List<bool>)ReadyPlayersField.GetValue(synchronizer)!;
-
-        for (int i = 0; i < readyPlayers.Count; i++)
+        if (ReadyPlayersField?.GetValue(synchronizer) is List<bool> readyPlayers)
         {
-            readyPlayers[i] = false;
+            for (int i = 0; i < readyPlayers.Count; i++)
+            {
+                readyPlayers[i] = false;
+            }
+        }
+        else if (!_reportedMissingReadyPlayers)
+        {
+            _reportedMissingReadyPlayers = true;
+            ModLog.Warn(
+                "Could not locate/read ActChangeSynchronizer._readyPlayers. " +
+                "CTA will skip that optional dev-console transition cleanup.");
         }
 
         ModLog.Info(
-            $"Cleared vanilla act-transition state after {source} navigation.");
+            $"Cleared available vanilla act-transition state after {source} navigation.");
     }
 }

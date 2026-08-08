@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/settings_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/settings_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/settings_ui.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/settings/ritsulib_settings_schema.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/BaseLibSettingsInterop.cs" afterDir="false" />
-    </list>
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -309,47 +301,7 @@
       <workItem from="1785938579751" duration="41993000" />
       <workItem from="1786033223879" duration="15064000" />
       <workItem from="1786106512329" duration="10098000" />
-      <workItem from="1786123733058" duration="41766000" />
-    </task>
-    <task id="LOCAL-00124" summary="Updated the links in the winners showcase to the github raw links">
-      <option name="closed" value="true" />
-      <created>1785697850020</created>
-      <option name="number" value="00124" />
-      <option name="presentableId" value="LOCAL-00124" />
-      <option name="project" value="LOCAL" />
-      <updated>1785697850020</updated>
-    </task>
-    <task id="LOCAL-00125" summary="winners showcase raw gif links attempt 2">
-      <option name="closed" value="true" />
-      <created>1785697983873</created>
-      <option name="number" value="00125" />
-      <option name="presentableId" value="LOCAL-00125" />
-      <option name="project" value="LOCAL" />
-      <updated>1785697983873</updated>
-    </task>
-    <task id="LOCAL-00126" summary="wener showcase now with html links to the raw github gifs.">
-      <option name="closed" value="true" />
-      <created>1785698225745</created>
-      <option name="number" value="00126" />
-      <option name="presentableId" value="LOCAL-00126" />
-      <option name="project" value="LOCAL" />
-      <updated>1785698225745</updated>
-    </task>
-    <task id="LOCAL-00127" summary="moved the winners_showcase to the showcase folder">
-      <option name="closed" value="true" />
-      <created>1785698293920</created>
-      <option name="number" value="00127" />
-      <option name="presentableId" value="LOCAL-00127" />
-      <option name="project" value="LOCAL" />
-      <updated>1785698293920</updated>
-    </task>
-    <task id="LOCAL-00128" summary="Removed description from workshop file as when I updated it, it replaced the edited description on the steam store.">
-      <option name="closed" value="true" />
-      <created>1785702365633</created>
-      <option name="number" value="00128" />
-      <option name="presentableId" value="LOCAL-00128" />
-      <option name="project" value="LOCAL" />
-      <updated>1785702365633</updated>
+      <workItem from="1786123733058" duration="49461000" />
     </task>
     <task id="LOCAL-00129" summary="winners showcase fixed grammer errors&#10;fixed README.md&#10;added steam discription to a file">
       <option name="closed" value="true" />
@@ -703,7 +655,47 @@
       <option name="project" value="LOCAL" />
       <updated>1786174183325</updated>
     </task>
-    <option name="localTasksCounter" value="173" />
+    <task id="LOCAL-00173" summary="Added explainer to the game modes for all setting menus.&#10;wholeancient, controller tooltips on, modlog level trace on, as the default config options for their settings.">
+      <option name="closed" value="true" />
+      <created>1786174534977</created>
+      <option name="number" value="00173" />
+      <option name="presentableId" value="LOCAL-00173" />
+      <option name="project" value="LOCAL" />
+      <updated>1786174534977</updated>
+    </task>
+    <task id="LOCAL-00174" summary="Making cta work for main 0.107.1 compatible with the console and controller changes in the 0.110.1 beta update.">
+      <option name="closed" value="true" />
+      <created>1786201767672</created>
+      <option name="number" value="00174" />
+      <option name="presentableId" value="LOCAL-00174" />
+      <option name="project" value="LOCAL" />
+      <updated>1786201767672</updated>
+    </task>
+    <task id="LOCAL-00175" summary="Making cta work for main 0.107.1 compatible with the console and controller changes in the 0.110.1 beta update.">
+      <option name="closed" value="true" />
+      <created>1786201942957</created>
+      <option name="number" value="00175" />
+      <option name="presentableId" value="LOCAL-00175" />
+      <option name="project" value="LOCAL" />
+      <updated>1786201942957</updated>
+    </task>
+    <task id="LOCAL-00176" summary="Making cta work for main 0.107.1 compatible with the console and controller changes in the 0.110.1 beta update.">
+      <option name="closed" value="true" />
+      <created>1786204857351</created>
+      <option name="number" value="00176" />
+      <option name="presentableId" value="LOCAL-00176" />
+      <option name="project" value="LOCAL" />
+      <updated>1786204857351</updated>
+    </task>
+    <task id="LOCAL-00177" summary="Making cta work for main 0.107.1 compatible with the console and controller changes in the 0.110.1 beta update.">
+      <option name="closed" value="true" />
+      <created>1786205762382</created>
+      <option name="number" value="00177" />
+      <option name="presentableId" value="LOCAL-00177" />
+      <option name="project" value="LOCAL" />
+      <updated>1786205762382</updated>
+    </task>
+    <option name="localTasksCounter" value="178" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -739,8 +731,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Keyborad tooltip set for keybeard, and controllers like xbox and playstation" />
-    <MESSAGE value="controller and keybeard mode navigate up and down the preview options and vote button like a normal list" />
     <MESSAGE value="preview options highlight outline is now visible" />
     <MESSAGE value="Instead of dimminhg by alpha which can make it transparant and show character if behind selection screen, darkened color instead." />
     <MESSAGE value="GrabFocus had some surface errors, so I guarded it to clean the log" />
@@ -764,7 +754,9 @@
     <MESSAGE value="fixed the animation from ancients on opposite sides switching between rounds by hiding them until the animation again." />
     <MESSAGE value="Changed defaults and added gamemode explanations and hovertips.&#10;whole card, controller tooltip, modlog level trace on," />
     <MESSAGE value="Fix retained Ancient transition positioning by cancelling stale scene tweens" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix retained Ancient transition positioning by cancelling stale scene tweens" />
+    <MESSAGE value="Added explainer to the game modes for all setting menus.&#10;wholeancient, controller tooltips on, modlog level trace on, as the default config options for their settings." />
+    <MESSAGE value="Making cta work for main 0.107.1 compatible with the console and controller changes in the 0.110.1 beta update." />
+    <option name="LAST_COMMIT_MESSAGE" value="Making cta work for main 0.107.1 compatible with the console and controller changes in the 0.110.1 beta update." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

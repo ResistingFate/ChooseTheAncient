@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Reflection;
 using HarmonyLib;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using MegaCrit.Sts2.Core.DevConsole;
-using MegaCrit.Sts2.Core.Nodes.Debug;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
@@ -62,9 +62,6 @@ internal static class ChooseTheAncientConsoleBallotPreprocessPatch
                 $"queueing a replacement {commandName} command.");
         }
 
-        if (NDevConsole.IsConsoleVisible)
-        {
-            NDevConsole.Instance.HideConsole();
-        }
+        DevConsoleCompatibility.HideIfVisible();
     }
 }

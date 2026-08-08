@@ -215,7 +215,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         public required Button ChooseButton { get; init; }
         public required Control CardClickTarget { get; init; }
         public required Control SlotClickTarget { get; init; }
-        public required NHotkeyIcon VoteButtonPrompt { get; init; }
+        public Control? VoteButtonPrompt { get; init; }
         public required Control VoteIconsAnchor { get; init; }
         public required Control PreviewAnchor { get; init; }
         public required Control ReactionAnchor { get; init; }
@@ -589,7 +589,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     }
 
     private TransitionPerformanceProbe? _activeTransitionPerformanceProbe;
-    private PackedScene _hotkeyIconScene = null!;
+    private PackedScene? _hotkeyIconScene;
 
     private readonly List<SlotRefs> _slots = new();
     private readonly List<Player> _orderedPlayers = new();
@@ -626,6 +626,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
     private int? _runTopBarOldZIndex;
     private int? _lastHoveredPoolIndex;
     private PreviewWidgetRefs? _hoveredPreviewWidget;
+    private Control? _lastControllerVisualFocusOwner;
     private Player? _currentlyHighlightedVotePlayer;
     private int? _finalChosenPoolIndex;
     private int? _initialSecondRoundFocusPoolIndex;
@@ -768,9 +769,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         SyncConfigFromSavedSettings();
 
-        _hotkeyIconScene = GD.Load<PackedScene>(HotkeyIconScenePath)
-            ?? throw new InvalidOperationException(
-                $"Could not load adaptive vote prompt scene: {HotkeyIconScenePath}");
+        _hotkeyIconScene =
+            HotkeyIconCompatibility.TryLoadScene(HotkeyIconScenePath);
 
         PackedScene? layoutScene = GD.Load<PackedScene>(LayoutScenePath);
         if (layoutScene == null)
@@ -903,7 +903,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             _lastVoteClickTarget = VoteClickTarget;
         }
 
-        UpdateWholeSlotHoverFromMouse();
+        if (!SyncControllerFocusVisualState())
+        {
+            UpdateWholeSlotHoverFromMouse();
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -2699,6 +2702,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ClearChildren(_slotsCanvas);
         _slots.Clear();
         DefaultFocusedControl = null;
+        _lastControllerVisualFocusOwner = null;
 
         SlotRefs? preferredFocusRefs = null;
 
@@ -2974,8 +2978,21 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         Control chooseButtonWrap = cardRoot.GetNode<Control>("Padding/VBox/ChooseButtonWrap");
         Button chooseButton = cardRoot.GetNode<Button>("Padding/VBox/ChooseButtonWrap/ChooseButton");
         NinePatchRect chooseButtonOutline = cardRoot.GetNode<NinePatchRect>("Padding/VBox/ChooseButtonWrap/ChooseButtonOutline");
-        NHotkeyIcon voteButtonPrompt =
-            _hotkeyIconScene.Instantiate<NHotkeyIcon>(); // tooltip for keyboard space, plastation x, and xbox a
+        Control? voteButtonPrompt = null;
+        if (_hotkeyIconScene != null)
+        {
+            try
+            {
+                voteButtonPrompt = _hotkeyIconScene.Instantiate<Control>();
+            }
+            catch (Exception ex)
+            {
+                HotkeyIconCompatibility.ReportInstantiationFailure(ex);
+            }
+        }
+        
+        voteButtonPrompt ??= HotkeyIconCompatibility.CreateLegacyControllerPrompt();
+
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
         Control voteIconsAnchor = cardRoot.GetNode<Control>("VoteIconsAnchor");
@@ -2988,12 +3005,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ApplyVoteButtonLook(chooseButton, chooseButtonOutline, bodyVisible: !ShowOnlyButtonOutline);
         ApplyCardOutlineLook(cardOutline);
 
-        voteButtonPrompt.Name = "HotkeyIcon";
-        voteButtonPrompt.MouseFilter = MouseFilterEnum.Ignore;
-        voteButtonPrompt.FocusMode = FocusModeEnum.None;
-        voteButtonPrompt.Visible = false;
-        voteButtonPrompt.ZIndex = 4;
-        chooseButtonWrap.AddChild(voteButtonPrompt);
+        if (voteButtonPrompt != null)
+        {
+            voteButtonPrompt.Name = "HotkeyIcon";
+            voteButtonPrompt.MouseFilter = MouseFilterEnum.Ignore;
+            voteButtonPrompt.FocusMode = FocusModeEnum.None;
+            voteButtonPrompt.Visible = false;
+            voteButtonPrompt.ZIndex = 4;
+            chooseButtonWrap.AddChild(voteButtonPrompt);
+        }
         
         chooseButtonWrap.FocusMode = FocusModeEnum.All;
         chooseButtonWrap.MouseFilter = MouseFilterEnum.Ignore;
@@ -4622,8 +4642,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Positions and sizes the vote-button controller prompt icon with screen-responsive scaling.
          */
-        NHotkeyIcon icon = refs.VoteButtonPrompt;
-        if (!GodotObject.IsInstanceValid(icon))
+        Control? icon = refs.VoteButtonPrompt;
+        if (icon == null || !GodotObject.IsInstanceValid(icon))
         {
             return;
         }
@@ -4632,7 +4652,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             ? Mathf.Clamp(_stageArea.Size.Y / 1080f, 0.90f, 1.25f)
             : 1f;
 
-        bool keyboardOnly = NControllerManager.Instance?.InputType == InputType.KeyboardOnlyMode;
+        bool keyboardOnly = NControllerManager.Instance is { } controllerManager
+            && InputNavigationCompatibility.IsKeyboardOnlyMode(controllerManager);
         float iconHeight = Mathf.Clamp(32f * screenScale, 28f, 40f);
         float iconWidth = keyboardOnly
             ? Mathf.Clamp(72f * screenScale, 64f, 88f)
@@ -6096,8 +6117,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         /*
          * Animates the active vote-button prompt in or out for a single slot.
          */
-        NHotkeyIcon icon = refs.VoteButtonPrompt;
-        if (!GodotObject.IsInstanceValid(icon))
+        Control? icon = refs.VoteButtonPrompt;
+        if (icon == null || !GodotObject.IsInstanceValid(icon))
         {
             return;
         }
@@ -6165,16 +6186,20 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         foreach (SlotRefs refs in _slots)
         {
-            if (!IsInstanceValid(refs.VoteButtonPrompt))
+            Control? icon = refs.VoteButtonPrompt;
+            if (icon == null || !IsInstanceValid(icon))
             {
                 continue;
             }
 
-            refs.VoteButtonPrompt.UpdateInput(MegaInput.select);
+            bool hasRenderablePrompt =
+                showDirectionalPrompts &&
+                HotkeyIconCompatibility.UpdateInput(icon, MegaInput.select);
+
             LayoutVoteButtonPrompt(refs);
 
             bool shouldShow =
-                showDirectionalPrompts &&
+                hasRenderablePrompt &&
                 !refs.ChooseButton.Disabled &&
                 ReferenceEquals(activeSlot, refs);
 
@@ -6230,6 +6255,74 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         int clampedPreviewIndex = Math.Clamp(previewIndex, 0, adjacentPreviews.Count - 1);
         return adjacentPreviews[clampedPreviewIndex].Wrapper;
+    }
+
+    private bool SyncControllerFocusVisualState()
+    {
+        /*
+         * Mirrors controller focus into the same slot/preview hover state used by the mouse. This is a compatability fix for sts2 0.107.1 main.
+         */
+        NControllerManager? controllerManager = NControllerManager.Instance;
+        if (controllerManager == null ||
+            !InputNavigationCompatibility.IsUsingDirectionalNavigation(controllerManager))
+        {
+            _lastControllerVisualFocusOwner = null;
+            return false;
+        }
+
+        Control? focusedControl = GetViewport().GuiGetFocusOwner();
+
+        if (ReferenceEquals(_lastControllerVisualFocusOwner, focusedControl))
+        {
+            return true;
+        }
+
+        _lastControllerVisualFocusOwner = focusedControl;
+
+        SlotRefs? focusedSlot = FindFocusedVoteSlot(focusedControl);
+        if (focusedSlot == null || focusedSlot.ChooseButton.Disabled)
+        {
+            return true;
+        }
+
+        PreviewWidgetRefs? focusedPreview = focusedSlot.PreviewWidgets.FirstOrDefault(widget =>
+            GodotObject.IsInstanceValid(widget.Wrapper) &&
+            (ReferenceEquals(widget.Wrapper, focusedControl) ||
+             (focusedControl != null && widget.Wrapper.IsAncestorOf(focusedControl))));
+
+        if (focusedPreview != null)
+        {
+            if (!ReferenceEquals(_hoveredPreviewWidget, focusedPreview))
+            {
+                int previewIndex = focusedSlot.PreviewWidgets.IndexOf(focusedPreview);
+                OnPreviewHovered(focusedSlot, previewIndex);
+            }
+            else if (!ReferenceEquals(_hoveredSlot, focusedSlot))
+            {
+                _hoveredSlot = focusedSlot;
+                _lastHoveredPoolIndex = focusedSlot.PoolIndex;
+                RefreshSlotVisuals(animate: true);
+                RefreshAllVoteButtonOutlines();
+                UpdateVoteButtonPrompts();
+            }
+
+            return true;
+        }
+
+        if (_hoveredPreviewWidget != null)
+        {
+            PreviewWidgetRefs oldPreview = _hoveredPreviewWidget;
+            _hoveredPreviewWidget = null;
+            ApplyPreviewHoverVisuals(oldPreview, hovered: false);
+            NHoverTipSet.Remove(oldPreview.Wrapper);
+        }
+
+        if (!ReferenceEquals(_hoveredSlot, focusedSlot))
+        {
+            OnSlotHovered(focusedSlot.PoolIndex);
+        }
+
+        return true;
     }
 
     private void ConfigureControllerNavigation()
