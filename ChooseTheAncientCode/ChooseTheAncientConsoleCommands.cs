@@ -692,19 +692,6 @@ internal static class ChooseTheAncientConsoleBallotRunner
             ChooseTheAncientHelpers.GetChosenAncient(runState.Act);
         MapCoord ancientCoord = runState.Map.StartingMapPoint.coord;
 
-        bool startingHistoryUpdated =
-            ChooseTheAncientHelpers.RewriteStartingMapPointHistoryToAncient(
-                runState,
-                applyToActIndex,
-                chosenAncient);
-
-        if (startingHistoryUpdated)
-        {
-            ModLog.Debug(
-                $"{commandName} updated act {applyToActIndex + 1}'s canonical " +
-                $"starting Ancient history to {chosenAncient.Id.Entry}.");
-        }
-
         bool iconUpdated =
             ChooseTheAncientHelpers.ApplyChosenAncientIconToStartingMapPoint(
                 runState,
@@ -917,7 +904,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
         }
     }
 
-    private static async Task<bool> ReleasePreviousConsoleFlowAsync(
+    internal static async Task<bool> ReleasePreviousConsoleFlowAsync(
         RunState runState,
         ChooseTheAncientFlowState flow,
         int requestId,
