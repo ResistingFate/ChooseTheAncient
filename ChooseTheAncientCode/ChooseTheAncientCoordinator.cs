@@ -20,7 +20,6 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using ChooseTheAncient.ChooseTheAncientCode.Rooms;
-using ChooseTheAncient.ChooseTheAncientCode.Messages;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Assets;
 
@@ -95,42 +94,6 @@ public static class ChooseTheAncientCoordinator
         await task;
     }
 
-    private static readonly object StartupBootstrapSyncLock = new();
-
-    private static bool StartupBootstrapStepHandlerRegistered;
-    private static INetGameService? StartupBootstrapStepHandlerNetService;
-    private static MessageHandlerDelegate<ChooseTheAncientStartupStepCompletedMessage>? StartupBootstrapStepHandler;
-    private static ChooseTheAncientFlowState? ActiveStartupBootstrapFlow;
-    private static RunState? ActiveStartupBootstrapRunState;
-    private static HashSet<ulong> ActiveStartupBootstrapPlayers = new();
-
-    // This is a watchdog, not the normal path. The normal path proceeds as soon as every player reports.
-    // It prevents a missed custom message from freezing the Act 1 shell room forever. Comment out if not needed.
-    private const int StartupBootstrapBarrierMaxFrames = 7200;
-
-
-
-    private static int BeginAct1StartupBootstrapSync(
-        RunState runState,
-        ChooseTheAncientFlowState flow,
-        IReadOnlyList<Player> orderedPlayers)
-    /*
-     * Starts a multiplayer barrier for the Act 1 bootstrap shell so all players complete modifier setup before map generation continues.
-     */
-    {
-        EnsureStartupBootstrapStepHandlerRegistered(runState, flow, orderedPlayers);
-        int syncEpoch = flow.BeginAct1StartupBootstrapSyncEpoch();
-
-        ModLog.Debug(
-            $"Began CTA Act 1 startup bootstrap sync epoch {syncEpoch} for players " +
-            $"{string.Join(",", orderedPlayers.Select(player => player.NetId))}.");
-
-        return syncEpoch;
-    }
-
-
-
-
 
     public static async Task RunAct1StartingRoomFlowAsync(
         RunState runState,
@@ -163,8 +126,6 @@ public static class ChooseTheAncientCoordinator
             List<Player> orderedPlayers = runState.Players
                 .OrderBy(runState.GetPlayerSlotIndex)
                 .ToList();
-
-            int startupBootstrapSyncEpoch = BeginAct1StartupBootstrapSync(runState, flow, orderedPlayers);
 
             int ancientCount = await GetEffectiveAncientCountAsync(orderedPlayers);
             ChooseTheAncientConfig.SelectionGameMode gameMode = await GetEffectiveGameModeAsync(orderedPlayers);
@@ -214,7 +175,7 @@ public static class ChooseTheAncientCoordinator
 
                 ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
                 ChooseTheAncientHelpers.SetChosenAncient(firstAct, vanillaAncient);
-                await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
+                await RunModifierBootstrapAsync(runState, orderedPlayers);
                 flow.ModifierBootstrapCompleted = true;
                 ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
                 SetForceNeowBlessingModeIfNeeded(flow, vanillaAncient, "empty Act 1 ballot fallback");
@@ -287,7 +248,7 @@ public static class ChooseTheAncientCoordinator
 
             ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
 
-            await RunModifierBootstrapAsync(runState, flow, orderedPlayers, startupBootstrapSyncEpoch);
+            await RunModifierBootstrapAsync(runState, orderedPlayers);
             flow.ModifierBootstrapCompleted = true;
             ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
             SetForceNeowBlessingModeIfNeeded(flow, chosen, "Act 1 choice resolved");
@@ -331,7 +292,6 @@ public static class ChooseTheAncientCoordinator
         finally
         {
             localScreen?.CloseScreen();
-            ReleaseStartupBootstrapStepHandlerContext(flow);
             flow.ClearConsoleSelectionResolution();
             flow.ActiveFlowTargetActIndex = null;
             flow.FlowInProgress = false;
@@ -671,21 +631,45 @@ public static class ChooseTheAncientCoordinator
                     "Bypassing a second room fade while replacing CTA's " +
                     "lightweight starting shell with the chosen Ancient room.");
 
-                InvokeRunManagerVoid(ClearScreensMethod, runManager);
-                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+                var remoteCursorContainer = NGame.Instance?.RemoteCursorContainer;
+                bool remoteCursorsWereVisible =
+                    remoteCursorContainer?.Visible == true;
 
-                ModLog.Info(
-                    $"Replacing act {actIndex + 1}'s CTA shell with the chosen " +
-                    $"Ancient room for {chosenAncient.Id.Entry}.");
-
-                await runManager.EnterRoom(
-                    new EventRoom(chosenAncient));
-
-                if (runState != null)
+                if (remoteCursorContainer != null)
                 {
-                    ChooseTheAncientHelpers.ConvertStartingShellToChosenAncient(
-                        runState,
-                        chosenAncient);
+                    remoteCursorContainer.Visible = false;
+                }
+
+                try
+                {
+                    InvokeRunManagerVoid(ClearScreensMethod, runManager);
+                    await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
+
+                    ModLog.Info(
+                        $"Replacing act {actIndex + 1}'s CTA shell with the chosen " +
+                        $"Ancient room for {chosenAncient.Id.Entry}.");
+
+                    await runManager.EnterRoom(
+                        new EventRoom(chosenAncient));
+
+                    if (runState != null)
+                    {
+                        ChooseTheAncientHelpers.ConvertStartingShellToChosenAncient(
+                            runState,
+                            chosenAncient);
+                    }
+
+                    // The shell replacement changes the cursor container's
+                    // screen-space mapping without the remote player moving.
+                    remoteCursorContainer?.ForceUpdateAllCursors();
+                }
+                finally
+                {
+                    if (remoteCursorContainer != null)
+                    {
+                        remoteCursorContainer.Visible =
+                            remoteCursorsWereVisible;
+                    }
                 }
 
                 if (transitionStopwatch != null)
@@ -1628,32 +1612,19 @@ public static class ChooseTheAncientCoordinator
             .OrderBy(runState.GetPlayerSlotIndex)
             .ToList();
 
-        int syncEpoch = BeginAct1StartupBootstrapSync(
+        ModLog.Info(
+            "Completing the one-time Act 1 modifier bootstrap before ctaact navigation.");
+
+        await EnsureModifierBootstrapCompletedAsync(
             runState,
             flow,
             orderedPlayers);
-
-        try
-        {
-            ModLog.Info(
-                "Completing the one-time Act 1 modifier bootstrap before ctaact navigation.");
-            await EnsureModifierBootstrapCompletedAsync(
-                runState,
-                flow,
-                orderedPlayers,
-                syncEpoch);
-        }
-        finally
-        {
-            ReleaseStartupBootstrapStepHandlerContext(flow);
-        }
     }
 
     private static async Task EnsureModifierBootstrapCompletedAsync(
         RunState runState,
         ChooseTheAncientFlowState flow,
-        IReadOnlyList<Player> orderedPlayers,
-        int syncEpoch)
+        IReadOnlyList<Player> orderedPlayers)
     {
         /*
          * Re-entering Act 1 through the debug console should reopen CTA's ballot, but
@@ -1666,341 +1637,72 @@ public static class ChooseTheAncientCoordinator
             return;
         }
 
-        await RunModifierBootstrapAsync(runState, flow, orderedPlayers, syncEpoch);
+        await RunModifierBootstrapAsync(runState, orderedPlayers);
         flow.ModifierBootstrapCompleted = true;
     }
 
 
     private static async Task RunModifierBootstrapAsync(
         RunState runState,
-        ChooseTheAncientFlowState flow,
-        IReadOnlyList<Player> orderedPlayers,
-        int syncEpoch)
-    /*
-     * Applies custom-game modifier bootstrap actions before CTA builds the Act 1 selection.
-     */
-    {
-        EnsureStartupBootstrapStepHandlerRegistered(runState, flow, orderedPlayers);
-
-        Player? localPlayer = orderedPlayers.FirstOrDefault(ShouldSelectLocally);
-
-        if (localPlayer != null)
-        {
-            List<ChooseTheAncientHelpers.ModifierBootstrapAction> bootstrapActions =
-                OrderModifierBootstrapActions(
-                    ChooseTheAncientHelpers.BuildModifierBootstrapActions(localPlayer));
-
-            if (bootstrapActions.Count > 0)
-            {
-                ModLog.Info(
-                    $"Running {bootstrapActions.Count} start-of-run modifier bootstrap action(s) " +
-                    $"for local player {localPlayer.NetId}. " +
-                    $"Order={string.Join(", ", bootstrapActions.Select(action => $"{GetModifierBootstrapId(action)}@{GetModifierBootstrapRunOrderIndex(action)}"))}.");
-
-                for (int stepIndex = 0; stepIndex < bootstrapActions.Count; stepIndex++)
-                {
-                    ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction = bootstrapActions[stepIndex];
-                    string modifierId = GetModifierBootstrapId(bootstrapAction);
-
-                    ModLog.Info(
-                        $"Running modifier bootstrap step {stepIndex + 1}/{bootstrapActions.Count} for {modifierId}.");
-                    await bootstrapAction.ApplyAsync();
-                    await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
-
-                    await SyncModifierBootstrapStepCompletionAsync(
-                        runState,
-                        flow,
-                        orderedPlayers,
-                        localPlayer,
-                        syncEpoch,
-                        stepIndex,
-                        bootstrapActions.Count,
-                        modifierId);
-                }
-            }
-            else
-            {
-                ModLog.Info($"No start-of-run modifier bootstrap actions were found for local player {localPlayer.NetId}.");
-            }
-        }
-
-        await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
-    }
-
-    private static void EnsureStartupBootstrapStepHandlerRegistered(
-        RunState runState,
-        ChooseTheAncientFlowState flow,
         IReadOnlyList<Player> orderedPlayers)
     /*
-     * Registers the temporary network message handler used to track Act 1 bootstrap step completion.
+     * Applies custom-game modifier bootstrap actions before CTA builds the Act 1 selection.
+     *
+     * Every peer executes every player's modifier callback. Each player's modifier sequence
+     * stays ordered, but different players run concurrently so multiplayer Draft/Sealed Deck
+     * choices can be made at the same time. Modifier callbacks use the game's normal
+     * PlayerChoiceSynchronizer path, so the owning peer selects while every other peer waits
+     * for and applies the same result to that player's mirrored state.
      */
     {
-        RunManager runManager = RunManager.Instance;
-        INetGameService netService = runManager.NetService;
+        _ = runState;
 
-        lock (StartupBootstrapSyncLock)
-        {
-            ActiveStartupBootstrapRunState = runState;
-            ActiveStartupBootstrapFlow = flow;
-            ActiveStartupBootstrapPlayers = orderedPlayers.Select(player => player.NetId).ToHashSet();
+        Task[] playerBootstrapTasks = orderedPlayers
+            .Select(RunModifierBootstrapForPlayerAsync)
+            .ToArray();
 
-            if (StartupBootstrapStepHandlerRegistered && !ReferenceEquals(StartupBootstrapStepHandlerNetService, netService))
-            {
-                if (StartupBootstrapStepHandlerNetService != null && StartupBootstrapStepHandler != null)
-                {
-                    StartupBootstrapStepHandlerNetService.UnregisterMessageHandler<ChooseTheAncientStartupStepCompletedMessage>(StartupBootstrapStepHandler);
-                }
-
-                StartupBootstrapStepHandlerRegistered = false;
-                StartupBootstrapStepHandlerNetService = null;
-                StartupBootstrapStepHandler = null;
-            }
-
-            if (!StartupBootstrapStepHandlerRegistered)
-            {
-                StartupBootstrapStepHandler = HandleStartupBootstrapStepCompletedMessage;
-                netService.RegisterMessageHandler<ChooseTheAncientStartupStepCompletedMessage>(StartupBootstrapStepHandler);
-                StartupBootstrapStepHandlerNetService = netService;
-                StartupBootstrapStepHandlerRegistered = true;
-            }
-        }
-    }
-
-    private static void ReleaseStartupBootstrapStepHandlerContext(
-        ChooseTheAncientFlowState flow)
-    /*
-     * Clears the active bootstrap sync context after the Act 1 startup barrier is no longer needed.
-     */
-    {
-        lock (StartupBootstrapSyncLock)
-        {
-            if (!ReferenceEquals(ActiveStartupBootstrapFlow, flow))
-                return;
-
-            if (flow.ModifierBootstrapCompleted)
-            {
-                // Keep the handler/context alive after the shell-room transition is dispatched.
-                // A late startup-completion message can still arrive before the first NEOW checksum;
-                // unregistering here was what made those late messages unhandleable.
-                ModLog.Debug("Keeping CTA startup bootstrap handler context available for late completion messages.");
-                return;
-            }
-
-            ActiveStartupBootstrapFlow = null;
-            ActiveStartupBootstrapRunState = null;
-            ActiveStartupBootstrapPlayers = new HashSet<ulong>();
-
-            // Keep the net message handler registered. With a null context it becomes a harmless no-op,
-            // but late reliable messages no longer produce 'no handlers are registered' warnings.
-        }
-    }
-
-    private static void HandleStartupBootstrapStepCompletedMessage(
-        ChooseTheAncientStartupStepCompletedMessage message,
-        ulong senderId)
-    /*
-     * Handles a remote player's Act 1 bootstrap step-complete message and advances the shared barrier state.
-     */
-    {
-        RunState? runStateForAlignment = null;
-        bool shouldAlign = false;
-
-        lock (StartupBootstrapSyncLock)
-        {
-            ChooseTheAncientFlowState? flow = ActiveStartupBootstrapFlow;
-            RunState? runState = ActiveStartupBootstrapRunState;
-            bool senderTracked = ActiveStartupBootstrapPlayers.Count == 0 || ActiveStartupBootstrapPlayers.Contains(senderId);
-
-            if (flow == null || runState == null || !senderTracked)
-                return;
-
-            if (message.syncEpoch != flow.Act1StartupBootstrapSyncEpoch)
-            {
-                ModLog.Debug(
-                    $"Ignoring stale CTA startup step completion from player {senderId}. " +
-                    $"MessageEpoch={message.syncEpoch}, ActiveEpoch={flow.Act1StartupBootstrapSyncEpoch}.");
-                return;
-            }
-
-            StartupStepRecordResult result = flow.RecordPendingStartupStepCompletionMessage(
-                message.syncEpoch,
-                message.stepIndex,
-                senderId,
-                message.totalStepCount,
-                message.modifierId,
-                message.nextChoiceId);
-
-            if (result != StartupStepRecordResult.Duplicate)
-            {
-                ModLog.Info(
-                    $"Received CTA startup step completion from player {senderId}. " +
-                    $"Epoch={message.syncEpoch}, Step={message.stepIndex + 1}/{message.totalStepCount}, " +
-                    $"Modifier={message.modifierId}, NextChoiceId={message.nextChoiceId}, Result={result}, " +
-                    $"Pending={flow.DescribePendingStartupStepCompletionMessages()}.");
-                runStateForAlignment = runState;
-                shouldAlign = true;
-            }
-        }
-
-        if (shouldAlign && runStateForAlignment != null)
-        {
-            AlignChoiceIdBaselineForPlayer(
-                runStateForAlignment,
-                senderId,
-                message.nextChoiceId,
-                "received CTA startup completion");
-        }
-    }
-
-    private static async Task SyncModifierBootstrapStepCompletionAsync(
-        RunState runState,
-        ChooseTheAncientFlowState flow,
-        IReadOnlyList<Player> orderedPlayers,
-        Player localPlayer,
-        int syncEpoch,
-        int stepIndex,
-        int totalStepCount,
-        string modifierId)
-    /*
-     * Broadcasts or records a player's modifier bootstrap completion and waits until all expected players have reported.
-     */
-    {
-        uint localNextChoiceId = GetNextChoiceIdForPlayer(runState, localPlayer);
-
-        flow.RecordPendingStartupStepCompletionMessage(
-            syncEpoch,
-            stepIndex,
-            localPlayer.NetId,
-            totalStepCount,
-            modifierId,
-            localNextChoiceId);
-
-        RunManager.Instance.NetService.SendMessage(ChooseTheAncientStartupStepCompletedMessage.Create(
-            syncEpoch,
-            stepIndex,
-            totalStepCount,
-            modifierId,
-            localNextChoiceId));
-
-        for (int frame = 0; frame < StartupBootstrapBarrierMaxFrames; frame++)
-        {
-            bool allPlayersReported = orderedPlayers.All(player =>
-                flow.HasPendingStartupStepCompletionMessageForEpoch(syncEpoch, stepIndex, player.NetId));
-
-            if (allPlayersReported)
-            {
-                IReadOnlyDictionary<ulong, StartupStepCompletionInfo> completions =
-                    flow.GetPendingStartupStepCompletionMessagesForEpoch(syncEpoch, stepIndex);
-
-                if (completions.Values.Select(info => info.TotalStepCount).Distinct().Count() > 1)
-                {
-                    ModLog.Warn(
-                        $"CTA startup bootstrap step count mismatch at step {stepIndex + 1}. " +
-                        $"Messages={flow.DescribePendingStartupStepCompletionMessages()}");
-                }
-
-                if (completions.Values.Select(info => info.ModifierId).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
-                {
-                    ModLog.Warn(
-                        $"CTA startup bootstrap modifier mismatch at step {stepIndex + 1}. " +
-                        $"Messages={flow.DescribePendingStartupStepCompletionMessages()}");
-                }
-
-                AlignChoiceIdBaselinesFromStartupStepMessages(runState, orderedPlayers, completions);
-                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
-                return;
-            }
-
-            await ChooseTheAncientHelpers.WaitForProcessFramesAsync(1);
-        }
-
-        ModLog.Warn(
-            $"Timed out waiting for CTA startup bootstrap step completion barrier; applying available baselines and continuing to avoid a hard deadlock. " +
-            $"Epoch={syncEpoch}, Step={stepIndex + 1}/{totalStepCount}, Modifier={modifierId}, " +
-            $"Count={flow.GetPendingStartupStepCompletionMessageCountForEpoch(syncEpoch, stepIndex)}, " +
-            $"Pending={flow.DescribePendingStartupStepCompletionMessages()}.");
-
-        IReadOnlyDictionary<ulong, StartupStepCompletionInfo> availableCompletions =
-            flow.GetPendingStartupStepCompletionMessagesForEpoch(syncEpoch, stepIndex);
-        AlignChoiceIdBaselinesFromStartupStepMessages(runState, orderedPlayers, availableCompletions);
+        await Task.WhenAll(playerBootstrapTasks);
         await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
     }
 
-    private static void AlignChoiceIdBaselinesFromStartupStepMessages(
-        RunState runState,
-        IReadOnlyList<Player> orderedPlayers,
-        IReadOnlyDictionary<ulong, StartupStepCompletionInfo> completions)
+    private static async Task RunModifierBootstrapForPlayerAsync(Player player)
     /*
-     * Replays reserved startup-step choice IDs so later CTA choices stay aligned across host and clients.
+     * Keeps one player's modifier bootstrap callbacks sequential while allowing different
+     * players' sequences to execute concurrently.
      */
     {
-        foreach (Player player in orderedPlayers)
-        {
-            if (!completions.TryGetValue(player.NetId, out StartupStepCompletionInfo? completion))
-                continue;
+        List<ChooseTheAncientHelpers.ModifierBootstrapAction> bootstrapActions =
+            OrderModifierBootstrapActions(
+                ChooseTheAncientHelpers.BuildModifierBootstrapActions(player));
 
-            AlignChoiceIdBaselineForPlayer(
-                runState,
-                player.NetId,
-                completion.NextChoiceId,
-                "CTA startup completion barrier");
-        }
-    }
-
-    private static void AlignChoiceIdBaselineForPlayer(
-        RunState runState,
-        ulong playerNetId,
-        uint targetNextChoiceId,
-        string reason)
-    /*
-     * Reserves missing choice IDs for one player until their local synchronizer baseline reaches the expected value.
-     */
-    {
-        Player? player = runState.Players.FirstOrDefault(candidate => candidate.NetId == playerNetId);
-        if (player == null)
-        {
-            ModLog.Warn(
-                $"Could not align CTA startup choice id baseline for missing player {playerNetId}. " +
-                $"TargetNextChoiceId={targetNextChoiceId}, Reason={reason}.");
-            return;
-        }
-
-        uint currentNextChoiceId = GetNextChoiceIdForPlayer(runState, player);
-        uint startingNextChoiceId = currentNextChoiceId;
-
-        if (currentNextChoiceId > targetNextChoiceId)
-        {
-            ModLog.Debug(
-                $"CTA startup choice id baseline for player {playerNetId} is already ahead of reported baseline. " +
-                $"CurrentNextChoiceId={currentNextChoiceId}, ReportedNextChoiceId={targetNextChoiceId}, Reason={reason}.");
-            return;
-        }
-
-        while (currentNextChoiceId < targetNextChoiceId)
-        {
-            RunManager.Instance.PlayerChoiceSynchronizer.ReserveChoiceId(player);
-            currentNextChoiceId++;
-        }
-
-        if (startingNextChoiceId != currentNextChoiceId)
+        if (bootstrapActions.Count == 0)
         {
             ModLog.Info(
-                $"Aligned CTA startup choice id baseline for player {playerNetId}: " +
-                $"{startingNextChoiceId}->{currentNextChoiceId}. Reason={reason}.");
+                $"No start-of-run modifier bootstrap actions were found for player {player.NetId}.");
+            return;
+        }
+
+        bool isLocalPlayer = ShouldSelectLocally(player);
+        ModLog.Info(
+            $"Running {bootstrapActions.Count} synchronized start-of-run modifier bootstrap action(s) " +
+            $"for player {player.NetId} ({(isLocalPlayer ? "local" : "remote")}) concurrently with other players. " +
+            $"Order={string.Join(", ", bootstrapActions.Select(action => $"{GetModifierBootstrapId(action)}@{GetModifierBootstrapRunOrderIndex(action)}"))}.");
+
+        for (int stepIndex = 0; stepIndex < bootstrapActions.Count; stepIndex++)
+        {
+            ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction =
+                bootstrapActions[stepIndex];
+            string modifierId = GetModifierBootstrapId(bootstrapAction);
+
+            ModLog.Info(
+                $"Running synchronized modifier bootstrap step {stepIndex + 1}/{bootstrapActions.Count} " +
+                $"for player {player.NetId}: {modifierId}.");
+
+            await bootstrapAction.ApplyAsync();
+            await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
         }
     }
 
-    private static uint GetNextChoiceIdForPlayer(RunState runState, Player player)
-    /*
-     * Reads the next synchronized choice ID for a player from the PlayerChoiceSynchronizer slot list.
-     */
-    {
-        int slotIndex = runState.GetPlayerSlotIndex(player);
-        IReadOnlyList<uint> choiceIds = RunManager.Instance.PlayerChoiceSynchronizer.ChoiceIds;
-        return slotIndex >= 0 && slotIndex < choiceIds.Count
-            ? choiceIds[slotIndex]
-            : 0u;
-    }
 
     private static string GetModifierBootstrapId(ChooseTheAncientHelpers.ModifierBootstrapAction bootstrapAction)
     /*

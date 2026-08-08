@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Hooks;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Events;
 using MegaCrit.Sts2.Core.Runs;
@@ -20,33 +22,50 @@ public static class NeowBlessingModePatch
     private static readonly Dictionary<RunState, ModifierMaskState> ActiveMasks = new();
 
     [HarmonyPatch(typeof(Neow), "get_InitialDescription")]
-    [HarmonyPrefix]
-    private static void InitialDescriptionPrefix(Neow __instance, out RunState? __state)
+    [HarmonyPostfix]
+    private static void InitialDescriptionPostfix(Neow __instance, ref LocString __result)
     {
-        __state = TryBeginModifierMask(__instance);
-    }
-
-    [HarmonyPatch(typeof(Neow), "get_InitialDescription")]
-    [HarmonyFinalizer]
-    private static Exception? InitialDescriptionFinalizer(Exception? __exception, RunState? __state)
-    {
-        if (__state != null)
+        RunState? runState = __instance.Owner?.RunState as RunState;
+        if (runState == null ||
+            !ChooseTheAncientStateStore.Get(runState).ForceNeowBlessingMode ||
+            __instance.Owner == null)
         {
-            EndModifierMask(__state);
+            return;
         }
 
-        return __exception;
+        // Neow's override only changes the description when run modifiers are
+        // present. Reproduce the inherited AncientEventModel result directly
+        // instead of temporarily mutating RunState.Modifiers for a getter.
+        __result = !RunManager.Instance.IsInProgress ||
+                   Hook.ShouldAllowAncient(runState, __instance.Owner, __instance)
+            ? new LocString(
+                __instance.LocTable,
+                $"{__instance.Id.Entry}.pages.INITIAL.description")
+            : new LocString("relics", "WAX_CHOKER.blockMessage");
     }
 
     [HarmonyPatch(typeof(Neow), "GenerateInitialOptions")]
     [HarmonyPrefix]
+    [HarmonyPriority(Priority.Last)]
     private static void GenerateInitialOptionsPrefix(Neow __instance, out RunState? __state)
     {
         __state = TryBeginModifierMask(__instance);
     }
 
     [HarmonyPatch(typeof(Neow), "GenerateInitialOptions")]
+    [HarmonyPostfix]
+    [HarmonyPriority(Priority.First)]
+    private static void GenerateInitialOptionsPostfix(RunState? __state)
+    {
+        if (__state != null)
+        {
+            EndModifierMask(__state);
+        }
+    }
+
+    [HarmonyPatch(typeof(Neow), "GenerateInitialOptions")]
     [HarmonyFinalizer]
+    [HarmonyPriority(Priority.First)]
     private static Exception? GenerateInitialOptionsFinalizer(Exception? __exception, RunState? __state)
     {
         if (__state != null)
@@ -110,7 +129,7 @@ public static class NeowBlessingModePatch
                 .Value = state.OriginalModifiers ?? Array.Empty<ModifierModel>();
 
             ActiveMasks.Remove(runState);
-            ModLog.Debug("Restored RunState.Modifiers after CTA-selected Neow finished building blessing content.");
+            ModLog.Debug("Restored RunState.Modifiers immediately after CTA-selected Neow finished building blessing options.");
         }
     }
 }

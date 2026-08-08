@@ -2965,9 +2965,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         cardRoot.AddChild(cardClickTarget);
         cardRoot.MoveChild(cardClickTarget, 3);
 
-        SetMouseFilterRecursive(cardRoot, MouseFilterEnum.Ignore, control =>
-            ReferenceEquals(control, chooseButton) || ReferenceEquals(control, cardClickTarget));
-
         ApplyVoteButtonLook(chooseButton, chooseButtonOutline, bodyVisible: !ShowOnlyButtonOutline);
         ApplyCardOutlineLook(cardOutline);
 
@@ -3240,29 +3237,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         };
 
         outline.AddThemeStyleboxOverride("panel", sb);
-    }
-
-    private static void SetMouseFilterRecursive(
-        Control root,
-        MouseFilterEnum mouseFilter,
-        Func<Control, bool>? shouldSkip = null)
-    {
-        /*
-         * Recursively applies a mouse filter to a control tree
-         * and optionally lets the caller adjust each visited node.
-         */
-        if (shouldSkip?.Invoke(root) != true)
-        {
-            root.MouseFilter = mouseFilter;
-        }
-
-        foreach (Node child in root.GetChildren())
-        {
-            if (child is Control childControl)
-            {
-                SetMouseFilterRecursive(childControl, mouseFilter, shouldSkip);
-            }
-        }
     }
 
     private void RefreshButtonTexts()
@@ -6384,7 +6358,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
         List<Control> icons = refs.VoteContainer.GetChildren()
             .OfType<Control>()
-            .OrderBy(node => node.GetIndex())
             .ToList();
 
         if (icons.Count == 0)

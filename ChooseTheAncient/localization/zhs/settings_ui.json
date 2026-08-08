@@ -67,7 +67,6 @@
   "CHOOSETHEANCIENT.settings.schema.allow_act1": "允许第 1 幕远古者",
   "CHOOSETHEANCIENT.settings.schema.allow_act2": "允许第 2 幕远古者",
   "CHOOSETHEANCIENT.settings.schema.allow_act3": "允许第 3 幕远古者",
-  "CHOOSETHEANCIENT.mod_warning.neow_multiplayer_identity_sync_unavailable": "远古抉择：此游戏版本无法安装由本模组选择的涅奥所需的多人同步。单人游戏以及未选择涅奥的本模组多人游戏应仍可正常运行；在少数情况下，多人游戏中由本模组选择的涅奥可能会同步错误的涅奥选项。",
   "CHOOSETHEANCIENT-ANCIENT_COUNT.title": "每次投票的远古者数量",
   "CHOOSETHEANCIENT-ANCIENT_COUNT.hover.desc": "初始投票中出现的远古者数量。",
   "CHOOSETHEANCIENT-GAME_MODE.title": "游戏模式",

@@ -70,22 +70,16 @@ public sealed class ChooseTheAncientCoopModifierBootstrapTests
         CoopPeer host = CoopPeer.CreateHost(RunSeed);
         CoopPeer client = CoopPeer.CreateClient(RunSeed);
 
-        int hostEpoch = host.Flow.BeginAct1StartupBootstrapSyncEpoch();
-        int clientEpoch = client.Flow.BeginAct1StartupBootstrapSyncEpoch();
-        Assert.Equal(hostEpoch, clientEpoch);
-
-        RunModifierBootstrapForLocalPlayerAndReplicate(
+        RunModifierBootstrapForPlayerOnBothPeers(
             orderedModifiers,
             host,
             client,
-            hostEpoch,
             HostPlayerId);
 
-        RunModifierBootstrapForLocalPlayerAndReplicate(
+        RunModifierBootstrapForPlayerOnBothPeers(
             orderedModifiers,
-            client,
             host,
-            clientEpoch,
+            client,
             ClientPlayerId);
 
         host.MarkModifierBootstrapCompleted();
@@ -197,36 +191,24 @@ public sealed class ChooseTheAncientCoopModifierBootstrapTests
         Assert.NotEqual(hostOptions, clientOptions);
     }
 
-    private static void RunModifierBootstrapForLocalPlayerAndReplicate(
+    private static void RunModifierBootstrapForPlayerOnBothPeers(
         IReadOnlyList<string> orderedModifiers,
-        CoopPeer localPeer,
-        CoopPeer remotePeer,
-        int syncEpoch,
+        CoopPeer host,
+        CoopPeer client,
         ulong actingPlayerId)
     {
-        for (int stepIndex = 0; stepIndex < orderedModifiers.Count; stepIndex++)
+        /*
+         * Models CTA's current bootstrap rule: every peer executes every player's
+         * modifier callbacks in the same per-player modifier order.
+         */
+        foreach (string modifierId in orderedModifiers)
         {
-            string modifierId = orderedModifiers[stepIndex];
-
-            localPeer.ApplyModifierBootstrapStep(actingPlayerId, modifierId);
-            remotePeer.ApplyModifierBootstrapStep(actingPlayerId, modifierId);
-
-            StartupStepMessage message = localPeer.CreateStartupStepMessage(
-                actingPlayerId,
-                syncEpoch,
-                stepIndex,
-                orderedModifiers.Count,
-                modifierId);
-
-            localPeer.RecordStartupStepMessage(message);
-            remotePeer.RecordStartupStepMessage(message);
-
-            Assert.True(localPeer.HasStartupStepMessage(syncEpoch, stepIndex, actingPlayerId));
-            Assert.True(remotePeer.HasStartupStepMessage(syncEpoch, stepIndex, actingPlayerId));
+            host.ApplyModifierBootstrapStep(actingPlayerId, modifierId);
+            client.ApplyModifierBootstrapStep(actingPlayerId, modifierId);
 
             Assert.Equal(
-                localPeer.StateSignatureForPlayer(actingPlayerId),
-                remotePeer.StateSignatureForPlayer(actingPlayerId));
+                host.StateSignatureForPlayer(actingPlayerId),
+                client.StateSignatureForPlayer(actingPlayerId));
         }
     }
 
@@ -368,41 +350,6 @@ public sealed class ChooseTheAncientCoopModifierBootstrapTests
         public void ApplyModifierBootstrapStep(ulong playerId, string modifierId)
         {
             _players[playerId].ApplyModifierBootstrapStep(modifierId);
-        }
-
-        public StartupStepMessage CreateStartupStepMessage(
-            ulong actingPlayerId,
-            int syncEpoch,
-            int stepIndex,
-            int totalStepCount,
-            string modifierId)
-        {
-            return new StartupStepMessage(
-                SenderNetId: actingPlayerId,
-                SyncEpoch: syncEpoch,
-                StepIndex: stepIndex,
-                TotalStepCount: totalStepCount,
-                ModifierId: modifierId,
-                NextChoiceId: _players[actingPlayerId].NextChoiceId);
-        }
-
-        public void RecordStartupStepMessage(StartupStepMessage message)
-        {
-            Flow.RecordPendingStartupStepCompletionMessage(
-                message.SyncEpoch,
-                message.StepIndex,
-                message.SenderNetId,
-                message.TotalStepCount,
-                message.ModifierId,
-                message.NextChoiceId);
-        }
-
-        public bool HasStartupStepMessage(
-            int syncEpoch,
-            int stepIndex,
-            ulong playerId)
-        {
-            return Flow.HasPendingStartupStepCompletionMessageForEpoch(syncEpoch, stepIndex, playerId);
         }
 
         public void MarkModifierBootstrapCompleted()
@@ -624,14 +571,6 @@ public sealed class ChooseTheAncientCoopModifierBootstrapTests
             }
         }
     }
-
-    private readonly record struct StartupStepMessage(
-        ulong SenderNetId,
-        int SyncEpoch,
-        int StepIndex,
-        int TotalStepCount,
-        string ModifierId,
-        uint NextChoiceId);
 
     private readonly record struct ModifierBootstrapSpec(
         string ModifierId,

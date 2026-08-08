@@ -1,8 +1,6 @@
 # Changelog
 
 ## Known Bugs to fix
-- EventSynchronizer patch is unnecessary and should be removed soon.
-  - Also likely the custom messages too.
 - Redundant settings are unnecessary and should be removed soon.
 - compatability patches for seed and directionalinput should be removed on next main
 - TESTING within a CI Pipeline
@@ -60,6 +58,7 @@
   -inline-image prewarming;
   -reduced config polling. 
 - The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching.
+- 
 
 ## [v1.3.1] - Steam Release with Zoomed in Vanilla Ancients
 
