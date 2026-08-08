@@ -4,7 +4,7 @@ Hello everyone. I am soon to release #"Choose The Ancient". Is anyone interested
   - (I'll do a count then update these totals)
   - ancients.json totals 244 words or 48 lines.
     - if too much, fixing the machine translation zhs is only 3 lines total.
-  - gameplay_ui.json totals 29 words or 13 lines 
+  - gameplay_ui.json totals 24 words or 11 lines 
   - settings_ui.json totals 559 words or 111 lines
     - if too much, ignore. Machine translation should be fine for most.
 - I also have a steam page description that needs translated. This one is version specific to the Simplified Chinese page. **The English Steam Page will give credit too.**

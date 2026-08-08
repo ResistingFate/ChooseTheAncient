@@ -206,7 +206,10 @@ public static class ChooseTheAncientBaseAncientText
     private static string GetNumberedActLabelText(int nextActIndex)
     {
         int actNumber = nextActIndex + 1;
-        return GetUiText($"choose_the_ancient.act_label.{actNumber}");
+        return ChooseTheAncientLocalization.GetText(
+            UiTableName,
+            "choose_the_ancient.act_label",
+            ("ActNumber", actNumber.ToString(CultureInfo.InvariantCulture)));
     }
 
     private static string GetUiText(string key)

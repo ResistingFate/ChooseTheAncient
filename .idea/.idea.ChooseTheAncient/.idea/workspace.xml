@@ -5,25 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientDialogueLocalizationRules.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientLocalization.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSettingsStore.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/InputNavigationCompatibility.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/SeedCompatibility.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientApi.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/ChooseTheAncientPresentationResolver.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Interop/SlayTheStreamerInterop.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Messages/ChooseTheAncientConsoleSelectionResolutionMessage.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ActConsoleCmdNavigationPatch.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleBallotPreprocessPatch.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleSelectionResolutionHandlerRegistrationPatch.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/EnterActStartingAncientPatch.cs.uid" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NMapScreenStartingAncientPatch.cs.uid" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleMapOpenPatch.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/gameplay_ui.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient/localization/zhs/gameplay_ui.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientBaseAncientText.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/localization/for_translators_bbcode_message.txt" beforeDir="false" afterPath="$PROJECT_DIR$/localization/for_translators_bbcode_message.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -321,15 +306,7 @@
       <workItem from="1785938579751" duration="41993000" />
       <workItem from="1786033223879" duration="15064000" />
       <workItem from="1786106512329" duration="10098000" />
-      <workItem from="1786123733058" duration="37317000" />
-    </task>
-    <task id="LOCAL-00118" summary="Darv no longer shows in act 1 unless redundant setting is on.">
-      <option name="closed" value="true" />
-      <created>1785478705814</created>
-      <option name="number" value="00118" />
-      <option name="presentableId" value="LOCAL-00118" />
-      <option name="project" value="LOCAL" />
-      <updated>1785478705814</updated>
+      <workItem from="1786123733058" duration="38032000" />
     </task>
     <task id="LOCAL-00119" summary="Localized the strings used in the slay the streamer compatability. Added Zhs machine translation.">
       <option name="closed" value="true" />
@@ -715,7 +692,15 @@
       <option name="project" value="LOCAL" />
       <updated>1786167094601</updated>
     </task>
-    <option name="localTasksCounter" value="167" />
+    <task id="LOCAL-00167" summary="Adjusted console commands to fit the new CTA flow with EnterActPatch and got rid of the ConsoleMapOpenPatch in favor with a defer instead.">
+      <option name="closed" value="true" />
+      <created>1786168832670</created>
+      <option name="number" value="00167" />
+      <option name="presentableId" value="LOCAL-00167" />
+      <option name="project" value="LOCAL" />
+      <updated>1786168832670</updated>
+    </task>
+    <option name="localTasksCounter" value="168" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -751,7 +736,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Increased ancient name and title size." />
     <MESSAGE value="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
     <MESSAGE value="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker." />
     <MESSAGE value="improved card ancient name and title and raised it higher." />
@@ -776,7 +760,8 @@
     <MESSAGE value="Improved NeowBlessingModePatch.cs patch with a PostFix." />
     <MESSAGE value="Performed Neow Patch sync simplifications and did some more fixing on multiplayer custom game state diverengece. Removed Eventsynchronzier patech.s&#10;replace Neow description modifier masking with a postfix result override&#10;remove custom Neow EventSynchronizer identity-sync patches&#10;remove legacy stable/beta EventSynchronizer compatibility probing&#10;remove the custom Neow identity network message and warning flow&#10;rely on vanilla EventSynchronizer for per-player Neow option choices&#10;&#10;Removed SetMouseFilterRecursive() and moved the static mouse_filter = 2 settings into the card scene.&#10;Removed the redundant .OrderBy(node =&gt; node.GetIndex()) from vote-icon layout.&#10; Hid remote cursors during shell transition." />
     <MESSAGE value="Fixed ActConsoleCmdNavigationPatch so that act n loads the selection screen of the next act even if a selection screen is currently open." />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed ActConsoleCmdNavigationPatch so that act n loads the selection screen of the next act even if a selection screen is currently open." />
+    <MESSAGE value="Adjusted console commands to fit the new CTA flow with EnterActPatch and got rid of the ConsoleMapOpenPatch in favor with a defer instead." />
+    <option name="LAST_COMMIT_MESSAGE" value="Adjusted console commands to fit the new CTA flow with EnterActPatch and got rid of the ConsoleMapOpenPatch in favor with a defer instead." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
