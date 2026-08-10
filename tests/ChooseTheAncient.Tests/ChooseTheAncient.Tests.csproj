@@ -6,11 +6,12 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <RunAnalyzers>false</RunAnalyzers>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\ChooseTheAncient.csproj"
-                      AdditionalProperties="SkipModDeploy=true;CopyModOnBuild=false;PublishModPck=false;SkipDependencyPathCheck=true" />
+                      AdditionalProperties="BuildingForTests=true;SkipModDeploy=true;CopyModOnBuild=false;PublishModPck=false;SkipDependencyPathCheck=true" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,4 +19,25 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
   </ItemGroup>
+
+
+  <!--
+    Reuse the production mod project's resolved game references instead of
+    duplicating its Steam/Sts2DataDir path logic in the test project.
+  -->
+  <Target Name="ImportGameReferencesFromModProject"
+          BeforeTargets="ResolveAssemblyReferences">
+    <MSBuild Projects="..\..\ChooseTheAncient.csproj"
+             Targets="ResolveAssemblyReferences"
+             Properties="Configuration=$(Configuration);BuildingForTests=true;SkipModDeploy=true;CopyModOnBuild=false;PublishModPck=false;SkipDependencyPathCheck=true">
+      <Output TaskParameter="TargetOutputs" ItemName="_ModResolvedReferences" />
+    </MSBuild>
+
+    <ItemGroup>
+      <Reference Include="@(_ModResolvedReferences)"
+                 Condition="'%(_ModResolvedReferences.Filename)' == 'sts2' Or '%(_ModResolvedReferences.Filename)' == '0Harmony'">
+        <Private>true</Private>
+      </Reference>
+    </ItemGroup>
+  </Target>
 </Project>

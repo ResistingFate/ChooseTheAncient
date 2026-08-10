@@ -15,6 +15,7 @@
         <CopyModOnBuild Condition="'$(CopyModOnBuild)' == ''">true</CopyModOnBuild>
         <PublishModPck Condition="'$(PublishModPck)' == ''">true</PublishModPck>
         <SkipModDeploy Condition="'$(SkipModDeploy)' == ''">false</SkipModDeploy>
+        <BuildingForTests Condition="'$(BuildingForTests)' == ''">false</BuildingForTests>
         <SkipDependencyPathCheck Condition="'$(SkipDependencyPathCheck)' == ''">false</SkipDependencyPathCheck>
     </PropertyGroup>
 
@@ -166,6 +167,7 @@
             AfterTargets="PostBuildEvent"
             Condition="'$(CopyModOnBuild)' == 'true'
                        and '$(SkipModDeploy)' != 'true'
+                       and '$(BuildingForTests)' != 'true'
                        and '$(DesignTimeBuild)' != 'true'">
         <Message Text="Copying ChooseTheAncient .dll and manifest to mods folder." Importance="high" />
 
@@ -188,6 +190,7 @@
             AfterTargets="Publish"
             Condition="'$(PublishModPck)' == 'true'
                        and '$(SkipModDeploy)' != 'true'
+                       and '$(BuildingForTests)' != 'true'
                        and '$(GodotPath)' != ''
                        and Exists('$(GodotPath)')
                        and '$(IsInnerGodotExport)' != 'true'">
@@ -204,6 +207,7 @@
             AfterTargets="Publish"
             Condition="'$(PublishModPck)' == 'true'
                        and '$(SkipModDeploy)' != 'true'
+                       and '$(BuildingForTests)' != 'true'
                        and ('$(GodotPath)' == '' or !Exists('$(GodotPath)'))">
         <Message Text="Skipping Godot .pck export because GodotPath is not configured." Importance="high" />
     </Target>
