@@ -2119,6 +2119,9 @@ public static class ChooseTheAncientHelpers
         if (actIndex < 0 || actIndex >= runState.Acts.Count)
             return false;
 
+        if (TryGetChosenAncient(runState.Acts[actIndex]) == null)
+            return false;
+
         bool resolved =
             IsStartingAncientResolved(runState, flow, actIndex);
 
@@ -2239,6 +2242,9 @@ public static class ChooseTheAncientHelpers
     {
         int actIndex = runState.CurrentActIndex;
         if (actIndex < 0 || actIndex >= runState.Acts.Count)
+            return false;
+
+        if (TryGetChosenAncient(runState.Acts[actIndex]) == null)
             return false;
 
         if (IsStartingAncientResolved(runState, flow, actIndex))

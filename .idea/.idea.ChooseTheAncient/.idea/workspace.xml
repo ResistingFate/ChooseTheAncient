@@ -4,13 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientSubsetCompatibilityTests.cs" afterDir="false" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="Compatability with Pikcube's Custom Modifiers. I've removed my patch that revealed the custom modifiers I hid and left that job to the finalizer. So Always whale would never see the custom modifers while using Choose The Ancient. I need still need to test if this works all the time.">
+      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncient.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncient.Tests.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/GenerateMapPatch.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/GenerateMapPatch.cs.uid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowBlessingModePatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowBlessingModePatch.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,7 +45,11 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/3a/a3d41f0a/LocalContext.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/48/11a79d22/NetGameType.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/a49d35375a424dcd9877663e394f2b4492a000/d9/ba0bdb12/Cmd.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c0f649b88d574a9c8b0721aece97dca0945400/15/77c6b443/RunManager.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c0f649b88d574a9c8b0721aece97dca0945400/3a/86e5a2c5/RunState.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c0f649b88d574a9c8b0721aece97dca0945400/48/a7ab7525/ActModel.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f76dbe67be824f0da0c703c3dce57e34e8e728/e0/0a0b050d/Task`1.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f76dbe67be824f0da0c703c3dce57e34e8e728/f1/238e3b5c/Object.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/2854ce6d56c18d0d837d3a3ef9c4f2c7c77691fa3528c8394986ac7ce7719/StackFrameIterator.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/d33115dfb913de138d3e64a16bc31f1e7654a63ea23729ff60a54b5776dd6/Control.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient.json" root0="FORCE_HIGHLIGHTING" />
@@ -102,7 +110,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected=".NET Executable.clean rebuild tests">
+  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
       <method v="2" />
@@ -312,15 +320,10 @@
       <workItem from="1786033223879" duration="15064000" />
       <workItem from="1786106512329" duration="10098000" />
       <workItem from="1786123733058" duration="52490000" />
-      <workItem from="1786377076961" duration="6748000" />
-    </task>
-    <task id="LOCAL-00132" summary="Added an nayHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker.">
-      <option name="closed" value="true" />
-      <created>1785874543634</created>
-      <option name="number" value="00132" />
-      <option name="presentableId" value="LOCAL-00132" />
-      <option name="project" value="LOCAL" />
-      <updated>1785874543634</updated>
+      <workItem from="1786377076961" duration="6794000" />
+      <workItem from="1786550516356" duration="9981000" />
+      <workItem from="1786638815931" duration="2278000" />
+      <workItem from="1786644939052" duration="2096000" />
     </task>
     <task id="LOCAL-00133" summary="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker.">
       <option name="closed" value="true" />
@@ -706,7 +709,15 @@
       <option name="project" value="LOCAL" />
       <updated>1786210341869</updated>
     </task>
-    <option name="localTasksCounter" value="181" />
+    <task id="LOCAL-00181" summary="test: isolate ancient compatibility tests from game runtime&#10;&#10;keep test builds from deploying a local mod copy&#10;bootstrap ModelDb without requiring ModManager startup&#10;silence production logging because xUnit has no Godot native host&#10;cover act-valid custom ancients and the one-custom-per-act ballot case">
+      <option name="closed" value="true" />
+      <created>1786385734550</created>
+      <option name="number" value="00181" />
+      <option name="presentableId" value="LOCAL-00181" />
+      <option name="project" value="LOCAL" />
+      <updated>1786385734551</updated>
+    </task>
+    <option name="localTasksCounter" value="182" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -742,7 +753,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="GrabFocus had some surface errors, so I guarded it to clean the log" />
     <MESSAGE value="Fixed a bug with Act 1, 2, 3 console command that caused the game to softlock so made a postfix patch to the command" />
     <MESSAGE value="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctaskip, ctaffsay" />
     <MESSAGE value="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctaskip, ctaffspeak" />
@@ -767,7 +777,8 @@
     <MESSAGE value="Making cta work for main 0.107.1 compatible with the console and controller changes in the 0.110.1 beta update." />
     <MESSAGE value="Updated phoenix showcase video." />
     <MESSAGE value="added phoenix" />
-    <option name="LAST_COMMIT_MESSAGE" value="added phoenix" />
+    <MESSAGE value="test: isolate ancient compatibility tests from game runtime&#10;&#10;keep test builds from deploying a local mod copy&#10;bootstrap ModelDb without requiring ModManager startup&#10;silence production logging because xUnit has no Godot native host&#10;cover act-valid custom ancients and the one-custom-per-act ballot case" />
+    <option name="LAST_COMMIT_MESSAGE" value="test: isolate ancient compatibility tests from game runtime&#10;&#10;keep test builds from deploying a local mod copy&#10;bootstrap ModelDb without requiring ModManager startup&#10;silence production logging because xUnit has no Godot native host&#10;cover act-valid custom ancients and the one-custom-per-act ballot case" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

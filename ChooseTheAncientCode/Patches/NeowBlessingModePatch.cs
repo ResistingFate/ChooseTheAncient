@@ -52,16 +52,7 @@ public static class NeowBlessingModePatch
         __state = TryBeginModifierMask(__instance);
     }
 
-    [HarmonyPatch(typeof(Neow), "GenerateInitialOptions")]
-    [HarmonyPostfix]
-    [HarmonyPriority(Priority.First)]
-    private static void GenerateInitialOptionsPostfix(RunState? __state)
-    {
-        if (__state != null)
-        {
-            EndModifierMask(__state);
-        }
-    }
+
 
     [HarmonyPatch(typeof(Neow), "GenerateInitialOptions")]
     [HarmonyFinalizer]
