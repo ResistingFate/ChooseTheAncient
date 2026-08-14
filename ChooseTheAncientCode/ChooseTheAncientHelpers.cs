@@ -95,6 +95,8 @@ public static class ChooseTheAncientHelpers
      * without taking a compile-time dependency on either library.
      */
     {
+        if (IsDarvAncient(ancient) && act.Index is not (1 or 2))
+            return false;
         bool? ritsuValidity = InvokeRitsuAncientActValidityIfPresent(ancient, act);
         if (ritsuValidity == false)
             return false;
