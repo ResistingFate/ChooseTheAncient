@@ -93,14 +93,15 @@ This mod no longer applies these fixes. This allows the mod to maintain compatab
 - 
 ## Any issuses
 - Create an issue in the github with your log after you've turned on the Trace debug setting in ModConfig
-- https://github.com/ResistingFate/ChooseTheAncient
-- Or Join the official Slay the Spire Discord go to `modding forum` and add message me in the `Choose The Ancient` thread.
+- https://github.com/ResistingFate/ChooseTheAncient/issues
+- Or Join the official Slay the Spire Discord go to `modding forum` and message me in the `Choose The Ancient` thread.
 - https://discord.gg/MFDv7NyDM
 - Also go to your Slay The Spire 2 game in your steam library, right click, click properties, in the Launch Options add:
 - `-log generic verdebug`
 - Or go into Choose The Ancient's setting menu in game and change it's logging to `Modlog` and that it's level is `VeryDubg'. They are in the advanced settings.
+- This will give me more innformation in your log to work with. Now play the game with your issue and send me the log.
 - You can find your log locations on Windows:
-- C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs
+- C:\Users\ReplaceWithUserName\AppData\Roaming\SlayTheSpire2\logs\godot.log
 
 ## New features Roadmap
 - Ancient Affection patches? (maybe as separate mod)
