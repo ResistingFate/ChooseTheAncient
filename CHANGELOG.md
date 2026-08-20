@@ -4,7 +4,7 @@
 - Redundant settings are unnecessary and should be removed soon.
 - compatability patches for seed and directionalinput should be removed on next main
 - TESTING within a CI Pipeline
-- csproj auto make release, auto make nexus release, auto make steam release
+- [TODO]csproj auto make release, auto make nexus release, auto make steam release
 - Add api for stat collecting
   - each row is an act's vote in a game
     - includes the number of players, game mode, round
@@ -14,7 +14,27 @@
       - the rest of the run stats
       - the player run stats and history
   - spirecodex already does this, so API if spire codex already installed
+## Improvemets from comments
+- Want a separate Act 2 and 3 mod so Act 1 is more normal (Choose The Ancient Lite)
+  - 1 discord commenters friends group
+- Let Act 1 ancients always handle the custom modifiers and if custom modifiers are on and the current ancient can't handle them, then they are removed from the ballot.
+- Draft doesn't wait for other players to finish their draft before getting to vote, preferably after the ancient vote is finished or it works like vanilla when only 1 ancient is in the ballot anyway. (related to Choose The Ancient Lite)
+- Someone wants Act Count to be a setting for each act
 
+TODO:
+- Darv shows in act 4+, make sure he doesn't uncless it's newgameplus type mods, not act 4 heart mods. Or ACP filters act 4.
+- Legacy options or design in general conflicts with Hades Ancient's removal of base game ancients.
+- Bug needs finding and fixing for someone not able to get any selection screen to work.
+- Another bug where only works with console commands.
+
+## [v1.3.3] - Small fixes
+
+### Features
+- Decided no ancient node should be made at the start if one doesn't exist. Act 4 heart mode will have no ancients.
+
+### Fixes
+- Pikcube's Custom Modifiers mod Always Whale option no longer spawns Custom Modifiers twice when picking Neow or defaulting to Neow as the Custom Ancient.
+- Added guards so a ancient node with no ancients is not made or entered.
 
 ## [v1.3.2] - Steam Releae with console commands and Seemless Selection
 

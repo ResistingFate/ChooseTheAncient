@@ -4,17 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="Compatability with Pikcube's Custom Modifiers. I've removed my patch that revealed the custom modifiers I hid and left that job to the finalizer. So Always whale would never see the custom modifers while using Choose The Ancient. I need still need to test if this works all the time.">
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/GenerateMapPatch.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/GenerateMapPatch.cs.uid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowBlessingModePatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowBlessingModePatch.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -323,31 +318,10 @@
       <workItem from="1786377076961" duration="6794000" />
       <workItem from="1786550516356" duration="9981000" />
       <workItem from="1786638815931" duration="2278000" />
-      <workItem from="1786644939052" duration="2096000" />
-    </task>
-    <task id="LOCAL-00133" summary="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker.">
-      <option name="closed" value="true" />
-      <created>1785875911857</created>
-      <option name="number" value="00133" />
-      <option name="presentableId" value="LOCAL-00133" />
-      <option name="project" value="LOCAL" />
-      <updated>1785875911857</updated>
-    </task>
-    <task id="LOCAL-00134" summary="Added an anyHovered conditionto to shadeAlpha. Adjust value so those not hovered are silghtly darker.">
-      <option name="closed" value="true" />
-      <created>1785875928533</created>
-      <option name="number" value="00134" />
-      <option name="presentableId" value="LOCAL-00134" />
-      <option name="project" value="LOCAL" />
-      <updated>1785875928533</updated>
-    </task>
-    <task id="LOCAL-00135" summary="improved card ancient name and title and raised it higher.">
-      <option name="closed" value="true" />
-      <created>1785877068369</created>
-      <option name="number" value="00135" />
-      <option name="presentableId" value="LOCAL-00135" />
-      <option name="project" value="LOCAL" />
-      <updated>1785877068370</updated>
+      <workItem from="1786644939052" duration="10346000" />
+      <workItem from="1786729772721" duration="1400000" />
+      <workItem from="1787154795931" duration="29000" />
+      <workItem from="1787243163813" duration="367000" />
     </task>
     <task id="LOCAL-00136" summary="Increased the size of the icon, name and title as there was more space due to increasing bottom padding">
       <option name="closed" value="true" />
@@ -717,7 +691,31 @@
       <option name="project" value="LOCAL" />
       <updated>1786385734551</updated>
     </task>
-    <option name="localTasksCounter" value="182" />
+    <task id="LOCAL-00182" summary="Compatability with Pikcube's Custom Modifiers. I've removed my patch that revealed the custom modifiers I hid and left that job to the finalizer. So Always whale would never see the custom modifers while using Choose The Ancient. I need still need to test if this works all the time.&#10;&#10;Added guards so a room isn't made and entered when no ancients are available.&#10;&#10;Decided no ancient node should be made at the start if one doesn't exist. Act 4 heart mode will have no ancients.">
+      <option name="closed" value="true" />
+      <created>1786660511537</created>
+      <option name="number" value="00182" />
+      <option name="presentableId" value="LOCAL-00182" />
+      <option name="project" value="LOCAL" />
+      <updated>1786660511537</updated>
+    </task>
+    <task id="LOCAL-00183" summary="GenerateMapPatch brougght back to test Darv in Act 4. Disabled Darv from any later acts.">
+      <option name="closed" value="true" />
+      <created>1786665676697</created>
+      <option name="number" value="00183" />
+      <option name="presentableId" value="LOCAL-00183" />
+      <option name="project" value="LOCAL" />
+      <updated>1786665676697</updated>
+    </task>
+    <task id="LOCAL-00184" summary="Deleted the GenerateMapPatch again.">
+      <option name="closed" value="true" />
+      <created>1786671344228</created>
+      <option name="number" value="00184" />
+      <option name="presentableId" value="LOCAL-00184" />
+      <option name="project" value="LOCAL" />
+      <updated>1786671344228</updated>
+    </task>
+    <option name="localTasksCounter" value="185" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -753,9 +751,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Fixed a bug with Act 1, 2, 3 console command that caused the game to softlock so made a postfix patch to the command" />
-    <MESSAGE value="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctaskip, ctaffsay" />
-    <MESSAGE value="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctaskip, ctaffspeak" />
     <MESSAGE value="Added 3 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay" />
     <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay" />
     <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in Coordinator consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;&#10;The new ChooseTheAncientConsoleCommands.cs  contains all the console commands. This adds an enum ConsoleSelectionResolutionMode that has SkipAndContinue and CancelFlow.&#10;SkipAndContinue is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;ConsoleCommands.cs also handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand." />
@@ -778,7 +773,10 @@
     <MESSAGE value="Updated phoenix showcase video." />
     <MESSAGE value="added phoenix" />
     <MESSAGE value="test: isolate ancient compatibility tests from game runtime&#10;&#10;keep test builds from deploying a local mod copy&#10;bootstrap ModelDb without requiring ModManager startup&#10;silence production logging because xUnit has no Godot native host&#10;cover act-valid custom ancients and the one-custom-per-act ballot case" />
-    <option name="LAST_COMMIT_MESSAGE" value="test: isolate ancient compatibility tests from game runtime&#10;&#10;keep test builds from deploying a local mod copy&#10;bootstrap ModelDb without requiring ModManager startup&#10;silence production logging because xUnit has no Godot native host&#10;cover act-valid custom ancients and the one-custom-per-act ballot case" />
+    <MESSAGE value="Compatability with Pikcube's Custom Modifiers. I've removed my patch that revealed the custom modifiers I hid and left that job to the finalizer. So Always whale would never see the custom modifers while using Choose The Ancient. I need still need to test if this works all the time.&#10;&#10;Added guards so a room isn't made and entered when no ancients are available.&#10;&#10;Decided no ancient node should be made at the start if one doesn't exist. Act 4 heart mode will have no ancients." />
+    <MESSAGE value="GenerateMapPatch brougght back to test Darv in Act 4. Disabled Darv from any later acts." />
+    <MESSAGE value="Deleted the GenerateMapPatch again." />
+    <option name="LAST_COMMIT_MESSAGE" value="Deleted the GenerateMapPatch again." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

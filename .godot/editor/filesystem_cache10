@@ -1,6 +1,6 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1786550740
-CHANGELOG.md::TextFile::-1::1786550740::0::1::::<><><>0<>0<><>::
+::res://::1786671807
+CHANGELOG.md::TextFile::-1::1786659828::0::1::::<><><>0<>0<><>::
 ChooseTheAncient.json::JSON::-1::1786550559::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1786125860::0::1::::<><><>0<>0<><>::
 MainFile.cs::CSharpScript::5996418427638783768::1786158040::0::1::::<>Node<><>0<>0<><>::
@@ -18,11 +18,11 @@ mod_image.png::CompressedTexture2D::1919318290695053380::1783029794::1786049034:
 ::res://ChooseTheAncient/bin/::1785720056
 ::res://ChooseTheAncient/bin/ExportRelease/::1785720056
 ::res://ChooseTheAncient/bin/ExportRelease/net9.0/::1785720056
-::res://ChooseTheAncient/bin/ExportRelease/net9.0/publish/::1786639339
-ChooseTheAncient.deps.json::JSON::-1::1786639339::0::1::::<><><>0<>0<><>::
-ChooseTheAncient.runtimeconfig.json::JSON::-1::1786639339::0::1::::<><><>0<>0<><>::
+::res://ChooseTheAncient/bin/ExportRelease/net9.0/publish/::1786672774
+ChooseTheAncient.deps.json::JSON::-1::1786672774::0::1::::<><><>0<>0<><>::
+ChooseTheAncient.runtimeconfig.json::JSON::-1::1786672774::0::1::::<><><>0<>0<><>::
 Sentry.Godot.xml::TextFile::-1::1786206006::0::1::::<><><>0<>0<><>::
-sts2.xml::TextFile::-1::1786206004::0::1::::<><><>0<>0<><>::
+sts2.xml::TextFile::-1::1786671230::0::1::::<><><>0<>0<><>::
 ::res://ChooseTheAncient/localization/::1775520864
 ::res://ChooseTheAncient/localization/eng/::1786174251
 ancients.json::JSON::-1::1786049034::0::1::::<><><>0<>0<><>::
@@ -35,14 +35,14 @@ settings_ui.json::JSON::-1::1786174251::0::1::::<><><>0<>0<><>::
 ::res://ChooseTheAncient/settings/::1786173874
 BASELIB_NOTES.txt::TextFile::-1::1786049034::0::1::::<><><>0<>0<><>::
 ritsulib_settings_schema.json::JSON::-1::1786173874::0::1::::<><><>0<>0<><>::
-::res://ChooseTheAncientCode/::1786204823
+::res://ChooseTheAncientCode/::1786660803
 ChooseTheAncientBaseAncientText.cs::CSharpScript::2452066060654417075::1786169408::0::1::::<><><>0<>0<><>::
 ChooseTheAncientConfig.cs::CSharpScript::2564393916526341802::1786173874::0::1::::<><><>0<>0<><>::
 ChooseTheAncientConsoleCommands.cs::CSharpScript::6540951924353449232::1786168742::0::1::::<><><>0<>0<><>::
 ChooseTheAncientCoordinator.cs::CSharpScript::6326317095097407068::1786160656::0::1::::<><><>0<>0<><>::
 ChooseTheAncientDialogueLocalizationRules.cs::CSharpScript::3466468391609298144::1786149408::0::1::::<><><>0<>0<><>::
 ChooseTheAncientFlowState.cs::CSharpScript::1082555364368103115::1786160454::0::1::::<><><>0<>0<><>::
-ChooseTheAncientHelpers.cs::CSharpScript::4713250848785078256::1786155415::0::1::::<><><>0<>0<><>::
+ChooseTheAncientHelpers.cs::CSharpScript::4713250848785078256::1786660803::0::1::::<><><>0<>0<><>::
 ChooseTheAncientLocalization.cs::CSharpScript::7623904307163113106::1786149408::0::1::::<><><>0<>0<><>::
 ChooseTheAncientSelectionScreen.cs::CSharpScript::3139458558456567365::1786204823::0::1::::<>Control<><>0<>0<><>::
 ChooseTheAncientSettingsStore.cs::CSharpScript::4951749427947090984::1786149408::0::1::::<><><>0<>0<><>::
@@ -61,15 +61,15 @@ ChooseTheAncientPresentationResolver.cs::CSharpScript::5941920872555022863::1786
 SlayTheStreamerInterop.cs::CSharpScript::5445292710764632878::1786149408::0::1::::<><><>0<>0<><>::
 ::res://ChooseTheAncientCode/Messages/::1786161057
 ChooseTheAncientConsoleSelectionResolutionMessage.cs::CSharpScript::4381278950420339355::1786149408::0::1::::<><><>0<>0<><>::
-::res://ChooseTheAncientCode/Patches/::1786639261
+::res://ChooseTheAncientCode/Patches/::1786671324
 ActConsoleCmdNavigationPatch.cs::CSharpScript::240378124359256904::1786201942::0::1::::<><><>0<>0<><>::
 AncientRewardRngPatch.cs::CSharpScript::6418114109864188478::1786149408::0::1::::<><><>0<>0<><>::
 ChooseTheAncientConsoleBallotPreprocessPatch.cs::CSharpScript::1040373523763189647::1786198324::0::1::::<><><>0<>0<><>::
 ChooseTheAncientConsoleSelectionResolutionHandlerRegistrationPatch.cs::CSharpScript::597691146084792858::1786149408::0::1::::<><><>0<>0<><>::
 CreateRoomPatch.cs::CSharpScript::6647384145982766918::1786154157::0::1::::<><><>0<>0<><>::
+DarvSharedAncientActRestrictionPatch.cs::CSharpScript::1095410006257386049::1786660826::0::1::::<><><>0<>0<><>::
 EnterActStartingAncientPatch.cs::CSharpScript::2407190099465592532::1786154181::0::1::::<><><>0<>0<><>::
-GenerateMapPatch.cs::CSharpScript::3519014592833418269::1786149408::0::1::::<><><>0<>0<><>::
-NeowBlessingModePatch.cs::CSharpScript::8876963117183490768::1786639261::0::1::::<><><>0<>0<><>::
+NeowBlessingModePatch.cs::CSharpScript::8876963117183490768::1786639792::0::1::::<><><>0<>0<><>::
 NMapScreenStartingAncientPatch.cs::CSharpScript::4809406051950125225::1786154171::0::1::::<><><>0<>0<><>::
 UnresolvedActStartMapIconPatch.cs::CSharpScript::9223298377082653939::1786149408::0::1::::<><><>0<>0<><>::
 ::res://ChooseTheAncientCode/Rooms/::1786154185
@@ -113,7 +113,7 @@ Slay The Spire 2 Screenshot 2026.07.30 - 02.25.44.66.png::CompressedTexture2D::1
 Slay The Spire 2 Screenshot 2026.07.30 - 02.26.14.04.png::CompressedTexture2D::8463358620481957020::1785375556::1785375926::1::::<><><>0<>0<>60f1fe884688900a7acfe8d0222c3c0c<>res://.godot/imported/Slay The Spire 2 Screenshot 2026.07.30 - 02.26.14.04.png-3cae307e02e93c07bb32d44a7aa3b1ba.ctex::
 Slay The Spire 2 Screenshot 2026.07.30 - 02.26.15.69.png::CompressedTexture2D::6810324694566076404::1785375565::1785375926::1::::<><><>0<>0<>89d6737563556244257d8a9f8857b03f<>res://.godot/imported/Slay The Spire 2 Screenshot 2026.07.30 - 02.26.15.69.png-232fb73972c2bc504acd10dae405a421.ctex::
 Slay The Spire 2 Screenshot 2026.07.30 - 02.27.14.60.png::CompressedTexture2D::5890554230053437344::1785375582::1785375926::1::::<><><>0<>0<>192ea81068b038245cce5922501a1009<>res://.godot/imported/Slay The Spire 2 Screenshot 2026.07.30 - 02.27.14.60.png-61cbae3a99ef4b52d48a5c918a7e1fca.ctex::
-::res://Mod Page Resources/thumnail/::1786325346
+::res://Mod Page Resources/thumnail/::1786639349
 image.png::CompressedTexture2D::4792239310092895677::1786325143::1786639349::1::::<><><>0<>0<>8bef4596293fa84b0c4f2fc3de28271b<>res://.godot/imported/image.png-180b2c8ea431ee3e98ecdad45483a277.ctex::
 ::res://Mod Page Resources/video-to-ancient-gifs-uv/::1785540307
 pyproject.toml::TextFile::-1::1785519850::0::1::::<><><>0<>0<><>::
@@ -1695,7 +1695,7 @@ RitsuLibModSettingsInteropProvider.cs::CSharpScript::5433844739498568973::178546
 ::res://showcase/::1786210297
 winners_showcase.md::TextFile::-1::1785703153::0::1::::<><><>0<>0<><>::
 ::res://tests/::1782143574
-::res://tests/ChooseTheAncient.Tests/::1786385487
+::res://tests/ChooseTheAncient.Tests/::1786639349
 AncientConfigsPlusWeightingCoreTests.cs::CSharpScript::7929412074172613543::1785165996::0::1::::<><><>0<>0<><>::
 ChooseTheAncientAct1ModifierBootstrapTests.cs::CSharpScript::165674960877896085::1786160454::0::1::::<><><>0<>0<><>::
 ChooseTheAncientCoopModifierBootstrapTests.cs::CSharpScript::4959857708020366756::1786160454::0::1::::<><><>0<>0<><>::
@@ -1704,11 +1704,11 @@ SharedAncientSubsetCompatibilityTests.cs::CSharpScript::5504228409819046187::178
 SharedAncientWeightSamplingTests.cs::CSharpScript::8118569511185833660::1785165996::0::1::::<><><>0<>0<><>::
 ::res://tests/ChooseTheAncient.Tests/bin/::1782153743
 ::res://tests/ChooseTheAncient.Tests/bin/Debug/::1782151938
-::res://tests/ChooseTheAncient.Tests/bin/Debug/net9.0/::1786639263
-ChooseTheAncient.Tests.deps.json::JSON::-1::1786385528::0::1::::<><><>0<>0<><>::
-ChooseTheAncient.Tests.runtimeconfig.json::JSON::-1::1786378570::0::1::::<><><>0<>0<><>::
+::res://tests/ChooseTheAncient.Tests/bin/Debug/net9.0/::1786671351
+ChooseTheAncient.Tests.deps.json::JSON::-1::1786639796::0::1::::<><><>0<>0<><>::
+ChooseTheAncient.Tests.runtimeconfig.json::JSON::-1::1786639796::0::1::::<><><>0<>0<><>::
 Sentry.Godot.xml::TextFile::-1::1786206006::0::1::::<><><>0<>0<><>::
-sts2.xml::TextFile::-1::1786206004::0::1::::<><><>0<>0<><>::
+sts2.xml::TextFile::-1::1786671230::0::1::::<><><>0<>0<><>::
 ::res://tests/ChooseTheAncient.Tests/bin/Debug/net9.0/cs/::1783198335
 ::res://tests/ChooseTheAncient.Tests/bin/Debug/net9.0/de/::1783198335
 ::res://tests/ChooseTheAncient.Tests/bin/Debug/net9.0/es/::1783198335
@@ -1769,17 +1769,17 @@ ThirdPartyNotices.txt::TextFile::-1::1783029796::0::1::::<><><>0<>0<><>::
 ::res://tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/tr/::1783034000
 ::res://tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/zh-Hans/::1783034000
 ::res://tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/zh-Hant/::1783034000
-::res://tests/ChooseTheAncient.Tests/obj/::1786639337
-ChooseTheAncient.Tests.csproj.nuget.dgspec.json::JSON::-1::1786639337::0::1::::<><><>0<>0<><>::
-project.assets.json::JSON::-1::1786639337::0::1::::<><><>0<>0<><>::
+::res://tests/ChooseTheAncient.Tests/obj/::1786672769
+ChooseTheAncient.Tests.csproj.nuget.dgspec.json::JSON::-1::1786672769::0::1::::<><><>0<>0<><>::
+project.assets.json::JSON::-1::1786672769::0::1::::<><><>0<>0<><>::
 project.packagespec.json::JSON::-1::1783029796::0::1::::<><><>0<>0<><>::
 ::res://tests/ChooseTheAncient.Tests/obj/Debug/::1782151938
-::res://tests/ChooseTheAncient.Tests/obj/Debug/net9.0/::1786639316
+::res://tests/ChooseTheAncient.Tests/obj/Debug/net9.0/::1786671350
 .NETCoreApp,Version=v9.0.AssemblyAttributes.cs::CSharpScript::8101288380389321266::1783029796::0::1::::<><><>0<>0<><>::
-ChooseTheAncient.Tests.AssemblyInfo.cs::CSharpScript::2411134459111696940::1786550507::0::1::::<><><>0<>0<><>::
+ChooseTheAncient.Tests.AssemblyInfo.cs::CSharpScript::2411134459111696940::1786671350::0::1::::<><><>0<>0<><>::
 ChooseTheAncient.Tests.csproj.FileListAbsolute.txt::TextFile::-1::1786378570::0::1::::<><><>0<>0<><>::
 ChooseTheAncient.Tests.GlobalUsings.g.cs::CSharpScript::7653449513059324605::1783029796::0::1::::<><><>0<>0<><>::
-ChooseTheAncient.Tests.sourcelink.json::JSON::-1::1786638863::0::1::::<><><>0<>0<><>::
+ChooseTheAncient.Tests.sourcelink.json::JSON::-1::1786671350::0::1::::<><><>0<>0<><>::
 ::res://tests/ChooseTheAncient.Tests/obj/Debug/net9.0/ref/::1783034000
 ::res://tests/ChooseTheAncient.Tests/obj/Debug/net9.0/refint/::1783034000
 ::res://tests/ChooseTheAncient.Tests/obj/ExportRelease/::1782153743
