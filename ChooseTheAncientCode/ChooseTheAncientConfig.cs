@@ -879,8 +879,16 @@ public static string DescribeSpecialAncientOverrides(IReadOnlyDictionary<string,
         int count = Math.Min(canonicalOptions.Count, optionLocKeys.Count);
         for (int i = 0; i < count; i++)
         {
-            if (string.Equals(value, canonicalOptions[i], StringComparison.OrdinalIgnoreCase)
-                || ChooseTheAncientLocalization.MatchesKnownTranslation(
+            if (string.Equals(value, canonicalOptions[i], StringComparison.OrdinalIgnoreCase))
+            {
+                index = i;
+                return true;
+            }
+        }
+        
+        for (int i = 0; i < count; i++)
+        {
+            if (ChooseTheAncientLocalization.MatchesKnownTranslation(
                     value,
                     ChooseTheAncientLocalization.SettingsTableName,
                     optionLocKeys[i]))

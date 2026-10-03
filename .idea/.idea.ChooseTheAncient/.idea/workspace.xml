@@ -3,11 +3,22 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/CreateRoomPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/CreateRoomPatch.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Rooms/ChooseTheAncientStartRoom.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Rooms/ChooseTheAncientStartRoom.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientSubsetCompatibilityTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientSubsetCompatibilityTests.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,36 +37,35 @@
     &quot;assignee&quot;: &quot;ResistingFate&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/ResistingFate/ChooseTheAncient&quot;,
-    &quot;accountId&quot;: &quot;9ab0acdb-82de-4c1b-a751-99cc69cba683&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/ResistingFate/ChooseTheAncient.git",
+    "accountId": "46b82c43-eee5-419c-a6dd-a34c41363644"
   }
-}</component>
+}]]></component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/623673a32f6a4e15a5604f44f22978678a2200/b3/ae02c004/EventSynchronizer.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/14/90399323/RunManager.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/3a/a3d41f0a/LocalContext.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/97f10687c3064798ab758b9f23f34dfb8ee400/48/11a79d22/NetGameType.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/a49d35375a424dcd9877663e394f2b4492a000/d9/ba0bdb12/Cmd.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c0f649b88d574a9c8b0721aece97dca0945400/15/77c6b443/RunManager.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c0f649b88d574a9c8b0721aece97dca0945400/3a/86e5a2c5/RunState.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c0f649b88d574a9c8b0721aece97dca0945400/48/a7ab7525/ActModel.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f76dbe67be824f0da0c703c3dce57e34e8e728/e0/0a0b050d/Task`1.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f76dbe67be824f0da0c703c3dce57e34e8e728/f1/238e3b5c/Object.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/2854ce6d56c18d0d837d3a3ef9c4f2c7c77691fa3528c8394986ac7ce7719/StackFrameIterator.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/d33115dfb913de138d3e64a16bc31f1e7654a63ea23729ff60a54b5776dd6/Control.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/ModUploader/ChooseTheAncient/workshop.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientAct1ModifierBootstrapTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientCoopModifierBootstrapTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientDialogueLocalizationTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientSubsetCompatibilityTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientWeightSamplingTests.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/../StS2ModEnergizedSpire2-main/EnergizedSpire2Code/Ancients/EnergizedSpire2Ancient.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/../StS2ModEnergizedSpire2-main/EnergizedSpire2Code/EnergizedSpire2MainFile.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/localization/eng/gameplay_ui.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/localization/eng/settings_ui.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/localization/zhs/gameplay_ui.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/localization/zhs/settings_ui.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/settings/ritsulib_settings_schema.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/ChooseTheAncientConfig.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Compatibility/DevConsoleCompatibility.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Messages/ChooseTheAncientConsoleSelectionResolutionMessage.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleBallotPreprocessPatch.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleSelectionResolutionHandlerRegistrationPatch.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/CreateRoomPatch.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/DarvSharedAncientActRestrictionPatch.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Rooms/ChooseTheAncientStartRoom.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/Scripts/BaseLibSettingsInterop.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="KubernetesApiPersistence">{}</component>
   <component name="KubernetesApiProvider">{
@@ -77,33 +87,38 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;.NET Executable. dotnet test ChooseTheAncient.Tests.executor&quot;: &quot;Run&quot;,
-    &quot;.NET Executable.SlayTheSpire2_Debug.executor&quot;: &quot;Debug&quot;,
-    &quot;.NET Executable.clean rebuild tests.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient Tests to folder.executor&quot;: &quot;Run&quot;,
-    &quot;Publish to folder.Publish ChooseTheAncient to folder.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;CodeLensConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    ".NET Executable. dotnet test ChooseTheAncient.Tests.executor": "Run",
+    ".NET Executable.SlayTheSpire2_Debug.executor": "Debug",
+    ".NET Executable.clean rebuild tests.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
+    "Publish to folder.Publish ChooseTheAncient to folder.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "cidr.known.project.marker": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "rider.unittesting.toolwindow.stripe.button.shown": "true",
+    "settings.editor.selected.configurable": "advanced.settings",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
-  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
+}]]></component>
+  <component name="RunManager" selected=".NET Executable.clean rebuild tests">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
       <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
       <method v="2" />
@@ -149,7 +164,7 @@
       </method>
     </configuration>
     <configuration name="Editor" type="RunExe" factoryName=".NET Executable">
-      <option name="EXE_PATH" value="$USER_HOME$/Downloads/megadot-4.5.1-m.14/MegaDot_v4.5.1-stable_mono_win64.exe" />
+      <option name="EXE_PATH" value="C:\Users\ResistingFate\Downloads\megadot-4.5.1-m.14\MegaDot_v4.5.1-stable_mono_win64.exe" />
       <option name="PROGRAM_PARAMETERS" value="--path &quot;ChooseTheAncient&quot; --editor" />
       <option name="WORKING_DIRECTORY" value="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -165,7 +180,7 @@
       </method>
     </configuration>
     <configuration name="Player" type="RunExe" factoryName=".NET Executable">
-      <option name="EXE_PATH" value="$USER_HOME$/Downloads/megadot-4.5.1-m.14/MegaDot_v4.5.1-stable_mono_win64.exe" />
+      <option name="EXE_PATH" value="C:\Users\ResistingFate\Downloads\megadot-4.5.1-m.14\MegaDot_v4.5.1-stable_mono_win64.exe" />
       <option name="PROGRAM_PARAMETERS" value="--path &quot;ChooseTheAncient&quot;" />
       <option name="WORKING_DIRECTORY" value="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -230,8 +245,8 @@
       <item itemvalue=".NET Executable.Editor" />
       <item itemvalue=".NET Executable.SlayTheSpire2_Debug" />
       <item itemvalue=".NET Executable.Player" />
-      <item itemvalue="GdScript Start and Debug.Debug GDScript (Running session)" />
-      <item itemvalue="GdScript Start and Debug.Player GDScript" />
+      <item itemvalue="GDScript Start and Debug.Debug GDScript (Running session)" />
+      <item itemvalue="GDScript Start and Debug.Player GDScript" />
       <item itemvalue="Publish to folder.Publish ChooseTheAncient to folder" />
       <item itemvalue="Publish to folder.Publish ChooseTheAncient Tests to folder" />
     </list>

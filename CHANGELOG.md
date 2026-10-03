@@ -27,6 +27,18 @@ TODO:
 - Bug needs finding and fixing for someone not able to get any selection screen to work.
 - Another bug where only works with console commands.
 
+## [v1.3.4] - Compatability with ARAM MAYHEM
+
+### Features
+- Now works with ARAM MAYHEM
+
+### Fixes
+- A fix so Linux 0.107.1 builds should at least work with this patch.
+
+### Technical
+- The selection screen is now marked as an EventRoom
+
+
 ## [v1.3.3] - Small fixes
 
 ### Features

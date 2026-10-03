@@ -46,7 +46,7 @@ public static class CreateRoomPatch
             return;
         }
 
-        if (__result is not EventRoom)
+        if (__result is not EventRoom vanillaEventRoom)
         {
             ModLog.Warn(
                 $"CreateRoomPatch expected vanilla to create EventRoom for act " +
@@ -55,7 +55,16 @@ public static class CreateRoomPatch
             return;
         }
 
-        __result = new ChooseTheAncientStartRoom();
+        if (vanillaEventRoom.CanonicalEvent is not AncientEventModel ancientEventModel)
+        {
+            ModLog.Warn(
+                $"CreateRoomPatch received an EventRoom whose canonical event was " +
+                $"{vanillaEventRoom.CanonicalEvent.GetType().Name}, not an Ancient. " +
+                "Leaving it unchanged.");
+            return;
+        }
+
+        __result = new ChooseTheAncientStartRoom(ancientEventModel);
 
         ModLog.Info(
             $"CreateRoomPatch replaced vanilla's completed EventRoom result with CTA's " +

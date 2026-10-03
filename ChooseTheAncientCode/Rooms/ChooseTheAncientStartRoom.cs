@@ -10,11 +10,11 @@ using MegaCrit.Sts2.Core.Saves.Runs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode.Rooms;
 
-public sealed class ChooseTheAncientStartRoom : AbstractRoom
+public sealed class ChooseTheAncientStartRoom : EventRoom
 {
-    public override RoomType RoomType => RoomType.Event;
-
-    public override ModelId? ModelId => null;
+    public ChooseTheAncientStartRoom(AncientEventModel eventModel) : base(eventModel)
+    {
+    }
 
     public override Task EnterInternal(IRunState? runState, bool isRestoringRoomStackBase)
     {

@@ -58,10 +58,10 @@ namespace ChooseTheAncient.Tests
             EnsureModelDbInitialized();
 
             AncientEventModel darv = ModelDb.AncientEvent<Darv>();
-            ActModel act2 = ModelDb.Act<Underdocks>().ToMutable();
+            ActModel act2 = ModelDb.Act<Hive>().ToMutable();
             ActModel act3 = ModelDb.Act<Glory>().ToMutable();
             RunState runState = CreateMinimalRunState();
-
+            
             List<AncientEventModel> act2Candidates =
                 InvokePrivate<List<AncientEventModel>>(
                     "GetSharedAncientsValidForTargetAct",
@@ -88,7 +88,7 @@ namespace ChooseTheAncient.Tests
             EnsureModelDbInitialized();
 
             AncientEventModel custom = Canonical<BaseLibAct2OnlyAncient>();
-            ActModel act2 = ModelDb.Act<Underdocks>().ToMutable();
+            ActModel act2 = ModelDb.Act<Hive>().ToMutable();
             ActModel act3 = ModelDb.Act<Glory>().ToMutable();
 
             bool validForAct2 = InvokePrivate<bool>(
@@ -115,7 +115,7 @@ namespace ChooseTheAncient.Tests
             EnsureModelDbInitialized();
 
             AncientEventModel custom = Canonical<BaseLibAct3OnlyAncient>();
-            ActModel act2 = ModelDb.Act<Underdocks>().ToMutable();
+            ActModel act2 = ModelDb.Act<Hive>().ToMutable();
             ActModel act3 = ModelDb.Act<Glory>().ToMutable();
 
             bool validForAct2 = InvokePrivate<bool>(
@@ -143,7 +143,7 @@ namespace ChooseTheAncient.Tests
             EnsureModelDbInitialized();
 
             AncientEventModel custom = Canonical<BaseLibDefaultAncient>();
-            ActModel act2 = ModelDb.Act<Underdocks>().ToMutable();
+            ActModel act2 = ModelDb.Act<Hive>().ToMutable();
             ActModel act3 = ModelDb.Act<Glory>().ToMutable();
 
             Assert.True(InvokePrivate<bool>(
@@ -168,7 +168,7 @@ namespace ChooseTheAncient.Tests
             EnsureModelDbInitialized();
 
             AncientEventModel custom = Canonical<RitsuAct2OnlyAncient>();
-            ActModel act2 = ModelDb.Act<Underdocks>().ToMutable();
+            ActModel act2 = ModelDb.Act<Hive>().ToMutable();
             ActModel act3 = ModelDb.Act<Glory>().ToMutable();
 
             Assert.True(InvokePrivate<bool>(
@@ -191,7 +191,7 @@ namespace ChooseTheAncient.Tests
             EnsureModelDbInitialized();
 
             AncientEventModel custom = Canonical<RitsuAct3OnlyAncient>();
-            ActModel act2 = ModelDb.Act<Underdocks>().ToMutable();
+            ActModel act2 = ModelDb.Act<Hive>().ToMutable();
             ActModel act3 = ModelDb.Act<Glory>().ToMutable();
 
             Assert.False(InvokePrivate<bool>(
@@ -227,7 +227,7 @@ namespace ChooseTheAncient.Tests
             AncientEventModel act3Custom = Canonical<BaseLibAct3OnlyAncient>();
 
             ActModel act1 = ModelDb.Act<Overgrowth>().ToMutable();
-            ActModel act2 = ModelDb.Act<Underdocks>().ToMutable();
+            ActModel act2 = ModelDb.Act<Hive>().ToMutable();
             ActModel act3 = ModelDb.Act<Glory>().ToMutable();
 
             List<AncientEventModel> act2Pool =
@@ -526,7 +526,7 @@ namespace ChooseTheAncient.Tests
     internal sealed class BaseLibAct2OnlyAncient
         : BaseLib.Abstracts.CustomAncientModel
     {
-        public bool IsValidForAct(ActModel act) => act is Underdocks;
+        public bool IsValidForAct(ActModel act) => act is Hive;
     }
 
     internal sealed class BaseLibAct3OnlyAncient
@@ -545,7 +545,7 @@ namespace ChooseTheAncient.Tests
           STS2RitsuLib.Scaffolding.Content.IModAncientActValidity
     {
         bool STS2RitsuLib.Scaffolding.Content.IModAncientActValidity
-            .IsValidForAct(ActModel act) => act is Underdocks;
+            .IsValidForAct(ActModel act) => act is Hive;
     }
 
     internal sealed class RitsuAct3OnlyAncient
