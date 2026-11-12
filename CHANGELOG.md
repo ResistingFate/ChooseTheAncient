@@ -27,6 +27,20 @@ TODO:
 - Bug needs finding and fixing for someone not able to get any selection screen to work.
 - Another bug where only works with console commands.
 
+## [v1.4.0] - v0.113.0 update and Blitz compatability.
+
+### Fetaures
+- Works in Blitz
+
+### Fixes
+- Removed compatibility code for earlier game versions
+- Vakuu's ancient repositioned due to his wounded art
+
+### Technical
+- shuffles have now been changed to UnstableShuffle in Megacrit's Extensions.
+- A new MapVoteCompatibilty.cs was added to deal with Vote clearing still needing a separate call in v0.111.0 compared to the new update.
+- removed DevConsoleCompatibility.cs, InputNavigationCompatibility.cs, HotkeyIconCompatibility.cs, and SeedCompatibility.cs as the main and beta have both updated past this. Also the
+
 ## [v1.3.4] - Compatability with ARAM MAYHEM
 
 ### Features

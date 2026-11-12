@@ -22,6 +22,7 @@ using MegaCrit.Sts2.Core.Runs;
 using ChooseTheAncient.ChooseTheAncientCode.Rooms;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Assets;
+using MegaCrit.Sts2.Core.Extensions;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -1292,8 +1293,8 @@ public static class ChooseTheAncientCoordinator
 
             finalists = BuildSecondRoundFinalistDisplayOrder(
                 [firstAncient, secondAncient],
-                ancient => ancient.Id.Entry,
-                secondRoundDisplayRng.Shuffle);
+                ancient => ancient.Id.Entry, 
+                list => list.UnstableShuffle(secondRoundDisplayRng));
 
             ModLog.Info(
                 $"First-pass elimination kept {firstAncient.Id.Entry}, {secondAncient.Id.Entry}; " +
@@ -2304,7 +2305,7 @@ public static class ChooseTheAncientCoordinator
             leaders);
 
         List<int> shuffledLeaders = leaders.ToList();
-        rng.Shuffle(shuffledLeaders);
+        shuffledLeaders.UnstableShuffle(rng);
         int chosenLeader = shuffledLeaders[0];
 
         if (ModLog.IsDebugEnabled)

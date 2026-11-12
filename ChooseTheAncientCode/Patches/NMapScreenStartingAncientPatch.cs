@@ -3,6 +3,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Runs;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 
 namespace ChooseTheAncient.ChooseTheAncientCode.Patches;
 
@@ -107,9 +108,6 @@ public static class NMapScreenStartingAncientPatch
         NMapScreen mapScreen,
         RunState runState)
     {
-        RunManager.Instance.MapSelectionSynchronizer
-            .OnLocationChanged(runState.MapLocation);
-        mapScreen.PlayerVoteDictionary.Clear();
-        mapScreen.RefreshAllMapPointVotes();
+        MapVoteCompatibility.ResetVotes(mapScreen, runState.MapLocation);
     }
 }

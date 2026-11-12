@@ -20,6 +20,7 @@ using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Runs.History;
 using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
+using MegaCrit.Sts2.Core.Extensions;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -280,8 +281,8 @@ public static class ChooseTheAncientHelpers
         if (streamParts.Length == 0)
             throw new ArgumentException("At least one RNG stream part is required.", nameof(streamParts));
 
-        return SeedCompatibility.CreateNamedRng(
-            SeedCompatibility.GetRunSeed(runState),
+        return new Rng(
+            runState.Rng.Seed,
             BuildRngStreamName(streamParts));
     }
 
@@ -1194,7 +1195,7 @@ public static class ChooseTheAncientHelpers
         EventOwnerBackingField.SetValue(syntheticNeow, player);
 
         ulong bootstrapSeed = ComputeVanillaEventSeedForCurrentGame(runState, player, syntheticNeow);
-        Rng bootstrapRng = SeedCompatibility.CreateRng(bootstrapSeed);
+        Rng bootstrapRng = new Rng(bootstrapSeed);
         EventRngBackingField.SetValue(syntheticNeow, bootstrapRng);
 
         syntheticNeow.CalculateVars();
@@ -1301,8 +1302,8 @@ public static class ChooseTheAncientHelpers
             ancientCount,
             candidatePoolSignature,
             purpose);
-
-        rng.Shuffle(shuffled);
+        
+        shuffled.UnstableShuffle(rng);
         return shuffled;
     }
 
@@ -1354,24 +1355,13 @@ public static class ChooseTheAncientHelpers
         EventModel eventModel)
     /*
      * Mirrors the active game's EventModel.BeginEvent seed formula.
-     * STS2 0.107.1 uses a 32-bit run seed/hash; STS2 0.109.0 beta uses 64-bit values.
      */
     {
         int ownerContribution = eventModel.IsShared ? 0 : runState.GetPlayerSlotIndex(player);
-        ulong runSeed = SeedCompatibility.GetRunSeed(runState);
-
-        if (SeedCompatibility.Uses64BitSeeds)
-        {
-            return unchecked(
-                runSeed
-                + (ulong)ownerContribution
-                + SeedCompatibility.GetDeterministicHash64(eventModel.Id.Entry));
-        }
-
         return unchecked(
-            (uint)runSeed
-            + (uint)ownerContribution
-            + SeedCompatibility.GetDeterministicHash32(eventModel.Id.Entry));
+            runState.Rng.Seed
+            + (ulong)ownerContribution
+            + StringHelper.GetDeterministicHashCode(eventModel.Id.Entry));
     }
 
     public static Rng CreatePreviewEventRng(RunState runState, Player player, EventModel eventModel)
@@ -1379,7 +1369,7 @@ public static class ChooseTheAncientHelpers
      * Creates the vanilla event RNG used when simulating reward previews or modifier bootstrap events that should not use CTA reward offsets.
      */
     {
-        return SeedCompatibility.CreateRng(
+        return new Rng(
             ComputeVanillaEventSeedForCurrentGame(runState, player, eventModel));
     }
 
@@ -1397,7 +1387,7 @@ public static class ChooseTheAncientHelpers
         int normalActIndex = GetNormalMinimumActIndexForAncient(runState, eventModel);
         int actOffset = targetActIndex - normalActIndex;
 
-        return SeedCompatibility.AddSignedOffset(seed, actOffset);
+        return unchecked(seed + (ulong)(long)actOffset);
     }
 
     public static Rng CreateAncientEventRngForTargetAct(
@@ -1409,7 +1399,7 @@ public static class ChooseTheAncientHelpers
      * Creates the RNG CTA should use for ancient reward previews or reveals in a target act.
      */
     {
-        return SeedCompatibility.CreateRng(
+        return new Rng(
             ComputeAncientEventSeedForTargetAct(
                 runState,
                 player,
@@ -1549,7 +1539,7 @@ public static class ChooseTheAncientHelpers
                 owner,
                 ancient,
                 targetActIndex);
-            Rng rng = SeedCompatibility.CreateRng(seed);
+            Rng rng = new Rng(seed);
 
             EventRngBackingField.SetValue(ancient, rng);
 
@@ -2280,10 +2270,9 @@ public static class ChooseTheAncientHelpers
         NMapScreen? mapScreen = NMapScreen.Instance;
         if (mapScreen != null)
         {
-            SeedCompatibility.SetMap(
-                mapScreen,
+            mapScreen.SetMap(
                 runState.Map,
-                SeedCompatibility.GetRunSeed(runState),
+                runState.Rng.Seed,
                 clearDrawings: true);
 
             bool iconUpdated =

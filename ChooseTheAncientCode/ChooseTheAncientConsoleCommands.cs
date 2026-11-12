@@ -11,6 +11,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using ChooseTheAncient.ChooseTheAncientCode.Messages;
 using ChooseTheAncient.ChooseTheAncientCode.Patches;
 using ChooseTheAncient.ChooseTheAncientCode.Rooms;
@@ -886,10 +887,7 @@ internal static class ChooseTheAncientConsoleBallotRunner
             return false;
         }
 
-        RunManager.Instance.MapSelectionSynchronizer.OnLocationChanged(
-            runState.MapLocation);
-        mapScreen.PlayerVoteDictionary.Clear();
-        mapScreen.RefreshAllMapPointVotes();
+        MapVoteCompatibility.ResetVotes(mapScreen, runState.MapLocation);
         flow.ConsoleMapSelectionRebasePending = false;
 
         ModLog.Info(

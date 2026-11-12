@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Audio.Debug;
 using MegaCrit.Sts2.Core.Assets;
@@ -590,6 +589,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     private TransitionPerformanceProbe? _activeTransitionPerformanceProbe;
     private PackedScene? _hotkeyIconScene;
+    private bool _reportedHotkeyInstantiationFailure;
+    private bool _reportedHotkeyUpdateFailure;
 
     private readonly List<SlotRefs> _slots = new();
     private readonly List<Player> _orderedPlayers = new();
@@ -769,8 +770,13 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         SyncConfigFromSavedSettings();
 
-        _hotkeyIconScene =
-            HotkeyIconCompatibility.TryLoadScene(HotkeyIconScenePath);
+        _hotkeyIconScene = ResourceLoader.Exists(HotkeyIconScenePath)
+            ? GD.Load<PackedScene>(HotkeyIconScenePath)
+            : null;
+        if (_hotkeyIconScene == null)
+        {
+            ModLog.Info("CTA could not load the adaptive hotkey icon scene. Using controller textures.");
+        }
 
         PackedScene? layoutScene = GD.Load<PackedScene>(LayoutScenePath);
         if (layoutScene == null)
@@ -2983,15 +2989,25 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             try
             {
-                voteButtonPrompt = _hotkeyIconScene.Instantiate<Control>();
+                voteButtonPrompt = _hotkeyIconScene.Instantiate<NHotkeyIcon>();
             }
             catch (Exception ex)
             {
-                HotkeyIconCompatibility.ReportInstantiationFailure(ex);
+                if (!_reportedHotkeyInstantiationFailure)
+                {
+                    _reportedHotkeyInstantiationFailure = true;
+                    ModLog.Warn($"Could not instantiate CTA's adaptive hotkey icon: {ex.Message}");
+                }
             }
         }
         
-        voteButtonPrompt ??= HotkeyIconCompatibility.CreateLegacyControllerPrompt();
+        voteButtonPrompt ??= new TextureRect
+        {
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            FocusMode = FocusModeEnum.None,
+        };
 
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
@@ -4653,7 +4669,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             : 1f;
 
         bool keyboardOnly = NControllerManager.Instance is { } controllerManager
-            && InputNavigationCompatibility.IsKeyboardOnlyMode(controllerManager);
+            && controllerManager.InputType == InputType.KeyboardOnlyMode;
         float iconHeight = Mathf.Clamp(32f * screenScale, 28f, 40f);
         float iconWidth = keyboardOnly
             ? Mathf.Clamp(72f * screenScale, 64f, 88f)
@@ -6171,6 +6187,35 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }));
     }
 
+    private bool UpdateVoteButtonPromptInput(Control icon)
+    {
+        try
+        {
+            string input = MegaInput.select.ToString();
+            if (icon is NHotkeyIcon hotkeyIcon)
+            {
+                hotkeyIcon.UpdateInput(input);
+                return true;
+            }
+
+            if (icon is TextureRect textureIcon)
+            {
+                textureIcon.Texture = NInputManager.Instance?.GetHotkeyIcon(input);
+                return textureIcon.Texture != null;
+            }
+        }
+        catch (Exception ex)
+        {
+            if (!_reportedHotkeyUpdateFailure)
+            {
+                _reportedHotkeyUpdateFailure = true;
+                ModLog.Warn($"Could not update CTA's vote-button input glyph: {ex.Message}");
+            }
+        }
+
+        return false;
+    }
+
     private void UpdateVoteButtonPrompts()
     {
         /*
@@ -6179,7 +6224,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         NControllerManager? controllerManager = NControllerManager.Instance;
         bool showDirectionalPrompts =
             controllerManager != null &&
-            InputNavigationCompatibility.IsUsingDirectionalNavigation(controllerManager) &&
+            controllerManager.IsUsingDirectionalNavigation &&
             ShowControllerHotkeys;
 
         SlotRefs? activeSlot = showDirectionalPrompts ? GetActiveVoteSlotForPrompt() : null;
@@ -6194,7 +6239,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
             bool hasRenderablePrompt =
                 showDirectionalPrompts &&
-                HotkeyIconCompatibility.UpdateInput(icon, MegaInput.select);
+                UpdateVoteButtonPromptInput(icon);
 
             LayoutVoteButtonPrompt(refs);
 
@@ -6264,7 +6309,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         NControllerManager? controllerManager = NControllerManager.Instance;
         if (controllerManager == null ||
-            !InputNavigationCompatibility.IsUsingDirectionalNavigation(controllerManager))
+            !controllerManager.IsUsingDirectionalNavigation)
         {
             _lastControllerVisualFocusOwner = null;
             return false;
