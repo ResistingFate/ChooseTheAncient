@@ -6,24 +6,27 @@
   <component name="CMakeProjectFlavorService">
     <option name="flavorId" value="CMakePlainProjectFlavor" />
   </component>
+  <component name="CMakeSettings">
+    <configurations />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/editor_layout.cfg" afterDir="false" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="Moved the MainFile inside Code folder, to fit inline with recent mod development changes. Apparently this fixes bugs that occur when godot bridge is enabled.">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/exported/133200997/file_cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/CreateRoomPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/CreateRoomPatch.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Rooms/ChooseTheAncientStartRoom.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Rooms/ChooseTheAncientStartRoom.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientSubsetCompatibilityTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientSubsetCompatibilityTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainFile.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/MainFile.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainFile.cs.uid" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/MainFile.cs.uid" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ContinuousTesting.UiSettings">
+    <option name="tabHidden" value="true" />
   </component>
   <component name="DpaMonitoringSettings">
     <option name="firstShow" value="false" />
@@ -37,35 +40,24 @@
     &quot;assignee&quot;: &quot;ResistingFate&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/ResistingFate/ChooseTheAncient.git",
-    "accountId": "46b82c43-eee5-419c-a6dd-a34c41363644"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/ResistingFate/ChooseTheAncient.git&quot;,
+    &quot;accountId&quot;: &quot;46b82c43-eee5-419c-a6dd-a34c41363644&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncient/localization/eng/gameplay_ui.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConfig.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/ChooseTheAncientCode/MainFile.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/ModUploader/template/workshop.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientAct1ModifierBootstrapTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientCoopModifierBootstrapTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientDialogueLocalizationTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientSubsetCompatibilityTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientWeightSamplingTests.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/localization/eng/gameplay_ui.json" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/localization/eng/settings_ui.json" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/localization/zhs/gameplay_ui.json" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/localization/zhs/settings_ui.json" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient/settings/ritsulib_settings_schema.json" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/ChooseTheAncientConfig.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Compatibility/DevConsoleCompatibility.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Messages/ChooseTheAncientConsoleSelectionResolutionMessage.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleBallotPreprocessPatch.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleSelectionResolutionHandlerRegistrationPatch.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/CreateRoomPatch.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/DarvSharedAncientActRestrictionPatch.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Rooms/ChooseTheAncientStartRoom.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/Scripts/BaseLibSettingsInterop.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="KubernetesApiPersistence">{}</component>
   <component name="KubernetesApiProvider">{
@@ -76,6 +68,65 @@
     <urls />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0000028710303257" />
+      <entry key="MS500" value="1.0779125746421936" />
+      <entry key="S2" value="1.5283258847488386" />
+      <entry key="S5" value="1.774748520563688" />
+      <entry key="S10" value="1.880198000772376" />
+      <entry key="S30" value="1.9583612594183566" />
+      <entry key="S60" value="1.984855669366709" />
+      <entry key="M2" value="2.253201753713229" />
+      <entry key="M5" value="6.377175964073793" />
+      <entry key="M10" value="14.602416340529913" />
+      <entry key="M15" value="20.12357174251901" />
+      <entry key="M30" value="28.188014268857003" />
+      <entry key="H1" value="33.786683805934665" />
+      <entry key="H2" value="40.775032682038336" />
+      <entry key="H4" value="55.17934415994382" />
+      <entry key="D1" value="94.27705807114532" />
+      <entry key="W1" value="106.6832999802021" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="0.0" />
+      <entry key="M2" value="0.0" />
+      <entry key="M5" value="0.0" />
+      <entry key="M10" value="0.0" />
+      <entry key="M15" value="0.0" />
+      <entry key="M30" value="0.0" />
+      <entry key="H1" value="0.0" />
+      <entry key="H2" value="0.0" />
+      <entry key="H4" value="0.0" />
+      <entry key="D1" value="0.0" />
+      <entry key="W1" value="0.0" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.8526352658868084" />
+      <entry key="MS500" value="1.02045066084003" />
+      <entry key="S2" value="1.469205605648341" />
+      <entry key="S5" value="1.74062348198132" />
+      <entry key="S10" value="1.860849424592629" />
+      <entry key="S30" value="1.9513420856610884" />
+      <entry key="S60" value="1.9812691997915743" />
+      <entry key="M2" value="2.2513445560323873" />
+      <entry key="M5" value="6.376043688664809" />
+      <entry key="M10" value="14.601433238580263" />
+      <entry key="M15" value="20.122725954160188" />
+      <entry key="M30" value="28.187451068687572" />
+      <entry key="H1" value="33.786353072383086" />
+      <entry key="H2" value="40.77484116752596" />
+      <entry key="H4" value="55.1792276488972" />
+      <entry key="D1" value="94.27703064960951" />
+      <entry key="W1" value="106.68329572235709" />
+    </decayedShown>
+  </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -87,66 +138,77 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    ".NET Executable. dotnet test ChooseTheAncient.Tests.executor": "Run",
-    ".NET Executable.SlayTheSpire2_Debug.executor": "Debug",
-    ".NET Executable.clean rebuild tests.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Publish to folder.Publish ChooseTheAncient Tests to folder.executor": "Run",
-    "Publish to folder.Publish ChooseTheAncient to folder.executor": "Run",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "cidr.known.project.marker": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "rider.unittesting.toolwindow.stripe.button.shown": "true",
-    "settings.editor.selected.configurable": "advanced.settings",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;.NET Executable. dotnet test ChooseTheAncient.Tests.executor&quot;: &quot;Run&quot;,
+    &quot;.NET Executable.SlayTheSpire2_Debug.executor&quot;: &quot;Debug&quot;,
+    &quot;.NET Executable.clean rebuild tests.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Publish to folder.Publish ChooseTheAncient Tests to folder.executor&quot;: &quot;Run&quot;,
+    &quot;Publish to folder.Publish ChooseTheAncient to folder.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;rider.unittesting.toolwindow.stripe.button.shown&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;SolutionBuilderGeneralOptionsPage&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
-  <component name="RunManager" selected=".NET Executable.clean rebuild tests">
+}</component>
+  <component name="RunManager" selected="Publish to folder.Publish ChooseTheAncient to folder">
     <configuration name="Publish ChooseTheAncient Tests to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
-      <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947" />
+      <riderPublish configuration="ExportRelease" platform="Any CPU" target_folder="$PROJECT_DIR$/tests/ChooseTheAncient.Tests/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-5059950039385618816" uuid_low="-6093712754025379947">
+        <runtimes>
+          <item value="Portable" />
+        </runtimes>
+      </riderPublish>
       <method v="2" />
     </configuration>
     <configuration name="Publish ChooseTheAncient to folder" type="DotNetFolderPublish" factoryName="Publish to folder">
-      <riderPublish configuration="ExportRelease" delete_existing_files="true" platform="Any CPU" target_folder="$PROJECT_DIR$/ChooseTheAncient/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-4579733752963118431" uuid_low="-7345115561578809832">
-        <runtimes>
-          <item value="win-x64" />
-          <item value="win-x86" />
-          <item value="win-arm" />
-          <item value="win-arm64" />
-          <item value="osx-x64" />
-          <item value="osx-arm64" />
-          <item value="linux-x64" />
-          <item value="linux-musl-x64" />
-          <item value="linux-arm" />
-          <item value="linux-arm64" />
-        </runtimes>
-      </riderPublish>
+      <riderPublish configuration="ExportRelease" delete_existing_files="true" platform="Any CPU" target_folder="$PROJECT_DIR$/ChooseTheAncient/bin/ExportRelease/net9.0/publish" target_framework="net9.0" uuid_high="-4579733752963118431" uuid_low="-7345115561578809832" />
       <method v="2" />
     </configuration>
     <configuration name="Debug GDScript (Running session)" type="GDSCRIPT_DEBUG_RUN_CONFIGURATION" factoryName="GdScriptRunFactory">
       <option name="json" value="{&#10;  // Launch: &quot;Launch a new instance of the game&quot;,&#10;  // Attach: &quot;Attach to an already running game, which was started from the Godot Editor&quot;&#10;  &quot;request&quot; : &quot;Attach&quot;,&#10;  &quot;debugServer&quot; : 6006, // port should match the Debug Adapter port in the Godot Editor project settings.&#10;  &quot;scene&quot; : &quot;main&quot;, // main, current, res://path/to/file.tscn&#10;  &#10;  // &quot;playArgs&quot; : [ &quot;--editor&quot; ], // debugging a tool script&#10;  // &quot;playArgs&quot;: [&quot;--debug-collisions&quot;,&quot;--debug-navigation&quot;], // different options&#10;  &#10;  // one click deploy and debug via Godot Editor:&#10;  // &quot;platform&quot;: &quot;Android&quot;, // including Android, iOS, Web and W4 consoles&#10;  // &quot;device&quot;: &quot;0&quot;, // index of the device of a &quot;platform&quot; type&#10;}" />
       <method v="2" />
     </configuration>
-    <configuration name="Player GDScript" type="GDSCRIPT_DEBUG_RUN_CONFIGURATION" factoryName="GdScriptRunFactory">
+    <configuration name="Player (Current Scene, GDScript)" type="GDSCRIPT_DEBUG_RUN_CONFIGURATION" factoryName="GdScriptRunFactory">
+      <option name="json" value="{&#10;  // Launch: &quot;Launch a new instance of the game&quot;,&#10;  // Attach: &quot;Attach to an already running game, which was started from the Godot Editor&quot;&#10;  &quot;request&quot; : &quot;Launch&quot;,&#10;  &quot;debugServer&quot; : 6006, // port should match the Debug Adapter port in the Godot Editor project settings.&#10;  &quot;scene&quot; : &quot;current&quot;, // main, current, res://path/to/file.tscn&#10;  &#10;  // &quot;playArgs&quot; : [ &quot;--editor&quot; ], // debugging a tool script&#10;  // &quot;playArgs&quot;: [&quot;--debug-collisions&quot;,&quot;--debug-navigation&quot;], // different options&#10;  &#10;  // one click deploy and debug via Godot Editor:&#10;  // &quot;platform&quot;: &quot;Android&quot;, // including Android, iOS, Web and W4 consoles&#10;  // &quot;device&quot;: &quot;0&quot;, // index of the device of a &quot;platform&quot; type&#10;}" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Player (GDScript)" type="GDSCRIPT_DEBUG_RUN_CONFIGURATION" factoryName="GdScriptRunFactory">
       <option name="json" value="{&#10;  // Launch: &quot;Launch a new instance of the game&quot;,&#10;  // Attach: &quot;Attach to an already running game, which was started from the Godot Editor&quot;&#10;  &quot;request&quot; : &quot;Launch&quot;,&#10;  &quot;debugServer&quot; : 6006, // port should match the Debug Adapter port in the Godot Editor project settings.&#10;  &quot;scene&quot; : &quot;main&quot;, // main, current, res://path/to/file.tscn&#10;  &#10;  // &quot;playArgs&quot; : [ &quot;--editor&quot; ], // debugging a tool script&#10;  // &quot;playArgs&quot;: [&quot;--debug-collisions&quot;,&quot;--debug-navigation&quot;], // different options&#10;  &#10;  // one click deploy and debug via Godot Editor:&#10;  // &quot;platform&quot;: &quot;Android&quot;, // including Android, iOS, Web and W4 consoles&#10;  // &quot;device&quot;: &quot;0&quot;, // index of the device of a &quot;platform&quot; type&#10;}" />
       <method v="2" />
+    </configuration>
+    <configuration name="Player (Current Scene)" type="GodotCurrentScene" factoryName="Godot Current Scene" launchSource="FROM_GODOT_EDITOR">
+      <option name="EXE_PATH" value="C:\Users\ResistingFate\Downloads\megadot-4.5.1-m.14\MegaDot_v4.5.1-stable_mono_win64.exe" />
+      <option name="PROGRAM_PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\ResistingFate\RiderProjects\ChooseTheAncient" />
+      <option name="PASS_PARENT_ENVS" value="1" />
+      <option name="ENV_FILE_PATHS" value="" />
+      <option name="REDIRECT_INPUT_PATH" value="" />
+      <option name="MIXED_MODE_DEBUG" value="0" />
+      <option name="USE_MONO" value="0" />
+      <option name="RUNTIME_ARGUMENTS" value="" />
+      <option name="AUTO_ATTACH_CHILDREN" value="0" />
+      <option name="RUNTIME_TYPE" value="coreclr" />
+      <method v="2">
+        <option name="Build Solution" enabled="true" />
+      </method>
     </configuration>
     <configuration name=" dotnet test ChooseTheAncient.Tests" type="RunExe" factoryName=".NET Executable">
       <option name="EXE_PATH" value="$PROJECT_DIR$/../../../../Program Files/dotnet/dotnet.exe" />
@@ -245,8 +307,10 @@
       <item itemvalue=".NET Executable.Editor" />
       <item itemvalue=".NET Executable.SlayTheSpire2_Debug" />
       <item itemvalue=".NET Executable.Player" />
+      <item itemvalue="GDScript Start and Debug.Player (Current Scene, GDScript)" />
       <item itemvalue="GDScript Start and Debug.Debug GDScript (Running session)" />
-      <item itemvalue="GDScript Start and Debug.Player GDScript" />
+      <item itemvalue="GDScript Start and Debug.Player (GDScript)" />
+      <item itemvalue="Player (Current Scene).Player (Current Scene)" />
       <item itemvalue="Publish to folder.Publish ChooseTheAncient to folder" />
       <item itemvalue="Publish to folder.Publish ChooseTheAncient Tests to folder" />
     </list>
@@ -764,7 +828,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay" />
     <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in Coordinator consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;&#10;The new ChooseTheAncientConsoleCommands.cs  contains all the console commands. This adds an enum ConsoleSelectionResolutionMode that has SkipAndContinue and CancelFlow.&#10;SkipAndContinue is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;ConsoleCommands.cs also handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand." />
     <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open." />
     <MESSAGE value="Added localization files for translators to use as reference." />
@@ -789,7 +852,8 @@
     <MESSAGE value="GenerateMapPatch brougght back to test Darv in Act 4. Disabled Darv from any later acts." />
     <MESSAGE value="Deleted the GenerateMapPatch again." />
     <MESSAGE value="Updated ReadMe To handle bugs." />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated ReadMe To handle bugs." />
+    <MESSAGE value="Note that I lost some of my future commits I had on unofficial releases on my github. Hopefully I've missed nothing. On to the updates.&#10;&#10;Changed ChoseTheAncientStartRoom to an EventRoom expecting an AncientEventModel so ARAM MAYHEM can activate after the selection screen.&#10;&#10;Split TryGetLocalizedOptionndex in ChooseTheAncientConfig so it does no trun localization before they have been patched by the game." />
+    <option name="LAST_COMMIT_MESSAGE" value="Note that I lost some of my future commits I had on unofficial releases on my github. Hopefully I've missed nothing. On to the updates.&#10;&#10;Changed ChoseTheAncientStartRoom to an EventRoom expecting an AncientEventModel so ARAM MAYHEM can activate after the selection screen.&#10;&#10;Split TryGetLocalizedOptionndex in ChooseTheAncientConfig so it does no trun localization before they have been patched by the game." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

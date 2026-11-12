@@ -1,10 +1,9 @@
-using ChooseTheAncient.ChooseTheAncientCode;
 using ChooseTheAncient.Scripts;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
 
-namespace ChooseTheAncient;
+namespace ChooseTheAncient.ChooseTheAncientCode;
 
 [ModInitializer(nameof(Initialize))]
 public partial class MainFile : Node
