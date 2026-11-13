@@ -24,12 +24,14 @@ using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
+using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.RichTextTags;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Settings;
+using MegaCrit.Sts2.Core.Timeline.Epochs;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -301,6 +303,14 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         ["TANX"] = "res://scenes/events/background_scenes/tanx.tscn",
         ["VAKUU"] = "res://scenes/events/background_scenes/vakuu.tscn",
         ["NEOW"] = "res://scenes/events/background_scenes/neow.tscn",
+    };
+
+    private static readonly bool HasRuntimeAncientBackgroundSetup =
+        typeof(AncientEventModel).GetMethod("ConfigureBackgroundScene", new[] { typeof(Control) }) != null;
+
+    private static readonly Dictionary<string, Action<Node, IRunState?, int>> PreviewBackgroundConfigurators = new()
+    {
+        ["VAKUU"] = ConfigureVakuuPreview,
     };
 
     private static readonly AncientSceneConfig DefaultAncientSceneConfig =
@@ -5211,6 +5221,11 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             Node root = scene.Instantiate();
             refs.SceneMount.AddChild(root);
+            if (HasRuntimeAncientBackgroundSetup
+                && PreviewBackgroundConfigurators.TryGetValue(refs.Ancient.Id.Entry, out var configure))
+            {
+                configure(root, _localPlayer?.RunState, _nextActIndex);
+            }
             refs.SceneRoot = root;
             ApplySceneTransform(refs, hovered: false, animate: false);
         }
@@ -5218,6 +5233,29 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             ModLog.Error($"Failed to instantiate ancient scene for {refs.Ancient.Id.Entry} at '{scenePath}': {ex}");
         }
+    }
+
+    /// <summary>
+    /// Predicts Vakuu's destination-act art without recording the angry reveal.
+    /// </summary>
+    private static void ConfigureVakuuPreview(Node root, IRunState? runState, int targetActIndex)
+    {
+        if (root.GetNodeOrNull<TextureRect>("TextureRect") is not { } art)
+            return;
+
+        bool angry = false;
+        if (runState != null && runState.UnlockState.IsEpochRevealed<Ironclad7Epoch>())
+        {
+            angry = (runState.Players.Count == 1
+                     && !SaveManager.Instance.Progress.FtueCompleted.Contains("VAKUU_ANGRY_BG_SEEN"))
+                    || new Rng(unchecked(runState.Rng.Seed + (ulong)targetActIndex), "VAKUU_ANGRY_BG").NextBool();
+        }
+
+        string path = angry
+            ? "res://images/ancients/vakuu_angry.png"
+            : "res://images/ancients/vakuu_placeholder.png";
+        if (ResourceLoader.Exists(path) && GD.Load<Texture2D>(path) is { } texture)
+            art.Texture = texture;
     }
 
     private AncientSceneConfig GetSceneConfig(AncientEventModel ancient)
