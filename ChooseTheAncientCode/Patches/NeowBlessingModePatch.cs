@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
@@ -16,6 +17,7 @@ public static class NeowBlessingModePatch
     {
         public int Depth { get; set; }
         public IReadOnlyList<ModifierModel>? OriginalModifiers { get; set; }
+        public object? OriginalRunModels { get; set; }
     }
 
     private static readonly object LockObj = new();
@@ -91,9 +93,20 @@ public static class NeowBlessingModePatch
 
             if (state.Depth == 0)
             {
-                Traverse.Create(runState)
-                    .Property<IReadOnlyList<ModifierModel>>(nameof(RunState.Modifiers))
-                    .Value = Array.Empty<ModifierModel>();
+                try
+                {
+                    Traverse.Create(runState)
+                        .Property<IReadOnlyList<ModifierModel>>(nameof(RunState.Modifiers))
+                        .Value = Array.Empty<ModifierModel>();
+
+                    if (flow.BlitzDraftTask?.IsCompletedSuccessfully == true)
+                        state.OriginalRunModels = BlitzCompatibility.MaskRunModel(runState);
+                }
+                catch
+                {
+                    RestoreMaskedState(runState, state);
+                    throw;
+                }
 
                 ModLog.Info("Temporarily masked RunState.Modifiers so CTA-selected Neow uses blessing options instead of modifier rewards regardless of act.");
             }
@@ -102,6 +115,22 @@ public static class NeowBlessingModePatch
         }
 
         return runState;
+    }
+
+    private static void RestoreMaskedState(RunState runState, ModifierMaskState state)
+    {
+        try
+        {
+            if (state.OriginalRunModels != null)
+                BlitzCompatibility.RestoreRunModels(runState, state.OriginalRunModels);
+        }
+        finally
+        {
+            ActiveMasks.Remove(runState);
+            Traverse.Create(runState)
+                .Property<IReadOnlyList<ModifierModel>>(nameof(RunState.Modifiers))
+                .Value = state.OriginalModifiers ?? Array.Empty<ModifierModel>();
+        }
     }
 
     private static void EndModifierMask(RunState runState)
@@ -115,11 +144,7 @@ public static class NeowBlessingModePatch
             if (state.Depth > 0)
                 return;
 
-            Traverse.Create(runState)
-                .Property<IReadOnlyList<ModifierModel>>(nameof(RunState.Modifiers))
-                .Value = state.OriginalModifiers ?? Array.Empty<ModifierModel>();
-
-            ActiveMasks.Remove(runState);
+            RestoreMaskedState(runState, state);
             ModLog.Debug("Restored RunState.Modifiers immediately after CTA-selected Neow finished building blessing options.");
         }
     }

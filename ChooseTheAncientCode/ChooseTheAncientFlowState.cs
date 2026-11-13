@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ChooseTheAncient.ChooseTheAncientCode;
 
@@ -18,6 +19,7 @@ public sealed class ChooseTheAncientFlowState
     public bool FlowInProgress { get; set; }
     public bool ContinueEnterNextAct { get; set; }
     public bool ModifierBootstrapCompleted { get; set; }
+    internal Task? BlitzDraftTask { get; set; }
     public bool ForceNeowBlessingMode { get; set; }
     private ConsoleSelectionResolutionRequest? _consoleSelectionResolutionRequest;
 

@@ -636,6 +636,14 @@ internal static class ChooseTheAncientConsoleBallotRunner
             return;
         }
 
+        if (BlitzCompatibility.IsBlitzRun(runState))
+        {
+            RunManager.Instance.MapSelectionSynchronizer.OnLocationChanged(runState.MapLocation);
+            flow.ConsoleMapSelectionRebasePending = false;
+            ModLog.Info($"{commandName} rebased Blitz map votes to {runState.MapLocation}.");
+            return;
+        }
+
         flow.ConsoleMapSelectionRebasePending = true;
         if (!TryApplyPendingMapSelectionRebase(
                 runState,

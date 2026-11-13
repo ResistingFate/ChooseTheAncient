@@ -22,7 +22,7 @@
 - Someone wants Act Count to be a setting for each act
 
 TODO:
-- Darv shows in act 4+, make sure he doesn't uncless it's newgameplus type mods, not act 4 heart mods. Or ACP filters act 4.
+- Darv shows in act 4+, make sure he doesn't unless it's newgameplus type mods, not act 4 heart mods. Or ACP filters act 4.
 - Legacy options or design in general conflicts with Hades Ancient's removal of base game ancients.
 - Bug needs finding and fixing for someone not able to get any selection screen to work.
 - Another bug where only works with console commands.
@@ -34,12 +34,15 @@ TODO:
 
 ### Fixes
 - Removed compatibility code for earlier game versions
-- Vakuu's ancient repositioned due to his wounded art
+- Vakuu's ancient default art or wounded art now shows instead of being blank
 
 ### Technical
 - shuffles have now been changed to UnstableShuffle in Megacrit's Extensions.
 - A new MapVoteCompatibilty.cs was added to deal with Vote clearing still needing a separate call in v0.111.0 compared to the new update.
 - removed DevConsoleCompatibility.cs, InputNavigationCompatibility.cs, HotkeyIconCompatibility.cs, and SeedCompatibility.cs as the main and beta have both updated past this. Also the
+- top bar map icons update in blitz mode
+- blitz rewards apply before ancient selection just like custom modifiers
+- Neow now gives rewards in blitz
 
 ## [v1.3.4] - Compatability with ARAM MAYHEM
 

@@ -1,4 +1,5 @@
 using ChooseTheAncient.Scripts;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
@@ -20,5 +21,6 @@ public partial class MainFile : Node
         BaseLibSettingsInterop.DeferredRegister();
         Harmony harmony = new(ModId);
         harmony.PatchAll();
+        BlitzCompatibility.PatchTopBarIcon(harmony);
     }
 }

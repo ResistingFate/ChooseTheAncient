@@ -2137,6 +2137,9 @@ public static class ChooseTheAncientHelpers
      * native map node without rebuilding the map screen.
      */
     {
+        if (BlitzCompatibility.IsBlitzRun(runState))
+            return BlitzCompatibility.RefreshChosenIcon(runState, chosenAncient);
+
         NMapScreen? mapScreen = NMapScreen.Instance;
         if (mapScreen == null)
             return false;
@@ -2266,6 +2269,12 @@ public static class ChooseTheAncientHelpers
     {
         runState.Map.StartingMapPoint.PointType = MapPointType.Ancient;
         RewriteCurrentMapPointHistoryToAncient(runState, chosenAncient);
+
+        if (BlitzCompatibility.IsBlitzRun(runState))
+        {
+            ApplyChosenAncientIconToStartingMapPoint(runState, chosenAncient);
+            return;
+        }
 
         NMapScreen? mapScreen = NMapScreen.Instance;
         if (mapScreen != null)

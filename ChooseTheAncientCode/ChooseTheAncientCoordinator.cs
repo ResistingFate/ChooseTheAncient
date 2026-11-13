@@ -20,6 +20,7 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using ChooseTheAncient.ChooseTheAncientCode.Rooms;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Extensions;
@@ -176,8 +177,7 @@ public static class ChooseTheAncientCoordinator
 
                 ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
                 ChooseTheAncientHelpers.SetChosenAncient(firstAct, vanillaAncient);
-                await RunModifierBootstrapAsync(runState, orderedPlayers);
-                flow.ModifierBootstrapCompleted = true;
+                await RunAct1StartingRewardsAsync(runState, flow, orderedPlayers);
                 ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
                 SetForceNeowBlessingModeIfNeeded(flow, vanillaAncient, "empty Act 1 ballot fallback");
                 flow.ResolvedActs.Add(0);
@@ -249,8 +249,15 @@ public static class ChooseTheAncientCoordinator
 
             ModLog.Info($"Chosen starting ancient for Act 1 from starting-room flow: {chosen.Id.Entry}");
 
-            await RunModifierBootstrapAsync(runState, orderedPlayers);
-            flow.ModifierBootstrapCompleted = true;
+            if (BlitzCompatibility.CanDraft(runState) && localScreen != null)
+            {
+                localScreen.CloseScreen();
+                localScreen = null;
+                await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
+                ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
+            }
+
+            await RunAct1StartingRewardsAsync(runState, flow, orderedPlayers);
             ThrowIfConsoleSelectionCanceled(flow, targetActIndex: 0);
             SetForceNeowBlessingModeIfNeeded(flow, chosen, "Act 1 choice resolved");
 
@@ -1599,6 +1606,26 @@ public static class ChooseTheAncientCoordinator
         return true;
     }
 
+
+    private static async Task RunAct1StartingRewardsAsync(
+        RunState runState,
+        ChooseTheAncientFlowState flow,
+        IReadOnlyList<Player> orderedPlayers)
+    {
+        if (BlitzCompatibility.CanDraft(runState))
+        {
+            if (flow.BlitzDraftTask == null)
+            {
+                ModLog.Info("Running the native Blitz starting draft before Ancient rewards.");
+                flow.BlitzDraftTask = BlitzCompatibility.DraftAsync(orderedPlayers);
+            }
+
+            await flow.BlitzDraftTask;
+            await ChooseTheAncientHelpers.WaitForProcessFramesAsync(2);
+        }
+
+        await EnsureModifierBootstrapCompletedAsync(runState, flow, orderedPlayers);
+    }
 
     public static async Task EnsureConsoleModifierBootstrapAsync(
         RunState runState,
