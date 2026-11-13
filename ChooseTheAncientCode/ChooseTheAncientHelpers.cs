@@ -281,8 +281,8 @@ public static class ChooseTheAncientHelpers
         if (streamParts.Length == 0)
             throw new ArgumentException("At least one RNG stream part is required.", nameof(streamParts));
 
-        return new Rng(
-            runState.Rng.Seed,
+        return SeedCompatibility.CreateNamedRng(
+            SeedCompatibility.GetRunSeed(runState),
             BuildRngStreamName(streamParts));
     }
 
@@ -1195,7 +1195,7 @@ public static class ChooseTheAncientHelpers
         EventOwnerBackingField.SetValue(syntheticNeow, player);
 
         ulong bootstrapSeed = ComputeVanillaEventSeedForCurrentGame(runState, player, syntheticNeow);
-        Rng bootstrapRng = new Rng(bootstrapSeed);
+        Rng bootstrapRng = SeedCompatibility.CreateRng(bootstrapSeed);
         EventRngBackingField.SetValue(syntheticNeow, bootstrapRng);
 
         syntheticNeow.CalculateVars();
@@ -1358,10 +1358,19 @@ public static class ChooseTheAncientHelpers
      */
     {
         int ownerContribution = eventModel.IsShared ? 0 : runState.GetPlayerSlotIndex(player);
+        ulong runSeed = SeedCompatibility.GetRunSeed(runState);
+        if (SeedCompatibility.Uses64BitSeeds)
+        {
+            return unchecked(
+                runSeed
+                + (ulong)ownerContribution
+                + SeedCompatibility.GetDeterministicHash64(eventModel.Id.Entry));
+        }
+
         return unchecked(
-            runState.Rng.Seed
-            + (ulong)ownerContribution
-            + StringHelper.GetDeterministicHashCode(eventModel.Id.Entry));
+            (uint)runSeed
+            + (uint)ownerContribution
+            + SeedCompatibility.GetDeterministicHash32(eventModel.Id.Entry));
     }
 
     public static Rng CreatePreviewEventRng(RunState runState, Player player, EventModel eventModel)
@@ -1369,7 +1378,7 @@ public static class ChooseTheAncientHelpers
      * Creates the vanilla event RNG used when simulating reward previews or modifier bootstrap events that should not use CTA reward offsets.
      */
     {
-        return new Rng(
+        return SeedCompatibility.CreateRng(
             ComputeVanillaEventSeedForCurrentGame(runState, player, eventModel));
     }
 
@@ -1387,7 +1396,7 @@ public static class ChooseTheAncientHelpers
         int normalActIndex = GetNormalMinimumActIndexForAncient(runState, eventModel);
         int actOffset = targetActIndex - normalActIndex;
 
-        return unchecked(seed + (ulong)(long)actOffset);
+        return SeedCompatibility.AddSignedOffset(seed, actOffset);
     }
 
     public static Rng CreateAncientEventRngForTargetAct(
@@ -1399,7 +1408,7 @@ public static class ChooseTheAncientHelpers
      * Creates the RNG CTA should use for ancient reward previews or reveals in a target act.
      */
     {
-        return new Rng(
+        return SeedCompatibility.CreateRng(
             ComputeAncientEventSeedForTargetAct(
                 runState,
                 player,
@@ -1539,7 +1548,7 @@ public static class ChooseTheAncientHelpers
                 owner,
                 ancient,
                 targetActIndex);
-            Rng rng = new Rng(seed);
+            Rng rng = SeedCompatibility.CreateRng(seed);
 
             EventRngBackingField.SetValue(ancient, rng);
 
@@ -2279,9 +2288,10 @@ public static class ChooseTheAncientHelpers
         NMapScreen? mapScreen = NMapScreen.Instance;
         if (mapScreen != null)
         {
-            mapScreen.SetMap(
+            SeedCompatibility.SetMap(
+                mapScreen,
                 runState.Map,
-                runState.Rng.Seed,
+                SeedCompatibility.GetRunSeed(runState),
                 clearDrawings: true);
 
             bool iconUpdated =

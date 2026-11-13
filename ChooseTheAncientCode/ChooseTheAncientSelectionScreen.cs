@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using ChooseTheAncient.ChooseTheAncientCode.Compatibility;
 using ChooseTheAncient.ChooseTheAncientCode.Interop;
 using MegaCrit.Sts2.Core.Audio.Debug;
 using MegaCrit.Sts2.Core.Assets;
@@ -24,7 +25,6 @@ using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
-using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.RichTextTags;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
@@ -599,8 +599,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
     private TransitionPerformanceProbe? _activeTransitionPerformanceProbe;
     private PackedScene? _hotkeyIconScene;
-    private bool _reportedHotkeyInstantiationFailure;
-    private bool _reportedHotkeyUpdateFailure;
 
     private readonly List<SlotRefs> _slots = new();
     private readonly List<Player> _orderedPlayers = new();
@@ -780,13 +778,8 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         SyncConfigFromSavedSettings();
 
-        _hotkeyIconScene = ResourceLoader.Exists(HotkeyIconScenePath)
-            ? GD.Load<PackedScene>(HotkeyIconScenePath)
-            : null;
-        if (_hotkeyIconScene == null)
-        {
-            ModLog.Info("CTA could not load the adaptive hotkey icon scene. Using controller textures.");
-        }
+        _hotkeyIconScene =
+            HotkeyIconCompatibility.TryLoadScene(HotkeyIconScenePath);
 
         PackedScene? layoutScene = GD.Load<PackedScene>(LayoutScenePath);
         if (layoutScene == null)
@@ -2999,25 +2992,15 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             try
             {
-                voteButtonPrompt = _hotkeyIconScene.Instantiate<NHotkeyIcon>();
+                voteButtonPrompt = _hotkeyIconScene.Instantiate<Control>();
             }
             catch (Exception ex)
             {
-                if (!_reportedHotkeyInstantiationFailure)
-                {
-                    _reportedHotkeyInstantiationFailure = true;
-                    ModLog.Warn($"Could not instantiate CTA's adaptive hotkey icon: {ex.Message}");
-                }
+                HotkeyIconCompatibility.ReportInstantiationFailure(ex);
             }
         }
         
-        voteButtonPrompt ??= new TextureRect
-        {
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            FocusMode = FocusModeEnum.None,
-        };
+        voteButtonPrompt ??= HotkeyIconCompatibility.CreateLegacyControllerPrompt();
 
         Control previewAnchor = cardRoot.GetNode<Control>("PreviewAnchor");
         Control reactionAnchor = cardRoot.GetNode<Control>("ReactionAnchor");
@@ -4679,7 +4662,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
             : 1f;
 
         bool keyboardOnly = NControllerManager.Instance is { } controllerManager
-            && controllerManager.InputType == InputType.KeyboardOnlyMode;
+            && InputNavigationCompatibility.IsKeyboardOnlyMode(controllerManager);
         float iconHeight = Mathf.Clamp(32f * screenScale, 28f, 40f);
         float iconWidth = keyboardOnly
             ? Mathf.Clamp(72f * screenScale, 64f, 88f)
@@ -5248,7 +5231,10 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         {
             angry = (runState.Players.Count == 1
                      && !SaveManager.Instance.Progress.FtueCompleted.Contains("VAKUU_ANGRY_BG_SEEN"))
-                    || new Rng(unchecked(runState.Rng.Seed + (ulong)targetActIndex), "VAKUU_ANGRY_BG").NextBool();
+                    || SeedCompatibility.CreateNamedRng(
+                         SeedCompatibility.AddSignedOffset(
+                             SeedCompatibility.GetRunSeed(runState), targetActIndex),
+                         "VAKUU_ANGRY_BG").NextBool();
         }
 
         string path = angry
@@ -6225,35 +6211,6 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         }));
     }
 
-    private bool UpdateVoteButtonPromptInput(Control icon)
-    {
-        try
-        {
-            string input = MegaInput.select.ToString();
-            if (icon is NHotkeyIcon hotkeyIcon)
-            {
-                hotkeyIcon.UpdateInput(input);
-                return true;
-            }
-
-            if (icon is TextureRect textureIcon)
-            {
-                textureIcon.Texture = NInputManager.Instance?.GetHotkeyIcon(input);
-                return textureIcon.Texture != null;
-            }
-        }
-        catch (Exception ex)
-        {
-            if (!_reportedHotkeyUpdateFailure)
-            {
-                _reportedHotkeyUpdateFailure = true;
-                ModLog.Warn($"Could not update CTA's vote-button input glyph: {ex.Message}");
-            }
-        }
-
-        return false;
-    }
-
     private void UpdateVoteButtonPrompts()
     {
         /*
@@ -6262,7 +6219,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
         NControllerManager? controllerManager = NControllerManager.Instance;
         bool showDirectionalPrompts =
             controllerManager != null &&
-            controllerManager.IsUsingDirectionalNavigation &&
+            InputNavigationCompatibility.IsUsingDirectionalNavigation(controllerManager) &&
             ShowControllerHotkeys;
 
         SlotRefs? activeSlot = showDirectionalPrompts ? GetActiveVoteSlotForPrompt() : null;
@@ -6277,7 +6234,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
 
             bool hasRenderablePrompt =
                 showDirectionalPrompts &&
-                UpdateVoteButtonPromptInput(icon);
+                HotkeyIconCompatibility.UpdateInput(icon, MegaInput.select);
 
             LayoutVoteButtonPrompt(refs);
 
@@ -6347,7 +6304,7 @@ public sealed partial class ChooseTheAncientSelectionScreen : Control, IOverlayS
          */
         NControllerManager? controllerManager = NControllerManager.Instance;
         if (controllerManager == null ||
-            !controllerManager.IsUsingDirectionalNavigation)
+            !InputNavigationCompatibility.IsUsingDirectionalNavigation(controllerManager))
         {
             _lastControllerVisualFocusOwner = null;
             return false;

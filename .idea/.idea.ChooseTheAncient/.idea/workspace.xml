@@ -10,18 +10,21 @@
     <configurations />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/BlitzCompatibility.cs" afterDir="false" />
+    <list default="true" id="36c23277-674a-4a43-937d-65cf52bf0dae" name="Changes" comment="False alarm. Megacrit didn't update the main branch so compatability was brought back for now. And changes to BlitzCompatibility.cs were made.">
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/DevConsoleCompatibility.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/HotkeyIconCompatibility.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/InputNavigationCompatibility.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/InputNavigationCompatibility.cs.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/SeedCompatibility.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/SeedCompatibility.cs.uid" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/editor/filesystem_cache10" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.godot/uid_cache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.godot/uid_cache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ChooseTheAncient/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientFlowState.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientFlowState.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncient.json" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncient.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/MainFile.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/MainFile.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowBlessingModePatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/NeowBlessingModePatch.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/BlitzCompatibility.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Compatibility/BlitzCompatibility.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleBallotPreprocessPatch.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleBallotPreprocessPatch.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,11 +64,13 @@
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/ChooseTheAncientDialogueLocalizationTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientSubsetCompatibilityTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/tests/ChooseTheAncient.Tests/SharedAncientWeightSamplingTests.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncient.json" root0="FORCE_HIGHLIGHTING" />
     <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/ChooseTheAncientConsoleCommands.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/ChooseTheAncientCoordinator.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/ChooseTheAncientFlowState.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/ChooseTheAncientHelpers.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/ChooseTheAncientSelectionScreen.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Compatibility/BlitzCompatibility.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/MainFile.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/ChooseTheAncientConsoleBallotPreprocessPatch.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://C:/Users/ResistingFate/RiderProjects/ChooseTheAncient/ChooseTheAncientCode/Patches/NMapScreenStartingAncientPatch.cs" root0="SKIP_HIGHLIGHTING" />
@@ -82,61 +87,61 @@
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0463918093527587" />
-      <entry key="MS500" value="1.6531131670545867" />
-      <entry key="S2" value="3.900602522287718" />
-      <entry key="S5" value="7.2994822792679335" />
-      <entry key="S10" value="10.843938927576527" />
-      <entry key="S30" value="20.697742878663046" />
-      <entry key="S60" value="28.645905798437827" />
-      <entry key="M2" value="35.02453998845959" />
-      <entry key="M5" value="40.038026085968895" />
-      <entry key="M10" value="42.59569489326911" />
-      <entry key="M15" value="46.643694307915084" />
-      <entry key="M30" value="70.44127863163953" />
-      <entry key="H1" value="119.67363844295464" />
-      <entry key="H2" value="178.7492919054984" />
-      <entry key="H4" value="234.2685339304465" />
-      <entry key="D1" value="329.3665669961118" />
-      <entry key="W1" value="356.8793548152879" />
+      <entry key="MS100" value="1.0000013346680305" />
+      <entry key="MS500" value="1.1181962393103826" />
+      <entry key="S2" value="2.4797155056728846" />
+      <entry key="S5" value="4.456868944107617" />
+      <entry key="S10" value="6.0954666612011925" />
+      <entry key="S30" value="8.261363544640517" />
+      <entry key="S60" value="11.831318793636541" />
+      <entry key="M2" value="18.49841767989704" />
+      <entry key="M5" value="28.240786664637138" />
+      <entry key="M10" value="41.35868867033738" />
+      <entry key="M15" value="55.44183628658142" />
+      <entry key="M30" value="93.8172362821972" />
+      <entry key="H1" value="155.9912984313231" />
+      <entry key="H2" value="233.99694197045102" />
+      <entry key="H4" value="309.39184350604654" />
+      <entry key="D1" value="434.2263531416903" />
+      <entry key="W1" value="469.4650795092439" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="0.0" />
-      <entry key="S2" value="0.0" />
-      <entry key="S5" value="4.136871627324877E-301" />
-      <entry key="S10" value="1.1783775144619632E-150" />
-      <entry key="S30" value="2.6042640622369823E-50" />
-      <entry key="S60" value="3.218526763703656E-25" />
-      <entry key="M2" value="1.1338445335102861E-12" />
-      <entry key="M5" value="3.831324151246532E-5" />
-      <entry key="M10" value="0.012878852436392411" />
-      <entry key="M15" value="0.09758993792805234" />
-      <entry key="M30" value="0.9009955020834017" />
-      <entry key="H1" value="3.1220635754502406" />
-      <entry key="H2" value="6.043546791434046" />
-      <entry key="H4" value="8.489863963005469" />
-      <entry key="D1" value="11.322802345276548" />
-      <entry key="W1" value="11.900713308503557" />
+      <entry key="MS100" value="7.028111787257112E-12" />
+      <entry key="MS500" value="0.005879870107074481" />
+      <entry key="S2" value="0.2769120999132445" />
+      <entry key="S5" value="0.5983244816153572" />
+      <entry key="S10" value="0.7735143706585915" />
+      <entry key="S30" value="0.9179579671766851" />
+      <entry key="S60" value="0.9581012301300342" />
+      <entry key="M2" value="0.9788264555732207" />
+      <entry key="M5" value="0.9914762023603901" />
+      <entry key="M10" value="0.99611498165836" />
+      <entry key="M15" value="1.006567173827953" />
+      <entry key="M30" value="1.2784507017869193" />
+      <entry key="H1" value="2.7393443120880896" />
+      <entry key="H2" value="5.511474214408647" />
+      <entry key="H4" value="8.335346493961595" />
+      <entry key="D1" value="12.050311007252983" />
+      <entry key="W1" value="12.859371070444345" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9622891171869908" />
-      <entry key="MS500" value="1.6245749814474246" />
-      <entry key="S2" value="3.884283381101512" />
-      <entry key="S5" value="7.2863411259463415" />
-      <entry key="S10" value="10.833731836083661" />
-      <entry key="S30" value="20.691351987661374" />
-      <entry key="S60" value="28.64156647208895" />
-      <entry key="M2" value="35.02191514367758" />
-      <entry key="M5" value="40.03686751222437" />
-      <entry key="M10" value="42.607864156780494" />
-      <entry key="M15" value="46.74053254633678" />
-      <entry key="M30" value="71.34053226103656" />
-      <entry key="H1" value="122.79246504406332" />
-      <entry key="H2" value="184.78931655283853" />
-      <entry key="H4" value="242.75572396638492" />
-      <entry key="D1" value="340.68872561528514" />
-      <entry key="W1" value="368.77996991683847" />
+      <entry key="MS100" value="0.9726562452046859" />
+      <entry key="MS500" value="1.1119985670989534" />
+      <entry key="S2" value="2.5355640344619848" />
+      <entry key="S5" value="4.777384312423383" />
+      <entry key="S10" value="6.662083482960235" />
+      <entry key="S30" value="9.088904403278448" />
+      <entry key="S60" value="12.740872594476013" />
+      <entry key="M2" value="19.4519704367786" />
+      <entry key="M5" value="29.22184149003672" />
+      <entry key="M10" value="42.34944308018416" />
+      <entry key="M15" value="56.44469796168696" />
+      <entry key="M30" value="95.09325911017514" />
+      <entry key="H1" value="158.7278661825711" />
+      <entry key="H2" value="239.50529104708644" />
+      <entry key="H4" value="317.7246291076182" />
+      <entry key="D1" value="446.2759937512389" />
+      <entry key="W1" value="482.32434668037087" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -840,8 +845,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="Added localization files for translators to use as reference." />
-    <MESSAGE value="Added 4 console commands in ChooseTheAncientConsoleCommands.cs while adjusting logic in Coordinator, FlowState, and SelectionScreen. These are ctaact, ctastay, ctaskip, ctaffsay.&#10;&#10;Coordinator and flow were heavily touched to implement the cmds functions, with selection screen preforming some removing of extra screens and showing and hiding the supressed ancient dialouge and preview.&#10;An ChooseTheAncientFlowCompletion enum was made in flowstate consisting of Completed, Cancled, Falied to handle the console command outputs or states the selection screen ends up.&#10;Completed means the ballot result was applied and the command may enter the Ancient room.&#10;Canceled means another console command superseded it, so temporary state should be restored without treating it as an error.&#10;Failed means the flow could not complete, such as an invalid act model or a caught console-ballot failure.&#10;FlowState also adds an enum ConsoleSelectionResolutionMode that has SkipBallot and CancelFlow.&#10;SkipBallot is for ctaskip when the ballot is canceled and progression continues.&#10;CancelFlow is used when a new ctaact or ctastay replaces an older active command.&#10;&#10;The new ConsoleCommands.cs handles net issues to handle error cases where multiple players use commands one after another. This is because any players command will affect all players equally with the exception of ctaffsay that is just changing what is visible on the local screen. This is why a custom message is added.&#10;&#10;Harmony Patches are made to Runmanager InitializeShared and DevConsole ProcessCommand and NMapScreen.Open.&#10;&#10;The custom message is necessary. ctaact and ctastay return a task that remains incomplete while the selection ballot is open. Therefore the networked console action remains active until the ballot resolves. When multiple are done, they'd normally be in a queue for all peers but won't resolve as the selection stops it from finishing. The custom message allows them to cancel and finish." />
     <MESSAGE value="Added localization folder with translation references." />
     <MESSAGE value="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.s&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching." />
     <MESSAGE value="Overhauled the transition flow for act 2, 3 and onwards so that instead of using EnterNextActPatch.cs we instead use a new route to show the selection screen. This allows the next act map to load behind and be visible to the player if they press it. After selecting an ancient, the ancient should immediately show just like how it works in the console commands. It should also allow us to simplify the current ctaact commands to act commands.&#10;&#10;patches were added:&#10;-EnterActStartingAncientPatch.cs&#10;-NMapScreenStartingAncientPatch.cs&#10;- SelectonScreenMainMenuCleanupPatch.cs&#10;-UnresolvedAcctStartMapIconPatch.cs&#10;&#10;The EnterNextActPatch was removed. Act1StartMapIconPatch was removed. SetCurrentRoomPatch was removed.&#10;&#10;Work on meassuring the performance of transitions was done to work out the lag spike in round transitions.&#10;The following performance improvements were made:&#10;-tween transition is smooth. The full list is here:&#10;-retained finalist Ancient viewports;&#10;-pre-layout before preview creation;&#10;-autosize-once preview setup;&#10;-skipping redundant layout/theme writes;&#10;-inline-image prewarming;&#10;-reduced config polling.&#10;The big things are the ancient finalists not being remade, the reduced config polling, and the prewarm asset caching." />
@@ -865,7 +868,9 @@
     <MESSAGE value="Note that I lost some of my future commits I had on unofficial releases on my github. Hopefully I've missed nothing. On to the updates.&#10;&#10;Changed ChoseTheAncientStartRoom to an EventRoom expecting an AncientEventModel so ARAM MAYHEM can activate after the selection screen.&#10;&#10;Split TryGetLocalizedOptionndex in ChooseTheAncientConfig so it does no trun localization before they have been patched by the game." />
     <MESSAGE value="Moved the MainFile inside Code folder, to fit inline with recent mod development changes. Apparently this fixes bugs that occur when godot bridge is enabled." />
     <MESSAGE value="Beta v0.113.0 update.&#10;&#10;shuffles have now been changed to UnstableShuffle in Megacrit's Extensions.&#10;&#10;A new MapVoteCompatibilty.cs was added to deal with Vote clearing still needing a separate call in v0.111.0 compared to the new update.&#10;&#10;removed DevConsoleCompatibility.cs, InputNavigationCompatibility.cs, HotkeyIconCompatibility.cs, and SeedCompatibility.cs as the main and beta have both updated past this. Also the" />
-    <option name="LAST_COMMIT_MESSAGE" value="Beta v0.113.0 update.&#10;&#10;shuffles have now been changed to UnstableShuffle in Megacrit's Extensions.&#10;&#10;A new MapVoteCompatibilty.cs was added to deal with Vote clearing still needing a separate call in v0.111.0 compared to the new update.&#10;&#10;removed DevConsoleCompatibility.cs, InputNavigationCompatibility.cs, HotkeyIconCompatibility.cs, and SeedCompatibility.cs as the main and beta have both updated past this. Also the" />
+    <MESSAGE value="Added Blitz compatibility to the flow so Custom Modifiers run after Blitz rewards and that Neow still gives their blessings." />
+    <MESSAGE value="Added code in selection screen so if the ancient is Vakuu it loads the default or angry texture for the player." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added code in selection screen so if the ancient is Vakuu it loads the default or angry texture for the player." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

@@ -11,7 +11,6 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
-using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -116,9 +115,10 @@ internal static class BlitzCompatibility
             return;
         }
 
-        string iconName = NNormalMapPoint.IconName(MapPointType.Unknown);
-        var icon = GD.Load<Texture2D>(NNormalMapPoint.IconPath(iconName));
-        var outline = GD.Load<Texture2D>(NNormalMapPoint.OutlinePath(iconName));
+        var icon = GD.Load<Texture2D>(
+            "res://images/atlases/ui_atlas.sprites/map/icons/map_unknown.tres");
+        var outline = GD.Load<Texture2D>(
+            "res://images/atlases/compressed_atlas.sprites/map_unknown_outline.tres");
         if (icon != null && outline != null)
             SetTextures(__instance, icon, outline);
     }
